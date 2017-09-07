@@ -1,0 +1,12 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Yobatis
+Bundle-SymbolicName: org.nalby.yobatis;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Require-Bundle: org.eclipse.core.commands,
+ org.eclipse.ui.workbench,
+ org.eclipse.jface,
+ org.eclipse.ui
+Bundle-ClassPath: lib/dom4j-2.0.1.jar,
+ .
