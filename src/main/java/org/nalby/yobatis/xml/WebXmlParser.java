@@ -2,21 +2,14 @@ package org.nalby.yobatis.xml;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
-import org.dom4j.io.SAXReader;
-import org.nalby.yobatis.util.Expect;
 
-public class WebXmlParser {
-
-	//The maximum size of the web.xml
-	private static final int MAX_STREAM_SIZE = 5 * 1024 * 1024;
+public class WebXmlParser extends BasicXmlParser {
 
 	private static final String WEB_APP_TAG = "web-app";
 
@@ -37,10 +30,6 @@ public class WebXmlParser {
 	//Fully qualified class name of the spring dispatcher servlet.
 	private static final String DISPATCHER_SERVLET_FQCN = "org.springframework.web.servlet.DispatcherServlet";
 		
-	private static final List<Element> EMPTY_LIST = new ArrayList<Element>(0);
-
-	private Document document;
-
 	/**
 	 * Construct {@code Document} from the {@code inputStream},
 	 * the caller needs to be responsible for closing the stream.
@@ -49,23 +38,13 @@ public class WebXmlParser {
 	 * @throws DocumentException if the input stream does not represent a valid xml document.
 	 */
 	public WebXmlParser(InputStream inputStream) throws IOException, DocumentException {
-		Expect.asTrue(inputStream != null
-				&& inputStream.available() <= MAX_STREAM_SIZE
-				&& inputStream.available() > 0,
-				"invalid input stream");
-		SAXReader saxReader = new SAXReader();
-		document = saxReader.read(inputStream);
-		if (document == null || document.getRootElement() == null
-				|| !WEB_APP_TAG.equals(document.getRootElement().getName())) {
-			throw new DocumentException("Unpexpected document.");
-		}
+		super(inputStream, WEB_APP_TAG);
 	}
 
 	
 	private List<Element> selectElements(String elementName) {
 		Element root = document.getRootElement();
-		List<Element> result = root.elements(elementName);
-		return result == null ? EMPTY_LIST : result;
+		return root.elements(elementName);
 	}
 
 	
