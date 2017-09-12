@@ -9,7 +9,7 @@ import org.dom4j.Element;
 import org.dom4j.Namespace;
 import org.dom4j.QName;
 
-public class SpringSuperXmlParser extends BasicXmlParser {
+public class RootSpringXmlParser extends BasicXmlParser {
 	
 	private static final String BEANS_TAG = "beans";
 	
@@ -18,7 +18,7 @@ public class SpringSuperXmlParser extends BasicXmlParser {
 	
 	private static final String P_NAMESPACE = "http://www.springframework.org/schema/p";
 
-	public SpringSuperXmlParser(InputStream inputStream) throws DocumentException, IOException {
+	public RootSpringXmlParser(InputStream inputStream) throws DocumentException, IOException {
 		super(inputStream, BEANS_TAG);
 	}
 	
