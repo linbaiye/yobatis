@@ -1,4 +1,4 @@
-package org.nalby.yobatis.xml;
+package org.nalby.yobatis.structure;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
