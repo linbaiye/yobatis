@@ -50,5 +50,16 @@ public class SpringSuperXmlParserTests {
 			assertTrue("test".equals(parser.getDbUsername()));
 		}
 	}
+	
+	@Test
+	public void testMultipleXmlSegements() throws DocumentException, IOException {
+		String xml = "<beans><bean class=\"org.apache.commons.dbcp.BasicDataSource\"/></beans>";
+		RootSpringXmlParser parser =  new RootSpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		System.out.println(parser.getDbUsername());
+		assertTrue(parser.getDbUsername() == null);
+		xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\"><bean class=\"org.apache.commons.dbcp.BasicDataSource\" p:username=\"test\"/></beans>";
+		parser.appendSpringXmlConfig(new ByteArrayInputStream(xml.getBytes()));
+		assertTrue("test".equals(parser.getDbUsername()));
+	}
 
 }
