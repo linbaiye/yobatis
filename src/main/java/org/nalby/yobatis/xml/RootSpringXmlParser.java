@@ -112,4 +112,15 @@ public class RootSpringXmlParser extends BasicXmlParser {
 		return propertyValueFromDatasources("password");
 	}
 
+	/**
+	 * Get the url from the datasource bean. if there are multiple
+	 * datasource beans, the first one will be used.
+	 * 
+	 * @return the url if there is one, null else.
+	 */
+	public String getDbUrl() {
+		return propertyValueFromDatasources("url");
+	}
+
+
 }
