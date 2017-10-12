@@ -7,6 +7,7 @@ import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.handlers.HandlerUtil;
+import org.nalby.yobatis.structure.MybatisGeneratorConfigGenerator;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
 
@@ -21,7 +22,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 				project.open(null);
 			}
 			String home = Platform.getUserLocation().getURL().getPath();
-			WebXmlParser webXmlParser = new WebXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/src/main/webapp/WEB-INF/web.xml"));
+			WebXmlParser webXmlParser = new WebXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/.m2/repository/" + "/src/main/webapp/WEB-INF/web.xml"));
 			Set<String> configs = webXmlParser.getServletConfigLocation();
 			String tmp = null;
 			for (String k: configs) {
@@ -29,9 +30,13 @@ public class YobatisGenerationHandler extends AbstractHandler {
 				break;
 			}*/
 			Project project = EclipseProject.build("learn");
-			IWorkbenchWindow window = HandlerUtil
+			/*IWorkbenchWindow window = HandlerUtil
 					.getActiveWorkbenchWindowChecked(event);
-			MessageDialog.openInformation(window.getShell(), "Yobatis", project.getDatabaseUrl());
+			MessageDialog.openInformation(window.getShell(), "Yobatis", project.getDatabaseConnectorPath());*/
+			MybatisGeneratorConfigGenerator generator = new MybatisGeneratorConfigGenerator(project);
+			generator.generate();
+			//project.wirteGeneratorConfigFile(path, source);
+			//project.wirteGeneratorConfigFile();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

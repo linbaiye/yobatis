@@ -19,4 +19,10 @@ public abstract class Project {
 	
 	public abstract String getDatabaseDriverClassName();
 	
+	public abstract String getDatabaseConnectorPath();
+
+	public abstract String getDatabaseConnectorFullPath();
+	
+	public abstract void wirteGeneratorConfigFile(String path, String source);
+	
 }

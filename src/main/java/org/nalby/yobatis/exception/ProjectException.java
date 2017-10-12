@@ -7,5 +7,9 @@ public class ProjectException extends RuntimeException {
 	public ProjectException(String msg) {
 		super(msg == null? "General project exception." : msg);
 	}
+	
+	public ProjectException(Throwable e) {
+		super(e);
+	}
 
 }

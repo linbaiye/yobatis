@@ -1,20 +1,23 @@
 package org.nalby.yobatis.structure.eclipse;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Set;
 
 import org.dom4j.DocumentException;
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Platform;
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.exception.ProjectNotFoundException;
-import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SourceCodeFolder;
 import org.nalby.yobatis.util.Expect;
@@ -63,6 +66,45 @@ public class EclipseProject extends Project {
 		return spring.getDbDriverClass();
 	}
 	
+	@Override
+	public String getDatabaseConnectorPath() {
+		return pom.dbConnectorJarRelativePath(spring.getDbDriverClass());
+	}
+
+	@Override
+	public void wirteGeneratorConfigFile(String path, String source) {
+		try {
+			if (!wrappedProject.isOpen()) {
+				wrappedProject.open(null);
+			}
+			IFile file = wrappedProject.getFile(path);
+			file.refreshLocal(0, null);
+			if (file.exists()) {
+				file.delete(true, false, null);
+			}
+			InputStream inputStream = new ByteArrayInputStream(source.getBytes());
+			file.create(inputStream, IResource.NONE, null);
+			file.refreshLocal(0, null);
+			try {
+				inputStream.close();
+			} catch (IOException e) {
+				throw new ProjectException(e);
+			}
+		} catch (CoreException e) {
+			throw new ProjectException(e);
+		}
+	}
+
+	@Override
+	public String getDatabaseConnectorFullPath() {
+		String home = Platform.getUserLocation().getURL().getPath();
+		// Not sure why the '/user' suffix is attached.
+		if (home.endsWith("/user/")) {
+			home = home.replaceFirst("/user/$", "/.m2/repository/");
+		}
+		return home + getDatabaseConnectorPath();
+	}
+	
 	private static String getServletConfigPath(WebXmlParser webXmlParser) throws DocumentException {
 		Set<String> servletConfigPath = webXmlParser.getServletConfigLocation();
 		if (servletConfigPath.size() != 1) {
@@ -94,6 +136,11 @@ public class EclipseProject extends Project {
 		}
 		return springXmlParser;
 	}
+	
+	private static RootPomXmlParser getPomXmlParser(IProject project) throws FileNotFoundException, DocumentException, IOException {
+		RootPomXmlParser xmlParser = new RootPomXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/pom.xml"));
+		return xmlParser;
+	}
 
 	public static EclipseProject build(String name) {
 		Expect.notEmpty(name, "project name must not be null.");
@@ -108,10 +155,8 @@ public class EclipseProject extends Project {
 			}
 			IFolder ifolder = project.getFolder(MAVEN_SOURCE_CODE_PATH);
 			SourceCodeFolder sourceCodeFolder = new SourceCodeFolder(new EclipseFolder(null, ifolder));
-
 			WebXmlParser webXmlParser = new WebXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + WEB_XML_PATH));
-			RootSpringXmlParser springXmlParser = getSpringXmlParser(project, webXmlParser);
-			return new EclipseProject(project, null, springXmlParser, webXmlParser, sourceCodeFolder);
+			return new EclipseProject(project, getPomXmlParser(project), getSpringXmlParser(project, webXmlParser), webXmlParser, sourceCodeFolder);
 		} catch (Exception e) {
 			throw new ProjectException(e.getMessage());
 		}
