@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Stack;
 import org.nalby.yobatis.util.Expect;
 
-public class RootFolder {
+public class SourceCodeFolder {
 
 	private Folder root;
 	
@@ -64,7 +64,7 @@ public class RootFolder {
 		});
 	}
 
-	public RootFolder(Folder root) {
+	public SourceCodeFolder(Folder root) {
 		Expect.notNull(root, "root folder must not be empty.");
 		this.root = root;
 	}
