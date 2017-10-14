@@ -10,6 +10,7 @@ import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.Namespace;
 import org.dom4j.QName;
+import org.nalby.yobatis.exception.SqlConfigIncompleteException;
 
 public class RootSpringXmlParser extends BasicXmlParser {
 
@@ -79,14 +80,15 @@ public class RootSpringXmlParser extends BasicXmlParser {
 				}
 			}
 		}
-		return null;
+		throw new SqlConfigIncompleteException("Failed to find " + propertyName + " for sql config.");
 	}
 
 	/**
 	 * Get the username from the datasource bean. if there are multiple
 	 * datasource beans, the first one will be used.
 	 * 
-	 * @return the username if there is one, null else.
+	 * @return the username if there is one.
+	 * @throws SqlConfigIncompleteException if failed to find the property.
 	 */
 	public String getDbUsername() {
 		return propertyValueFromDatasources("username");
@@ -96,7 +98,8 @@ public class RootSpringXmlParser extends BasicXmlParser {
 	 * Get the driver class' name from the datasource bean. if there are
 	 * multiple datasource beans, the first one will be used.
 	 * 
-	 * @return the driver class' name if there is one, null else.
+	 * @return the driver class' name if there is one.
+	 * @throws SqlConfigIncompleteException if failed to find the property.
 	 */
 	public String getDbDriverClass() {
 		return propertyValueFromDatasources("driverClassName");
@@ -106,7 +109,8 @@ public class RootSpringXmlParser extends BasicXmlParser {
 	 * Get the password from the datasource bean. if there are multiple
 	 * datasource beans, the first one will be used.
 	 * 
-	 * @return the password if there is one, null else.
+	 * @return the password if there is one.
+	 * @throws SqlConfigIncompleteException if failed to find the property.
 	 */
 	public String getDbPassword() {
 		return propertyValueFromDatasources("password");
@@ -116,7 +120,8 @@ public class RootSpringXmlParser extends BasicXmlParser {
 	 * Get the url from the datasource bean. if there are multiple
 	 * datasource beans, the first one will be used.
 	 * 
-	 * @return the url if there is one, null else.
+	 * @return the url if there is one.
+	 * @throws SqlConfigIncompleteException if failed to find the property.
 	 */
 	public String getDbUrl() {
 		return propertyValueFromDatasources("url");

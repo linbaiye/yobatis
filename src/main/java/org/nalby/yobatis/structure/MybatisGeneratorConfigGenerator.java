@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import javax.naming.Context;
 
@@ -17,17 +18,21 @@ import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
 import org.mockito.cglib.transform.impl.AddDelegateTransformer;
 import org.nalby.yobatis.exception.ProjectException;
+import org.nalby.yobatis.sql.Sql;
 
 public class MybatisGeneratorConfigGenerator {
 	
 	private Project project;
 	
 	private Document document;
+	
+	private Sql sql;
 
 	DocumentFactory factory = DocumentFactory.getInstance();
 	
-	public MybatisGeneratorConfigGenerator(Project project) {
+	public MybatisGeneratorConfigGenerator(Project project, Sql sql) {
 		this.project = project;
+		this.sql = sql;
 	}
 	
 	private void appendClassPathEntry(Element root) {
@@ -55,6 +60,20 @@ public class MybatisGeneratorConfigGenerator {
 	    ps.close();
 	    return content;
 	}
+	
+	private void appendTables(Element context)  {
+		List<String> names = sql.getTableNames();
+		for (String name: names) {
+			Element table = factory.createElement("table");
+			table.addAttribute("tableName", name);
+			table.addAttribute("schema", sql.getSchema());
+			Element columnRenamingRule = factory.createElement("columnRenamingRule");
+			columnRenamingRule.addAttribute("searchString", "_");
+			columnRenamingRule.addAttribute("replaceString", "");
+			table.add(columnRenamingRule);
+			context.add(table);
+		}
+	}
 
 	
 	private void appendJdbcConnection(Element root) {
@@ -73,23 +92,29 @@ public class MybatisGeneratorConfigGenerator {
 	
 	private Element appendContext(Element root) {
 		Element context = factory.createElement("context");
-		context.addAttribute("id", "DB2Tables");
+		context.addAttribute("id", "mysqlTables");
 		context.addAttribute("targetRuntime", "MyBatis3");
 		root.add(context);
 		return context;
 	}
 	
-	public void generate() {
+	private void createDocument() {
 		document = factory.createDocument();
 		DocumentType type = factory.createDocType("generatorConfiguration", "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN", "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd");
 		document.setDocType(type);
+	}
+	
+	public void generate() {
+		createDocument();
+
 		Element root = factory.createElement("generatorConfiguration");
-		document.setRootElement(root);
 		appendClassPathEntry(root);
+		document.setRootElement(root);
 
 		Element context = appendContext(root);
 		appendJdbcConnection(context);
 		appendTypeResolver(context);
+		appendTables(context);
 		try {
 			String content = convertToString();
 			project.wirteGeneratorConfigFile("mybatisGeneratorConfig.xml", content);
