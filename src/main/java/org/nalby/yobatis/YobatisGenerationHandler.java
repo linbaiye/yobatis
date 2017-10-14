@@ -7,6 +7,8 @@ import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.handlers.HandlerUtil;
+import org.nalby.yobatis.sql.Sql;
+import org.nalby.yobatis.sql.mysql.Mysql;
 import org.nalby.yobatis.structure.MybatisGeneratorConfigGenerator;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
@@ -30,10 +32,11 @@ public class YobatisGenerationHandler extends AbstractHandler {
 				break;
 			}*/
 			Project project = EclipseProject.build("learn");
+			Sql sql = new Mysql(project);
 			/*IWorkbenchWindow window = HandlerUtil
 					.getActiveWorkbenchWindowChecked(event);
 			MessageDialog.openInformation(window.getShell(), "Yobatis", project.getDatabaseConnectorPath());*/
-			MybatisGeneratorConfigGenerator generator = new MybatisGeneratorConfigGenerator(project);
+			MybatisGeneratorConfigGenerator generator = new MybatisGeneratorConfigGenerator(project, sql);
 			generator.generate();
 			//project.wirteGeneratorConfigFile(path, source);
 			//project.wirteGeneratorConfigFile();

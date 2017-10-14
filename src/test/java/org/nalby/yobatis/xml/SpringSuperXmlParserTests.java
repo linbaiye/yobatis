@@ -7,6 +7,7 @@ import java.io.IOException;
 
 import org.dom4j.DocumentException;
 import org.junit.Test;
+import org.nalby.yobatis.exception.SqlConfigIncompleteException;
 
 public class SpringSuperXmlParserTests {
 	private final static String[] DATASOURCE_CLASSES = {"org.apache.commons.dbcp.BasicDataSource", "com.alibaba.druid.pool.DruidDataSource"};
@@ -16,19 +17,26 @@ public class SpringSuperXmlParserTests {
 		new RootSpringXmlParser(new ByteArrayInputStream("<bean></bean>".getBytes()));
 	}
 	
-	@Test
+	
+	
+	@Test(expected = SqlConfigIncompleteException.class)
 	public void testNoDatasouce() throws DocumentException, IOException {
 		RootSpringXmlParser parser =  new RootSpringXmlParser(new ByteArrayInputStream("<beans><bean class=\"org.test.Clazz\" /></beans>".getBytes()));
-		assertTrue(parser.getDbUsername() == null);
+		try {
+			parser.getDbUsername();
+			fail();
+		} catch (SqlConfigIncompleteException e) {
+			//expected.
+		}
 		parser =  new RootSpringXmlParser(new ByteArrayInputStream("<beans:beans xmlns:beans=\"http://test.com/beans\"></beans:beans>".getBytes()));
-		assertTrue(parser.getDbUsername() == null);
+		parser.getDbUsername();
 	}
 	
-	@Test
+	@Test(expected = SqlConfigIncompleteException.class)
 	public void testNoUsername() throws DocumentException, IOException {
 		String xml = "<beans><bean class=\"org.apache.commons.dbcp.BasicDataSource\" /></beans>";
 		RootSpringXmlParser parser =  new RootSpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		assertTrue(parser.getDbUsername() == null);
+		parser.getDbUsername();
 	}
 	
 	@Test
@@ -55,8 +63,12 @@ public class SpringSuperXmlParserTests {
 	public void testMultipleXmlSegements() throws DocumentException, IOException {
 		String xml = "<beans><bean class=\"org.apache.commons.dbcp.BasicDataSource\"/></beans>";
 		RootSpringXmlParser parser =  new RootSpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		System.out.println(parser.getDbUsername());
-		assertTrue(parser.getDbUsername() == null);
+		try {
+			parser.getDbUsername();
+			fail();
+		} catch (SqlConfigIncompleteException e) {
+			//expected.
+		}
 		xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\"><bean class=\"org.apache.commons.dbcp.BasicDataSource\" p:username=\"test\"/></beans>";
 		parser.appendSpringXmlConfig(new ByteArrayInputStream(xml.getBytes()));
 		assertTrue("test".equals(parser.getDbUsername()));
