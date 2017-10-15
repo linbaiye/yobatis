@@ -74,13 +74,13 @@ public final class EclipseFolder implements Folder {
 	@Override
 	public boolean isDaoLayer() {
 		return path != null &&
-			(path.endsWith(".dao") || path.endsWith(".repository"));
+			(path.endsWith("dao") || path.endsWith("repository"));
 	}
 
 	@Override
 	public boolean isModelLayer() {
 		return path != null &&
-			(path.endsWith(".model") || path.endsWith(".domain"));
+			(path.endsWith("model") || path.endsWith("domain"));
 	}
 
 }
