@@ -35,7 +35,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			Sql sql = new Mysql(project);
 			/*IWorkbenchWindow window = HandlerUtil
 					.getActiveWorkbenchWindowChecked(event);
-			MessageDialog.openInformation(window.getShell(), "Yobatis", project.getDatabaseConnectorPath());*/
+			MessageDialog.openInformation(window.getShell(), "Yobatis", project.getModelLayerPath());*/
 			MybatisGeneratorConfigGenerator generator = new MybatisGeneratorConfigGenerator(project, sql);
 			generator.generate();
 			//project.wirteGeneratorConfigFile(path, source);

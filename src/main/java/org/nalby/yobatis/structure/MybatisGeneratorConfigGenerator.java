@@ -3,20 +3,15 @@ package org.nalby.yobatis.structure;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-
-import javax.naming.Context;
 
 import org.dom4j.Document;
 import org.dom4j.DocumentFactory;
 import org.dom4j.DocumentType;
 import org.dom4j.Element;
-import org.dom4j.dom.DOMDocumentFactory;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
-import org.mockito.cglib.transform.impl.AddDelegateTransformer;
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.sql.Sql;
 
@@ -85,9 +80,13 @@ public class MybatisGeneratorConfigGenerator {
 		root.add(jdbConnection);
 	}
 
-	private void appendJavaModelGenerator(Element root) {
-		Element element = factory.createElement("JavaModelGenerator");
-		element.addAttribute("targetPackage", project.getDatabaseConnectorPath());
+	private void appendJavaModelGenerator(Element context) {
+		Element javaModelGenerator = factory.createElement("JavaModelGenerator");
+		String path = project.getModelLayerPath();
+		javaModelGenerator.addAttribute("targetPackage", path == null ? "" : path);
+		path = project.getSourceCodeDirPath();
+		javaModelGenerator.addAttribute("targetProject", path == null ? "" : path);
+		context.add(javaModelGenerator);
 	}
 	
 	private Element appendContext(Element root) {
@@ -114,12 +113,12 @@ public class MybatisGeneratorConfigGenerator {
 		Element context = appendContext(root);
 		appendJdbcConnection(context);
 		appendTypeResolver(context);
+		appendJavaModelGenerator(context);
 		appendTables(context);
 		try {
 			String content = convertToString();
 			project.wirteGeneratorConfigFile("mybatisGeneratorConfig.xml", content);
 		} catch (Exception e) {
-			e.printStackTrace();
 			throw new ProjectException(e);
 		}
 	}

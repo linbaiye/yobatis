@@ -31,7 +31,6 @@ public class SourceCodeFolder {
 		} while (!stack.isEmpty());
 	}
 	
-	
 	private interface FolderSelector {
 		public boolean isSelected(Folder folder);
 	}

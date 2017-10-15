@@ -23,6 +23,10 @@ public abstract class Project {
 
 	public abstract String getDatabaseConnectorFullPath();
 	
+	public abstract String getSourceCodeDirPath();
+	
+	public abstract String getModelLayerPath();
+	
 	public abstract void wirteGeneratorConfigFile(String path, String source);
 	
 }

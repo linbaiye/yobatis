@@ -105,6 +105,13 @@ public class EclipseProject extends Project {
 		return home + getDatabaseConnectorPath();
 	}
 	
+
+	@Override
+	public String getSourceCodeDirPath() {
+		return sourceCodeFolder.daoFolderPath();
+	}
+
+	
 	private static String getServletConfigPath(WebXmlParser webXmlParser) throws DocumentException {
 		Set<String> servletConfigPath = webXmlParser.getServletConfigLocation();
 		if (servletConfigPath.size() != 1) {
@@ -160,6 +167,11 @@ public class EclipseProject extends Project {
 		} catch (Exception e) {
 			throw new ProjectException(e.getMessage());
 		}
+	}
+
+	@Override
+	public String getModelLayerPath() {
+		return sourceCodeFolder.modelFolderPath();
 	}
 
 }
