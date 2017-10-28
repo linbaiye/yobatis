@@ -69,7 +69,6 @@ public class MybatisGeneratorConfigGenerator {
 			context.add(table);
 		}
 	}
-
 	
 	private void appendJdbcConnection(Element root) {
 		Element jdbConnection = factory.createElement("jdbcConnection");

@@ -108,7 +108,7 @@ public class EclipseProject extends Project {
 
 	@Override
 	public String getSourceCodeDirPath() {
-		return sourceCodeFolder.daoFolderPath();
+		return sourceCodeFolder.getPath();
 	}
 
 	
@@ -171,7 +171,7 @@ public class EclipseProject extends Project {
 
 	@Override
 	public String getModelLayerPath() {
-		return sourceCodeFolder.modelFolderPath();
+		return sourceCodeFolder.modelFolderPath().replace(getSourceCodeDirPath() + "/", "");
 	}
 
 }

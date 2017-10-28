@@ -39,7 +39,7 @@ public final class EclipseFolder implements Folder {
 
 	@Override
 	public String path() {
-		return path;
+		return wrappedFolder.getLocationURI().getPath();
 	}
 
 	@Override

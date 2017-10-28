@@ -67,5 +67,9 @@ public class SourceCodeFolder {
 		Expect.notNull(root, "root folder must not be empty.");
 		this.root = root;
 	}
+	
+	public String getPath() {
+		return root.path();
+	}
 
 }
