@@ -1,5 +1,4 @@
 package org.nalby.yobatis.structure;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 import org.nalby.yobatis.util.Expect;
@@ -7,60 +6,47 @@ import org.nalby.yobatis.util.Expect;
 public class SourceCodeFolder {
 
 	private Folder root;
-	
-	private List<Folder> leafFolders = null;
 
-	private void parsePackages() {
-		if (leafFolders != null) {
-			return;
-		}
-		leafFolders = new LinkedList<Folder>();
+	private Folder parsePackages(FolderSelector selector) {
 		Stack<Folder> stack = new Stack<Folder>();
 		stack.push(root);
 		do {
 			Folder node = stack.pop();
 			List<Folder> subFolders = node.folders();
 			for (Folder child: subFolders) {
+				if (selector.isSelected(child)) {
+					return child;
+				}
 				if (child.containsFolders()) {
 					stack.push(child);
-				} else {
-					//A leaf node.
-					leafFolders.add(child);
 				}
 			}
 		} while (!stack.isEmpty());
+		return null;
 	}
 	
 	private interface FolderSelector {
 		public boolean isSelected(Folder folder);
 	}
 
-	private String selectFolderPath(FolderSelector selector) {
-		parsePackages();
-		for (Folder folder: leafFolders) {
-			if (selector.isSelected(folder)) {
-				return folder.path();
-			}
-		}
-		return null;
-	}
-
 	public String modelFolderPath() {
-		return selectFolderPath(new FolderSelector() {
+		Folder folder = parsePackages(new FolderSelector() {
 			@Override
 			public boolean isSelected(Folder folder) {
 				return folder.isModelLayer();
 			}
 		});
+		return folder == null? null : folder.path();
 	}
 	
 	public String daoFolderPath() {
-		return selectFolderPath(new FolderSelector() {
+		Folder folder = parsePackages(new FolderSelector() {
 			@Override
 			public boolean isSelected(Folder folder) {
 				return folder.isDaoLayer();
 			}
 		});
+		return folder == null? null : folder.path();
 	}
 
 	public SourceCodeFolder(Folder root) {
