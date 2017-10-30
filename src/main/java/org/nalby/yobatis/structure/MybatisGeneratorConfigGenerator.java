@@ -62,10 +62,6 @@ public class MybatisGeneratorConfigGenerator {
 			Element table = factory.createElement("table");
 			table.addAttribute("tableName", name);
 			table.addAttribute("schema", sql.getSchema());
-			Element columnRenamingRule = factory.createElement("columnRenamingRule");
-			columnRenamingRule.addAttribute("searchString", "_");
-			columnRenamingRule.addAttribute("replaceString", "");
-			table.add(columnRenamingRule);
 			context.add(table);
 		}
 	}
@@ -80,7 +76,7 @@ public class MybatisGeneratorConfigGenerator {
 	}
 
 	private void appendJavaModelGenerator(Element context) {
-		Element javaModelGenerator = factory.createElement("JavaModelGenerator");
+		Element javaModelGenerator = factory.createElement("javaModelGenerator");
 		String path = project.getModelLayerPath();
 		javaModelGenerator.addAttribute("targetPackage", path == null ? "" : path);
 		path = project.getSourceCodeDirPath();
@@ -94,6 +90,21 @@ public class MybatisGeneratorConfigGenerator {
 		context.addAttribute("targetRuntime", "MyBatis3");
 		root.add(context);
 		return context;
+	}
+	
+	private void appendSqlMapGenerator(Element context) {
+		Element generator = context.addElement("sqlMapGenerator");
+		generator.addAttribute("targetPackage", "mybatis-mappers/autogen");
+		generator.addAttribute("targetProject", project.getResourcesDirPath());
+	}
+	
+	private void appendJavaClientGenerator(Element context) {
+		Element generator = context.addElement("javaClientGenerator");
+		generator.addAttribute("type", "XMLMAPPER");
+		String path = project.getDaoLayerPath();
+		generator.addAttribute("targetPackage", path == null ? "" : path);
+		path = project.getSourceCodeDirPath();
+		generator.addAttribute("targetProject", path == null ? "" : path);
 	}
 	
 	private void createDocument() {
@@ -113,6 +124,8 @@ public class MybatisGeneratorConfigGenerator {
 		appendJdbcConnection(context);
 		appendTypeResolver(context);
 		appendJavaModelGenerator(context);
+		appendSqlMapGenerator(context);
+		appendJavaClientGenerator(context);
 		appendTables(context);
 		try {
 			String content = convertToString();

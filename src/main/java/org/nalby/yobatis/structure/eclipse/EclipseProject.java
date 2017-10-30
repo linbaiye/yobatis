@@ -33,16 +33,13 @@ public class EclipseProject extends Project {
 
 	private RootSpringXmlParser spring;
 
-	private WebXmlParser web;
-	
 	private SourceCodeFolder sourceCodeFolder;
 	
 	private EclipseProject(IProject project, RootPomXmlParser pom,
-			RootSpringXmlParser spring, WebXmlParser web, SourceCodeFolder sourceCodeFolder) {
+			RootSpringXmlParser spring, SourceCodeFolder sourceCodeFolder) {
 		this.wrappedProject = project;
 		this.pom = pom;
 		this.spring = spring;
-		this.web = web;
 		this.sourceCodeFolder = sourceCodeFolder;
 	}
 
@@ -70,6 +67,12 @@ public class EclipseProject extends Project {
 	public String getDatabaseConnectorPath() {
 		return pom.dbConnectorJarRelativePath(spring.getDbDriverClass());
 	}
+	
+	@Override
+	public String getResourcesDirPath() {
+		return wrappedProject.getLocationURI().getPath() + "/" + MAVEN_RESOURCES_PATH.replaceFirst("/$", "");
+	}
+	
 
 	@Override
 	public void wirteGeneratorConfigFile(String path, String source) {
@@ -105,6 +108,26 @@ public class EclipseProject extends Project {
 		return home + getDatabaseConnectorPath();
 	}
 	
+
+	@Override
+	public String getModelLayerPath() {
+		String path = sourceCodeFolder.modelFolderPath();
+		if (path != null) {
+			path = path.replace(getSourceCodeDirPath() + "/", "");
+		}
+		return path;
+	}
+	
+	
+	@Override
+	public String getDaoLayerPath() {
+		String path = sourceCodeFolder.daoFolderPath();
+		if (path != null) {
+			path = path.replace(getSourceCodeDirPath() + "/", "");
+		}
+		return path;
+	}
+
 
 	@Override
 	public String getSourceCodeDirPath() {
@@ -163,15 +186,11 @@ public class EclipseProject extends Project {
 			IFolder ifolder = project.getFolder(MAVEN_SOURCE_CODE_PATH);
 			SourceCodeFolder sourceCodeFolder = new SourceCodeFolder(new EclipseFolder(null, ifolder));
 			WebXmlParser webXmlParser = new WebXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + WEB_XML_PATH));
-			return new EclipseProject(project, getPomXmlParser(project), getSpringXmlParser(project, webXmlParser), webXmlParser, sourceCodeFolder);
+			return new EclipseProject(project, getPomXmlParser(project), getSpringXmlParser(project, webXmlParser), sourceCodeFolder);
 		} catch (Exception e) {
 			throw new ProjectException(e.getMessage());
 		}
 	}
 
-	@Override
-	public String getModelLayerPath() {
-		return sourceCodeFolder.modelFolderPath().replace(getSourceCodeDirPath() + "/", "");
-	}
 
 }

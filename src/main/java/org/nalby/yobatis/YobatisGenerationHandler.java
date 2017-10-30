@@ -36,10 +36,8 @@ public class YobatisGenerationHandler extends AbstractHandler {
 				tmp = k;
 				break;
 			}*/
-			Project project = EclipseProject.build("learn");
-			Sql sql = new Mysql(project);
-			IWorkspace workspace = ResourcesPlugin.getWorkspace();
-			/*IProject project = workspace.getRoot().getProject("learn");
+			/*IWorkspace workspace = ResourcesPlugin.getWorkspace();
+			IProject project = workspace.getRoot().getProject("learn");
 			if (!project.exists()) {
 				throw new ProjectNotFoundException();
 			}
@@ -48,10 +46,12 @@ public class YobatisGenerationHandler extends AbstractHandler {
 				}
 				IFolder ifolder = project.getFolder("src/main/java");
 				//project.
-			/*IWorkbenchWindow window = HandlerUtil
+			IWorkbenchWindow window = HandlerUtil
 					.getActiveWorkbenchWindowChecked(event);
-			MessageDialog.openInformation(window.getShell(), "Yobatis", project.getLocationURI().toString());*/
-			MybatisGeneratorConfigGenerator generator = new MybatisGeneratorConfigGenerator(project, sql);
+			MessageDialog.openInformation(window.getShell(), "Yobatis", project1.getDaoLayerPath());*/
+			Project project1 = EclipseProject.build("learn");
+			Sql sql = new Mysql(project1);
+			MybatisGeneratorConfigGenerator generator = new MybatisGeneratorConfigGenerator(project1, sql);
 			generator.generate();
 			//project.wirteGeneratorConfigFile(path, source);
 			//project.wirteGeneratorConfigFile();
