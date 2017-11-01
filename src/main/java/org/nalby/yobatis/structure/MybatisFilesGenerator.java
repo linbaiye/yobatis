@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.dom4j.Document;
 import org.dom4j.DocumentFactory;
@@ -12,10 +14,18 @@ import org.dom4j.DocumentType;
 import org.dom4j.Element;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
+import org.mybatis.generator.api.GeneratedJavaFile;
+import org.mybatis.generator.api.LibraryRunner;
+import org.mybatis.generator.exception.InvalidConfigurationException;
+import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.sql.Sql;
 
-public class MybatisGeneratorConfigGenerator {
+/**
+ * Used to generate files relevant to mybatis.
+ * @author Kyle Lin
+ */
+public class MybatisFilesGenerator {
 	
 	private Project project;
 	
@@ -23,11 +33,16 @@ public class MybatisGeneratorConfigGenerator {
 	
 	private Sql sql;
 
-	DocumentFactory factory = DocumentFactory.getInstance();
+	private final static String CONFIG_PATH = "mybatisGeneratorConfig.xml";
 	
-	public MybatisGeneratorConfigGenerator(Project project, Sql sql) {
+	private DocumentFactory factory = DocumentFactory.getInstance();
+	
+	private LibraryRunner mybatisRunner;
+	
+	public MybatisFilesGenerator(Project project, Sql sql, LibraryRunner runner) {
 		this.project = project;
 		this.sql = sql;
+		this.mybatisRunner = runner;
 	}
 	
 	private void appendClassPathEntry(Element root) {
@@ -112,10 +127,33 @@ public class MybatisGeneratorConfigGenerator {
 		DocumentType type = factory.createDocType("generatorConfiguration", "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN", "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd");
 		document.setDocType(type);
 	}
-	
-	public void generate() {
-		createDocument();
 
+	public void writeJavaFiles() {
+		String modelPackage = project.getModelLayerPath();
+		String patternStr =  "import " + (modelPackage == null? "": modelPackage) + "\\.(.+Example);";
+		Pattern pattern = modelPackage == null? null : Pattern.compile(patternStr);
+		List<GeneratedJavaFile> list = mybatisRunner.getGeneratedJavaFiles();
+		for (GeneratedJavaFile javaFile : list) {
+			String dir = javaFile.getTargetProject().replace(project.getFullPath() + "/", "") + "/" + javaFile.getTargetPackage();
+			String filePath = dir  + "/" + javaFile.getFileName();
+			String content = javaFile.getFormattedContent();
+			if (javaFile.getFileName().endsWith("Example.java")) {
+				project.createDir(dir + "/criteria");
+				filePath = dir + "/criteria/" + javaFile.getFileName();
+				content = content.replace("package " + javaFile.getTargetPackage(), "package " + javaFile.getTargetPackage() + ".criteria");
+			} else if (javaFile.getFileName().endsWith("Mapper.java") && pattern != null) {
+				Matcher matcher = pattern.matcher(content);
+				if (matcher.find()) {
+					String name = matcher.group(1);
+					content = content.replaceAll(patternStr, "import " + modelPackage + ".criteria." + name + ";");
+				}
+			}
+			project.writeFile(filePath, content);
+		}
+	}
+
+	private void writeConfigFile() {
+		createDocument();
 		Element root = factory.createElement("generatorConfiguration");
 		appendClassPathEntry(root);
 		document.setRootElement(root);
@@ -129,9 +167,19 @@ public class MybatisGeneratorConfigGenerator {
 		appendTables(context);
 		try {
 			String content = convertToString();
-			project.wirteGeneratorConfigFile("mybatisGeneratorConfig.xml", content);
+			project.writeFile(CONFIG_PATH, content);
 		} catch (Exception e) {
 			throw new ProjectException(e);
+		}
+	}
+	
+	public void writeAllFiles() {
+		try {
+			writeConfigFile();
+			mybatisRunner.parse(project.getFullPath() + "/" + CONFIG_PATH);
+			writeJavaFiles();
+		} catch (InvalidConfigurationException e) {
+			throw new InvalidMybatisGeneratorConfigException(e);
 		}
 	}
 	

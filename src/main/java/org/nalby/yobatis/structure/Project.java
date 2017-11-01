@@ -30,7 +30,10 @@ public abstract class Project {
 	public abstract String getModelLayerPath();
 
 	public abstract String getDaoLayerPath();
+
+	public abstract String getFullPath();
 	
-	public abstract void wirteGeneratorConfigFile(String path, String source);
+	public abstract void writeFile(String path, String source);
 	
+	public abstract void createDir(String dirPath);
 }

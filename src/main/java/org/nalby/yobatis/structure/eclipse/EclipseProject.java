@@ -72,10 +72,14 @@ public class EclipseProject extends Project {
 	public String getResourcesDirPath() {
 		return wrappedProject.getLocationURI().getPath() + "/" + MAVEN_RESOURCES_PATH.replaceFirst("/$", "");
 	}
-	
 
 	@Override
-	public void wirteGeneratorConfigFile(String path, String source) {
+	public String getFullPath() {
+		return wrappedProject.getLocationURI().getPath();
+	}
+
+	@Override
+	public void writeFile(String path, String source) {
 		try {
 			if (!wrappedProject.isOpen()) {
 				wrappedProject.open(null);
@@ -107,7 +111,6 @@ public class EclipseProject extends Project {
 		}
 		return home + getDatabaseConnectorPath();
 	}
-	
 
 	@Override
 	public String getModelLayerPath() {
@@ -118,7 +121,6 @@ public class EclipseProject extends Project {
 		return path;
 	}
 	
-	
 	@Override
 	public String getDaoLayerPath() {
 		String path = sourceCodeFolder.daoFolderPath();
@@ -128,13 +130,28 @@ public class EclipseProject extends Project {
 		return path;
 	}
 
-
 	@Override
 	public String getSourceCodeDirPath() {
 		return sourceCodeFolder.getPath();
 	}
-
 	
+	@Override
+	public void createDir(String dirPath) {
+		try {
+			if (!wrappedProject.isOpen()) {
+				wrappedProject.open(null);
+			}
+			IFolder folder = wrappedProject.getFolder(dirPath);
+			folder.refreshLocal(0, null);
+			if (!folder.exists()) {
+				folder.create(true, true, null);
+				folder.refreshLocal(0, null);
+			}
+		} catch (CoreException e) {
+			throw new ProjectException(e);
+		}
+	}
+
 	private static String getServletConfigPath(WebXmlParser webXmlParser) throws DocumentException {
 		Set<String> servletConfigPath = webXmlParser.getServletConfigLocation();
 		if (servletConfigPath.size() != 1) {
