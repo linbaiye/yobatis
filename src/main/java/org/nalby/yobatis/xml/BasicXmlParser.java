@@ -1,5 +1,6 @@
 package org.nalby.yobatis.xml;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -21,7 +22,8 @@ public abstract class BasicXmlParser {
 				"invalid input stream");
 		Expect.notNull(rootElmentTag, "root element tag is null.");
 		SAXReader saxReader = new SAXReader();
-		document = saxReader.read(inputStream);
+		saxReader.setValidation(false);
+		document = saxReader.read(new BufferedInputStream(inputStream));
 		if (document == null || document.getRootElement() == null
 				|| !rootElmentTag.equals(document.getRootElement().getName())) {
 			throw new DocumentException("Unpexpected document.");

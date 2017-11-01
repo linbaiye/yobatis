@@ -93,10 +93,18 @@ public class MybatisFilesGenerator {
 	private void appendJavaModelGenerator(Element context) {
 		Element javaModelGenerator = factory.createElement("javaModelGenerator");
 		String path = project.getModelLayerPath();
-		javaModelGenerator.addAttribute("targetPackage", path == null ? "" : path);
+		javaModelGenerator.addAttribute("targetPackage", path == null ? "" : pathToPackage(path));
 		path = project.getSourceCodeDirPath();
 		javaModelGenerator.addAttribute("targetProject", path == null ? "" : path);
 		context.add(javaModelGenerator);
+	}
+	
+	private String pathToPackage(String path) {
+		return path.replaceAll("/", ".");
+	}
+	
+	private String packageToPath(String packageName) {
+		return packageName.replaceAll("\\.", "/");
 	}
 	
 	private Element appendContext(Element root) {
@@ -117,7 +125,7 @@ public class MybatisFilesGenerator {
 		Element generator = context.addElement("javaClientGenerator");
 		generator.addAttribute("type", "XMLMAPPER");
 		String path = project.getDaoLayerPath();
-		generator.addAttribute("targetPackage", path == null ? "" : path);
+		generator.addAttribute("targetPackage", path == null ? "" : pathToPackage(path));
 		path = project.getSourceCodeDirPath();
 		generator.addAttribute("targetProject", path == null ? "" : path);
 	}
@@ -129,12 +137,12 @@ public class MybatisFilesGenerator {
 	}
 
 	public void writeJavaFiles() {
-		String modelPackage = project.getModelLayerPath();
-		String patternStr =  "import " + (modelPackage == null? "": modelPackage) + "\\.(.+Example);";
-		Pattern pattern = modelPackage == null? null : Pattern.compile(patternStr);
+		String modelPath = project.getModelLayerPath();
+		String patternStr =  "import " + (modelPath == null? "": pathToPackage(modelPath)) + "\\.(.+Example);";
+		Pattern pattern = modelPath == null? null : Pattern.compile(patternStr);
 		List<GeneratedJavaFile> list = mybatisRunner.getGeneratedJavaFiles();
 		for (GeneratedJavaFile javaFile : list) {
-			String dir = javaFile.getTargetProject().replace(project.getFullPath() + "/", "") + "/" + javaFile.getTargetPackage();
+			String dir = javaFile.getTargetProject().replace(project.getFullPath(), "") + packageToPath(javaFile.getTargetPackage());
 			String filePath = dir  + "/" + javaFile.getFileName();
 			String content = javaFile.getFormattedContent();
 			if (javaFile.getFileName().endsWith("Example.java")) {
@@ -145,7 +153,7 @@ public class MybatisFilesGenerator {
 				Matcher matcher = pattern.matcher(content);
 				if (matcher.find()) {
 					String name = matcher.group(1);
-					content = content.replaceAll(patternStr, "import " + modelPackage + ".criteria." + name + ";");
+					content = content.replaceAll(patternStr, "import " + pathToPackage(modelPath) + ".criteria." + name + ";");
 				}
 			}
 			project.writeFile(filePath, content);
