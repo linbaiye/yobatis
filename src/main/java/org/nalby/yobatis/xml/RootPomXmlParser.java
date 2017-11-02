@@ -8,7 +8,7 @@ import java.util.regex.Pattern;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 
-public class RootPomXmlParser extends BasicXmlParser {
+public class RootPomXmlParser extends PomXmlParser {
 
 	private static final String MYSQL_DRIVER_CLASS = "com.mysql.jdbc.Driver";
 	
@@ -20,8 +20,9 @@ public class RootPomXmlParser extends BasicXmlParser {
 	
 	public RootPomXmlParser(InputStream inputStream)
 			throws DocumentException, IOException {
-		super(inputStream, "project");
+		super(inputStream);
 	}
+	
 	
 	private boolean isMysqlDependency(Element dependencyElement) {
 		Element groupIdElement = dependencyElement.element("groupId");

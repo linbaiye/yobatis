@@ -209,5 +209,4 @@ public class EclipseProject extends Project {
 		}
 	}
 
-
 }
