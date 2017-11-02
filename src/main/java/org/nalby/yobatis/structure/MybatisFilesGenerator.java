@@ -142,16 +142,18 @@ public class MybatisFilesGenerator {
 		Pattern pattern = modelPath == null? null : Pattern.compile(patternStr);
 		List<GeneratedJavaFile> list = mybatisRunner.getGeneratedJavaFiles();
 		for (GeneratedJavaFile javaFile : list) {
-			String dir = javaFile.getTargetProject().replace(project.getFullPath(), "") + packageToPath(javaFile.getTargetPackage());
+			String dir = javaFile.getTargetProject().replace(project.getFullPath() + "/", "") + "/" + packageToPath(javaFile.getTargetPackage());
 			String filePath = dir  + "/" + javaFile.getFileName();
 			String content = javaFile.getFormattedContent();
 			if (javaFile.getFileName().endsWith("Example.java")) {
+				//Separate criteria classes from domain/model classes.
 				project.createDir(dir + "/criteria");
 				filePath = dir + "/criteria/" + javaFile.getFileName();
 				content = content.replace("package " + javaFile.getTargetPackage(), "package " + javaFile.getTargetPackage() + ".criteria");
 			} else if (javaFile.getFileName().endsWith("Mapper.java") && pattern != null) {
 				Matcher matcher = pattern.matcher(content);
 				if (matcher.find()) {
+					//Mend import path, since the criteria classes have been replaced.
 					String name = matcher.group(1);
 					content = content.replaceAll(patternStr, "import " + pathToPackage(modelPath) + ".criteria." + name + ";");
 				}

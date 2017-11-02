@@ -5,12 +5,9 @@
          point="org.eclipse.ui.menus">
       <menuContribution
             allPopups="false"
-            locationURI="popup:org.eclipse.ui.popup.any?after=additions">
-         <command
-               commandId="org.nalby.yobatis.command.generation"
-               label="Yobatis"
-               style="push">
-         </command>
+            locationURI="popup:org.eclipse.ui.navigator.ProjectExplorer#PopupMenu?after=additions">
+         <dynamic class="org.nalby.yobatis.MenuAppender" id="org.nalby.yobatis.menuAppender">
+         </dynamic>
       </menuContribution>
    </extension>
    <extension

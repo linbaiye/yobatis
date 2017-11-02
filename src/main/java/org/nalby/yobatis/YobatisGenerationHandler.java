@@ -1,19 +1,17 @@
 package org.nalby.yobatis;
 
 
-import java.util.List;
-
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
-import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IWorkspace;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.LibraryRunner;
 import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.sql.mysql.Mysql;
@@ -26,37 +24,27 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		try {
-			Project project1 = EclipseProject.build("learn");
-			Sql sql = new Mysql(project1);
-			MybatisFilesGenerator generator = new MybatisFilesGenerator(project1, sql, new LibraryRunner());
-			generator.writeAllFiles();
-			generator.writeJavaFiles();
+			ISelectionService selectionService = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getSelectionService();
 
-		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		IProject project = workspace.getRoot().getProject("learn");
-			if (project.exists() && !project.isOpen()) {
-				project.open(null);
+			ISelection selection = selectionService.getSelection();
+			if (!(selection instanceof IStructuredSelection)) {
+				return null;
 			}
-			/*String home = Platform.getUserLocation().getURL().getPath();
-			WebXmlParser webXmlParser = new WebXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/.m2/repository/" + "/src/main/webapp/WEB-INF/web.xml"));
-			Set<String> configs = webXmlParser.getServletConfigLocation();
-			String tmp = null;
-			for (String k: configs) {
-				tmp = k;
-				break;
-			}*/
-				if (project.exists() && !project.isOpen()) {
-					project.open(null);
-				}
-				//project.
-			IWorkbenchWindow window = HandlerUtil
-					.getActiveWorkbenchWindowChecked(event);
-			MessageDialog.openInformation(window.getShell(), "Yobatis", "Done");
-			
-			//project.wirteGeneratorConfigFile(path, source);
-			//project.wirteGeneratorConfigFile();
+			Object element = ((IStructuredSelection) selection).getFirstElement();
+			if (element == null || !(element instanceof IProject)) {
+				return null;
+			}
+			IProject thisProject = (IProject)element;
+			if (thisProject.exists() && !thisProject.isOpen()) {
+				thisProject.open(null);
+			}
+			Project project = EclipseProject.build(thisProject.getName());
+			Sql sql = new Mysql(project);
+			MybatisFilesGenerator generator = new MybatisFilesGenerator(project, sql, new LibraryRunner());
+			generator.writeAllFiles();
 		} catch (Exception e) {
-			e.printStackTrace();
+			IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);
+			MessageDialog.openInformation(window.getShell(), "Yobatis", e.getMessage());
 		}
 		return null;
 	}
