@@ -26,19 +26,9 @@ public interface Folder {
 	 * Get folders contained by this folder.
 	 * @return the folders if any, or an empty list if none.
 	 */
-	public List<Folder> folders() ;
+	public  List<Folder> getSubFolders();
 	
-	/**
-	 * Test if the folder is the DAO/Repository layer.
-	 * @return true if so, false if not.
-	 */
-	public boolean isDaoLayer();
-	
-	/**
-	 * Test if the folder is the Model/Domain layer.
-	 * @return true if so, false if not.
-	 */
-	public boolean isModelLayer();
-	
+
+	public boolean containsFile(String name);
 
 }

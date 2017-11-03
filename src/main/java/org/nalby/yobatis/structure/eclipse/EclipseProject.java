@@ -34,13 +34,18 @@ public class EclipseProject extends Project {
 	private RootSpringXmlParser spring;
 
 	private SourceCodeFolder sourceCodeFolder;
-	
+
 	private EclipseProject(IProject project, RootPomXmlParser pom,
 			RootSpringXmlParser spring, SourceCodeFolder sourceCodeFolder) {
 		this.wrappedProject = project;
 		this.pom = pom;
 		this.spring = spring;
 		this.sourceCodeFolder = sourceCodeFolder;
+	}
+	
+	public EclipseProject(IProject project) {
+		this.wrappedProject = project;
+		this.root = new EclipseFolder("/",  wrappedProject);
 	}
 
 	@Override
@@ -200,6 +205,7 @@ public class EclipseProject extends Project {
 			if (project.exists() && !project.isOpen()) {
 				project.open(null);
 			}
+
 			IFolder ifolder = project.getFolder(MAVEN_SOURCE_CODE_PATH);
 			SourceCodeFolder sourceCodeFolder = new SourceCodeFolder(new EclipseFolder(null, ifolder));
 			WebXmlParser webXmlParser = new WebXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + WEB_XML_PATH));
