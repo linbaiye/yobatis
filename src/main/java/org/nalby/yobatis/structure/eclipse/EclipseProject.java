@@ -158,14 +158,15 @@ public class EclipseProject extends Project {
 	}
 
 	private static String getServletConfigPath(WebXmlParser webXmlParser) throws DocumentException {
-		Set<String> servletConfigPath = webXmlParser.getServletConfigLocation();
+		return webXmlParser.getAppConfigLocation();
+		/*Set<String> servletConfigPath = webXmlParser.getServletConfigLocation();
 		if (servletConfigPath.size() != 1) {
 			throw new ProjectException("Should have only one servlet config.");
 		}
 		for (String path: servletConfigPath) {
 			return path.replace(CLASSPATH_PREFIX, MAVEN_RESOURCES_PATH);
 		}
-		return null;
+		return null;*/
 	}
 	
 	private static RootSpringXmlParser getSpringXmlParser(IProject project, WebXmlParser webXmlParser) throws DocumentException, FileNotFoundException, IOException {

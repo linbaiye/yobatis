@@ -24,7 +24,7 @@ public  class EclipseFolder implements Folder {
 		Expect.notNull(wrapped, "Folder must not be null.");
 		Expect.asTrue((wrapped instanceof IFolder) || (wrapped instanceof IProject),  "Invalid type.");
 		wrappedFolder = wrapped;
-		path = "/".equals(parentPath)? "/" : parentPath + "/" + wrapped.getName();
+		path = "/".equals(parentPath) ? "/" + wrapped.getName() : parentPath + "/" + wrapped.getName();
 	}
 
 	private void listSubFolders() throws CoreException {
@@ -37,7 +37,8 @@ public  class EclipseFolder implements Folder {
 		}
 		for (IResource resource : resources) {
 			if (resource.getType() == IResource.FOLDER) {
-				if ("target".equals(resource.getName()) && this.containsFile("pom.xml")) {
+				if (("target".equals(resource.getName()) || "bin".equals(resource.getName()))
+					&& this.containsFile("pom.xml")) {
 					continue;
 				}
 				subFolders.add(new EclipseFolder(this.path, (IFolder) resource));

@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
+import org.nalby.yobatis.exception.ProjectException;
 
 public class WebXmlParser extends BasicXmlParser {
 
@@ -81,12 +82,13 @@ public class WebXmlParser extends BasicXmlParser {
 
 	
 	/**
-	 * Get servlets' config locations.
-	 * @return a set which contains all the locations or an empty set if locations not specified.
-	 * @throws DocumentException if the same location appears more than once.
+	 * Get servlet's config location.
+	 * @return the value of config location.
+	 * @throws ProjectException if multiple or no config locations found.
 	 */
-	public Set<String> getServletConfigLocation() throws DocumentException {
-		Set<String> result = new HashSet<String>();
+	public String getServletConfigLocation() {
+		String result = null;
+		int counter = 0;
 		for (Element servletElement: selectElements(SERVLET_TAG)) {
 			Element classElement = servletElement.element(SERVLET_CLASS_TAG);
 			if (classElement == null || 
@@ -97,20 +99,19 @@ public class WebXmlParser extends BasicXmlParser {
 			if (initParamElements == null || initParamElements.isEmpty()) {
 				continue;
 			}
-			int counter = 0;
 			for (Element initParam: initParamElements) {
 				String value = getParamValue(initParam);
-				if (value != null && result.contains(value)) {
-					throw new DocumentException("multiple contextConfigLocation " + value + " in servlet config.");
-				}
 				if (value != null) {
-					result.add(value);
+					result = value;
 					++counter;
 				}
 				if (counter > 1) {
-					throw new DocumentException("multiple contextConfigLocation detected in the same servlet config.");
+					throw new ProjectException("Multiple contextConfigLocations found.");
 				}
 			}
+		}
+		if (result == null) {
+			throw new ProjectException("No contextConfigLocation found.");
 		}
 		return result;
 	}

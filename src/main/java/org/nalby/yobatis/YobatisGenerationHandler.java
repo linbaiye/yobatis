@@ -32,6 +32,11 @@ import org.nalby.yobatis.structure.eclipse.EclipseProject;
 public class YobatisGenerationHandler extends AbstractHandler {
 	
 	
+	private void displayMessage(ExecutionEvent event, String message) throws ExecutionException {
+		IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);
+		MessageDialog.openInformation(window.getShell(), "Yobatis", message);
+	}
+	
 	
 	private Object work(ExecutionEvent event) throws ExecutionException {
 		try {
@@ -63,7 +68,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		IProject project = workspace.getRoot().getProject("learn");
+		IProject project = workspace.getRoot().getProject("uplending-all");
 		if (!project.exists()) {
 			throw new ProjectNotFoundException();
 		}
@@ -73,18 +78,17 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			List<Folder> folders = eclipseProject.findFolders(new FolderSelector() {
 				@Override
 				public boolean isSelected(Folder folder) {
-					return true;
+					return folder.containsFile("web.xml");
 				}
 			});
 			for (Folder folder: folders) {
 				System.out.println(folder.name());
+				System.out.println(folder.path());
 			}
 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);
-		MessageDialog.openInformation(window.getShell(), "Yobatis", project.getName());
 		return null;
 	}
 

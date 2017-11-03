@@ -5,10 +5,9 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.Set;
-
 import org.dom4j.DocumentException;
 import org.junit.Test;
+import org.nalby.yobatis.exception.ProjectException;
 
 public class WebXmlParserTests {
 
@@ -66,14 +65,13 @@ public class WebXmlParserTests {
 		assertTrue(parser.getAppConfigLocation() == null);
 	}
 	
-	@Test
+	@Test(expected = ProjectException.class)
 	public void testNoServlets() throws DocumentException, IOException {
 		String xml = "<web-app>"
 				+ "<servlet><servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>"
 				+ "</servlet></web-app>";
 		WebXmlParser parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		Set<String> locations = parser.getServletConfigLocation();
-		assertTrue(locations.isEmpty());
+		parser.getServletConfigLocation();
 	}
 
 	@Test
@@ -87,7 +85,7 @@ public class WebXmlParserTests {
 		try {
 			parser.getServletConfigLocation();
 			fail();
-		} catch (DocumentException e) {
+		} catch (ProjectException e) {
 			//Expected.
 		}
 		xml = "<web-app>"
@@ -102,12 +100,12 @@ public class WebXmlParserTests {
 		try {
 			parser.getServletConfigLocation();
 			fail();
-		} catch (DocumentException e) {
+		} catch (ProjectException e) {
 			//Expected.
 		}
 	}
 
-	@Test
+	@Test(expected = ProjectException.class)
 	public void testMultiLocations() throws IOException, DocumentException {
 		String xml = "<web-app>"
 				+ "<servlet><servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>"
@@ -118,7 +116,7 @@ public class WebXmlParserTests {
 		try {
 			parser.getServletConfigLocation();
 			fail();
-		} catch (DocumentException e) {
+		} catch (ProjectException e) {
 			//Expected.
 		}
 		xml = "<web-app>"
@@ -130,9 +128,16 @@ public class WebXmlParserTests {
 				+ "</servlet>"
 				+ "</web-app>";
 		parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		Set<String> locations = parser.getServletConfigLocation();
-		assertTrue(locations.size() == 2 && locations.contains("loc1") && locations.contains("loc2"));
+		parser.getServletConfigLocation();
 	}
-	
-	
+
+	@Test
+	public void testCorrectLocation() throws IOException, DocumentException {
+		String xml = "<web-app>"
+				+ "<servlet><servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>"
+				+ "<init-param><param-name>contextConfigLocation</param-name><param-value>loc1</param-value></init-param>"
+				+ "</servlet></web-app>";
+		WebXmlParser parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertTrue("loc1".equals(parser.getServletConfigLocation()));
+	}
 }
