@@ -158,7 +158,7 @@ public class EclipseProject extends Project {
 	}
 
 	private static String getServletConfigPath(WebXmlParser webXmlParser) throws DocumentException {
-		return webXmlParser.getAppConfigLocation();
+		return null;
 		/*Set<String> servletConfigPath = webXmlParser.getServletConfigLocation();
 		if (servletConfigPath.size() != 1) {
 			throw new ProjectException("Should have only one servlet config.");
@@ -170,7 +170,7 @@ public class EclipseProject extends Project {
 	}
 	
 	private static RootSpringXmlParser getSpringXmlParser(IProject project, WebXmlParser webXmlParser) throws DocumentException, FileNotFoundException, IOException {
-		String appConfigPath = webXmlParser.getAppConfigLocation();
+		String appConfigPath = null;
 		RootSpringXmlParser springXmlParser = null;
 		if (appConfigPath != null) {
 			appConfigPath.replace(CLASSPATH_PREFIX, MAVEN_RESOURCES_PATH);

@@ -28,7 +28,11 @@ public interface Folder {
 	 */
 	public  List<Folder> getSubFolders();
 	
-
+	/**
+	 * Test if this folder contains the file.
+	 * @param the file name to test.
+	 * @return true if so, false if not.
+	 */
 	public boolean containsFile(String name);
 
 }
