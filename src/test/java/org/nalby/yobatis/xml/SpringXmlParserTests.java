@@ -1,8 +1,11 @@
 package org.nalby.yobatis.xml;
 
 import static org.junit.Assert.*;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.List;
+
 import org.dom4j.DocumentException;
 import org.junit.Test;
 
@@ -48,4 +51,13 @@ public class SpringXmlParserTests {
 			assertTrue("test".equals(parser.getDbUsername()));
 		}
 	}
+	
+	@Test
+	public void testImported() throws DocumentException, IOException { 
+		String xml = "<beans><import resource=\"classpath:test.config\"/></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		List<String> importedConfigFiles = parser.getImportedConfigFiles();
+		assertTrue(importedConfigFiles.size() == 1 && importedConfigFiles.get(0).equals("classpath:test.config"));
+	}
+	
 }

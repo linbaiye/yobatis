@@ -2,14 +2,13 @@ package org.nalby.yobatis.xml;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.Namespace;
 import org.dom4j.QName;
-import org.nalby.yobatis.exception.SqlConfigIncompleteException;
-
 public class SpringXmlParser extends BasicXmlParser {
 
 	private static final String BEANS_TAG = "beans";
@@ -68,8 +67,7 @@ public class SpringXmlParser extends BasicXmlParser {
 	 * Get the username from the datasource bean. if there are multiple
 	 * datasource beans, the first one will be used.
 	 * 
-	 * @return the username if there is one.
-	 * @throws SqlConfigIncompleteException if failed to find the property.
+	 * @return the username if there is one, null otherise.
 	 */
 	public String getDbUsername() {
 		return propertyValueFromDatasources("username");
@@ -79,8 +77,7 @@ public class SpringXmlParser extends BasicXmlParser {
 	 * Get the driver class' name from the datasource bean. if there are
 	 * multiple datasource beans, the first one will be used.
 	 * 
-	 * @return the driver class' name if there is one.
-	 * @throws SqlConfigIncompleteException if failed to find the property.
+	 * @return the driver class' name if there is one, null otherwise.
 	 */
 	public String getDbDriverClass() {
 		return propertyValueFromDatasources("driverClassName");
@@ -90,8 +87,7 @@ public class SpringXmlParser extends BasicXmlParser {
 	 * Get the password from the datasource bean. if there are multiple
 	 * datasource beans, the first one will be used.
 	 * 
-	 * @return the password if there is one.
-	 * @throws SqlConfigIncompleteException if failed to find the property.
+	 * @return the password if there is one, null otherwise.
 	 */
 	public String getDbPassword() {
 		return propertyValueFromDatasources("password");
@@ -101,12 +97,26 @@ public class SpringXmlParser extends BasicXmlParser {
 	 * Get the url from the datasource bean. if there are multiple
 	 * datasource beans, the first one will be used.
 	 * 
-	 * @return the url if there is one.
-	 * @throws SqlConfigIncompleteException if failed to find the property.
+	 * @return the url if there is one, null otherwise.
 	 */
 	public String getDbUrl() {
 		return propertyValueFromDatasources("url");
 	}
-
+	
+	/**
+	 * Get the imported spring files if any.
+	 * @return the imported files.
+	 */
+	public List<String> getImportedConfigFiles() {
+		List<String> list = new LinkedList<String>();
+		List<Element> importElements = document.getRootElement().elements("import");
+		for (Element importElement: importElements) {
+			String val = importElement.attributeValue("resource");
+			if (val != null && !"".equals(val.trim())) {
+				list.add(val);
+			}
+		}
+		return list;
+	}
 
 }
