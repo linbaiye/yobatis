@@ -1,6 +1,8 @@
 package org.nalby.yobatis;
 
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.util.List;
 
 import org.eclipse.core.commands.AbstractHandler;
@@ -21,6 +23,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
 import org.mybatis.generator.api.LibraryRunner;
 import org.nalby.yobatis.exception.ProjectNotFoundException;
+import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.sql.mysql.Mysql;
 import org.nalby.yobatis.structure.Folder;
@@ -28,6 +31,7 @@ import org.nalby.yobatis.structure.MybatisFilesGenerator;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
+import org.nalby.yobatis.xml.WebXmlParser;
 
 public class YobatisGenerationHandler extends AbstractHandler {
 	
@@ -64,6 +68,21 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		}
 		return null;
 	}
+	
+	
+	private String getWebXmlPath(Project project) {
+		List<Folder> folders = project.findFolders(new FolderSelector() {
+			@Override
+			public boolean isSelected(Folder folder) {
+				return folder.containsFile("web.xml");
+			}
+		});
+		if (folders.size() != 1) {
+			throw new UnsupportedProjectException("Unable to find web.xml");
+		}
+		Folder folder = folders.get(0);
+		return project.covertToFullPath(folder.path() + "/web.xml");
+	}
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
@@ -75,15 +94,11 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		//IFolder folder = project.getFolder("/learn");
 		try {
 			EclipseProject eclipseProject = new EclipseProject(project);
-			List<Folder> folders = eclipseProject.findFolders(new FolderSelector() {
-				@Override
-				public boolean isSelected(Folder folder) {
-					return folder.containsFile("web.xml");
-				}
-			});
-			for (Folder folder: folders) {
-				System.out.println(folder.name());
-				System.out.println(folder.path());
+			String webxmlPath = getWebXmlPath(eclipseProject);
+			WebXmlParser parser = new WebXmlParser(new FileInputStream(new File(webxmlPath)));
+			List<String> springConfigPaths = parser.getSpringConfigLocations();
+			for (String path: springConfigPaths) {
+				System.out.println(path);
 			}
 
 		} catch (Exception e) {

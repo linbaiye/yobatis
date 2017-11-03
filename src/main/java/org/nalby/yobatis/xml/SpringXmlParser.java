@@ -2,17 +2,15 @@ package org.nalby.yobatis.xml;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.LinkedList;
 import java.util.List;
 
-import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.Namespace;
 import org.dom4j.QName;
 import org.nalby.yobatis.exception.SqlConfigIncompleteException;
 
-public class RootSpringXmlParser extends BasicXmlParser {
+public class SpringXmlParser extends BasicXmlParser {
 
 	private static final String BEANS_TAG = "beans";
 
@@ -22,24 +20,8 @@ public class RootSpringXmlParser extends BasicXmlParser {
 
 	private static final String P_NAMESPACE = "http://www.springframework.org/schema/p";
 
-	private List<Document> documentList = null;
-	
-	private RootSpringXmlParser(InputStream inputStream, List<Document> list) throws DocumentException, IOException {
+	public SpringXmlParser(InputStream inputStream) throws DocumentException, IOException {
 		super(inputStream, BEANS_TAG);
-		if (list == null) {
-			documentList = new LinkedList<Document>();
-			list = documentList;
-		}
-		list.add(this.document);
-	}
-	
-	
-	public RootSpringXmlParser(InputStream inputStream) throws DocumentException, IOException {
-		this(inputStream, null);
-	}
-
-	public void appendSpringXmlConfig(InputStream inputStream) throws DocumentException, IOException {
-		new RootSpringXmlParser(inputStream, this.documentList);
 	}
 
 	private boolean isDatasourceBean(Element element) {
@@ -67,20 +49,19 @@ public class RootSpringXmlParser extends BasicXmlParser {
 	}
 
 	private String propertyValueFromDatasources(String propertyName) {
-		for (Document doc : documentList) {
-			Element root = doc.getRootElement();
-			List<Element> beanElements = root.elements("bean");
-			for (Element beanElement : beanElements) {
-				if (!isDatasourceBean(beanElement)) {
-					continue;
-				}
-				String username = parsePropertyValue(beanElement, propertyName);
-				if (username != null) {
-					return username;
-				}
+		Element root = document.getRootElement();
+		List<Element> beanElements = root.elements("bean");
+		String username = null;
+		for (Element beanElement : beanElements) {
+			if (!isDatasourceBean(beanElement)) {
+				continue;
+			}
+			username = parsePropertyValue(beanElement, propertyName);
+			if (username != null) {
+				return username;
 			}
 		}
-		throw new SqlConfigIncompleteException("Failed to find " + propertyName + " for sql config.");
+		return username;
 	}
 
 	/**

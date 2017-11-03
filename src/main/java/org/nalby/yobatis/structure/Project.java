@@ -4,9 +4,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
+import org.nalby.yobatis.util.Expect;
+
 public abstract class Project {
 	
 	protected Folder root;
+	
+	//The full path of this project on system.
+	protected String syspath;
 	
 	protected final static String MAVEN_SOURCE_CODE_PATH = "src/main/java/";
 
@@ -44,6 +49,11 @@ public abstract class Project {
 	
 	public static interface FolderSelector {
 		public boolean isSelected(Folder folder);
+	}
+	
+	public String covertToFullPath(String path) {
+		Expect.notEmpty(path, "Invalid path.");
+		return syspath + path;
 	}
 	
 	public List<Folder> findFolders(FolderSelector selector) {

@@ -5,8 +5,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Set;
-
 import org.dom4j.DocumentException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -22,7 +20,7 @@ import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SourceCodeFolder;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.xml.RootPomXmlParser;
-import org.nalby.yobatis.xml.RootSpringXmlParser;
+import org.nalby.yobatis.xml.SpringXmlParser;
 import org.nalby.yobatis.xml.WebXmlParser;
 
 public class EclipseProject extends Project {
@@ -31,21 +29,15 @@ public class EclipseProject extends Project {
 
 	private RootPomXmlParser pom;
 
-	private RootSpringXmlParser spring;
+	private SpringXmlParser spring;
 
 	private SourceCodeFolder sourceCodeFolder;
 
-	private EclipseProject(IProject project, RootPomXmlParser pom,
-			RootSpringXmlParser spring, SourceCodeFolder sourceCodeFolder) {
-		this.wrappedProject = project;
-		this.pom = pom;
-		this.spring = spring;
-		this.sourceCodeFolder = sourceCodeFolder;
-	}
-	
 	public EclipseProject(IProject project) {
 		this.wrappedProject = project;
 		this.root = new EclipseFolder("/",  wrappedProject);
+		this.syspath = project.getLocationURI().getPath();
+		this.syspath = this.syspath.replace("/" + project.getName(), "");
 	}
 
 	@Override
@@ -169,19 +161,19 @@ public class EclipseProject extends Project {
 		return null;*/
 	}
 	
-	private static RootSpringXmlParser getSpringXmlParser(IProject project, WebXmlParser webXmlParser) throws DocumentException, FileNotFoundException, IOException {
+	private static SpringXmlParser getSpringXmlParser(IProject project, WebXmlParser webXmlParser) throws DocumentException, FileNotFoundException, IOException {
 		String appConfigPath = null;
-		RootSpringXmlParser springXmlParser = null;
+		SpringXmlParser springXmlParser = null;
 		if (appConfigPath != null) {
 			appConfigPath.replace(CLASSPATH_PREFIX, MAVEN_RESOURCES_PATH);
-			springXmlParser  = new RootSpringXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + appConfigPath));
+			springXmlParser  = new SpringXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + appConfigPath));
 		}
 		String servletConfigPath = getServletConfigPath(webXmlParser);
 		if (servletConfigPath != null) {
 			if (springXmlParser != null) {
-				springXmlParser.appendSpringXmlConfig(new FileInputStream(project.getLocationURI().getPath() + "/" + servletConfigPath));
+				//springXmlParser.appendSpringXmlConfig(new FileInputStream(project.getLocationURI().getPath() + "/" + servletConfigPath));
 			} else {
-				springXmlParser = new RootSpringXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + servletConfigPath));
+				springXmlParser = new SpringXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + servletConfigPath));
 			}
 		}
 		if (springXmlParser == null) {
@@ -207,10 +199,11 @@ public class EclipseProject extends Project {
 				project.open(null);
 			}
 
-			IFolder ifolder = project.getFolder(MAVEN_SOURCE_CODE_PATH);
-			SourceCodeFolder sourceCodeFolder = new SourceCodeFolder(new EclipseFolder(null, ifolder));
-			WebXmlParser webXmlParser = new WebXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + WEB_XML_PATH));
-			return new EclipseProject(project, getPomXmlParser(project), getSpringXmlParser(project, webXmlParser), sourceCodeFolder);
+			//WebXmlParser webXmlParser = new WebXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + WEB_XML_PATH));
+			//IFolder ifolder = project.getFolder(MAVEN_SOURCE_CODE_PATH);
+			//SourceCodeFolder sourceCodeFolder = new SourceCodeFolder(new EclipseFolder(null, ifolder));
+			//return new EclipseProject(project, getPomXmlParser(project), getSpringXmlParser(project, webXmlParser), sourceCodeFolder);
+			return null;
 		} catch (Exception e) {
 			throw new ProjectException(e.getMessage());
 		}
