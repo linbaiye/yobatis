@@ -51,11 +51,16 @@ public abstract class Project {
 		public boolean isSelected(Folder folder);
 	}
 	
-	public String covertToFullPath(String path) {
+	public String convertToFullPath(String path) {
 		Expect.notEmpty(path, "Invalid path.");
 		return syspath + path;
 	}
 	
+	/**
+	 * Find folders that meet the criteria given by selector.
+	 * @param selector the selector to give the criteria.
+	 * @return the folders or empty list if none is met.
+	 */
 	public List<Folder> findFolders(FolderSelector selector) {
 		Stack<Folder> stack = new Stack<Folder>();
 		stack.push(root);
@@ -74,5 +79,4 @@ public abstract class Project {
 		} while (!stack.isEmpty());
 		return result;
 	}
-	
 }

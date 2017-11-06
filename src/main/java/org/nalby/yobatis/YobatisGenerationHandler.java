@@ -29,6 +29,7 @@ import org.nalby.yobatis.sql.mysql.Mysql;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.MybatisFilesGenerator;
 import org.nalby.yobatis.structure.Project;
+import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
 import org.nalby.yobatis.xml.WebXmlParser;
@@ -81,7 +82,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			throw new UnsupportedProjectException("Unable to find web.xml");
 		}
 		Folder folder = folders.get(0);
-		return project.covertToFullPath(folder.path() + "/web.xml");
+		return project.convertToFullPath(folder.path() + "/web.xml");
 	}
 
 	@Override
@@ -94,12 +95,18 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		//IFolder folder = project.getFolder("/learn");
 		try {
 			EclipseProject eclipseProject = new EclipseProject(project);
-			String webxmlPath = getWebXmlPath(eclipseProject);
-			WebXmlParser parser = new WebXmlParser(new FileInputStream(new File(webxmlPath)));
-			List<String> springConfigPaths = parser.getSpringConfigLocations();
-			for (String path: springConfigPaths) {
+
+			SpringParser parser  = new SpringParser(eclipseProject);
+			System.out.println(parser.getDatabaseDriverClassName());
+			System.out.println(parser.getDatabaseUrl());
+			System.out.println(parser.getDatabasePassword());
+			System.out.println(parser.getDatabaseUsername());
+			//String webxmlPath = getWebXmlPath(eclipseProject);
+			//WebXmlParser parser = new WebXmlParser(new FileInputStream(new File(webxmlPath)));
+			//List<String> springConfigPaths = parser.getSpringConfigLocations();
+			/*for (String path: springConfigPaths) {
 				System.out.println(path);
-			}
+			}*/
 
 		} catch (Exception e) {
 			e.printStackTrace();
