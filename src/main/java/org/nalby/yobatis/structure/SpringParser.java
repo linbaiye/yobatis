@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
 import org.dom4j.DocumentException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.structure.Project.FolderSelector;
@@ -27,7 +26,7 @@ public class SpringParser {
 	private Project project;
 
 	private List<SpringXmlParser> springXmlParsers;
-
+	
 	public SpringParser(Project project) {
 		Expect.notNull(project, "project must not be null.");
 		this.project = project;
@@ -78,17 +77,22 @@ public class SpringParser {
 		}
 		throw new UnsupportedProjectException("Failed to find database driver class name.");
 	}
+
 	
-	
-	private List<Folder> findFoldersContainingFile(final String filename) {
+	private List<Folder> findFoldersContainingFile(final String path) {
 		return project.findFolders(new FolderSelector() {
 			@Override
 			public boolean isSelected(Folder folder) {
-				return folder.containsFile(filename);
+				if (path.indexOf("/") == -1) {
+					return folder.containsFile(path);
+				}
+				String folderPath  = path.replaceFirst("/.*$", "");
+				String filename = path.replace(folderPath + "/", "");
+				return folder.path().indexOf(folderPath) != -1 && folder.containsFile(filename);
 			}
 		});
 	}
-
+	
 	private String getWebXmlPath() {
 		List<Folder> folders = findFoldersContainingFile("web.xml");
 		if (folders.size() != 1) {
@@ -101,14 +105,19 @@ public class SpringParser {
 	private String convertImportPathToFilesystemPath(String path) {
 		String[] tokens = path.split(":");
 		if (tokens.length != 2)  {
-			throw new UnsupportedProjectException("");
+			throw new UnsupportedProjectException("invalid spring config file: " + path);
 		}
 		List<Folder> folders = findFoldersContainingFile(tokens[1]);
 		if (folders.size() != 1) {
-			throw new UnsupportedProjectException("");
+			throw new UnsupportedProjectException("Unable to cope with file: " + path);
 		}
 		Folder folder = folders.get(0);
-		return project.convertToFullPath(folder.path() + "/" + tokens[1]);
+		String filename = tokens[1];
+		if (filename.indexOf("/") != -1) {
+			String folderPath  = tokens[1].replaceFirst("/.*$", "");
+			filename = tokens[1].replace(folderPath + "/", "");
+		}
+		return project.convertToFullPath(folder.path() + "/" + filename);
 	}
 
 	
