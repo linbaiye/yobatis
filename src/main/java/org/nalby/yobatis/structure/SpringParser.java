@@ -1,12 +1,13 @@
 package org.nalby.yobatis.structure;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+
 import org.dom4j.DocumentException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.structure.Project.FolderSelector;
@@ -33,7 +34,9 @@ public class SpringParser {
 		Set<String> tracker = new HashSet<String>();
 		String webxmlPath = getWebXmlPath();
 		try {
-			WebXmlParser parser = new WebXmlParser(new FileInputStream(webxmlPath));
+			InputStream inputStream = project.getInputStream(webxmlPath);
+			WebXmlParser parser = new WebXmlParser(inputStream);
+			project.closeInputStream(inputStream);
 			List<String> springConfigPaths = parser.getSpringConfigLocations();
 			loadSpringConfigFiles(springConfigPaths, tracker);
 		} catch (Exception e) {
@@ -138,7 +141,11 @@ public class SpringParser {
 			}
 			tracker.add(path);
 			String fspath = convertClassPathToFilesystemPath(path);
-			SpringXmlParser xmlParser = new SpringXmlParser(new FileInputStream(fspath));
+
+			InputStream inputStream = project.getInputStream(fspath);
+			SpringXmlParser xmlParser = new SpringXmlParser(inputStream);
+			project.closeInputStream(inputStream);
+
 			springXmlParsers.add(xmlParser);
 			List<String> newFileNames  = xmlParser.getImportedConfigFiles();
 			if (!newFileNames.isEmpty()) {

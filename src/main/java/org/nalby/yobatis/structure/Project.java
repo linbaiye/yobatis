@@ -1,5 +1,9 @@
 package org.nalby.yobatis.structure;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
@@ -51,9 +55,42 @@ public abstract class Project {
 		public boolean isSelected(Folder folder);
 	}
 	
+	public boolean containsFile(String filename) {
+		return root.containsFile(filename);
+	}
+	
 	public String convertToFullPath(String path) {
 		Expect.notEmpty(path, "Invalid path.");
-		return syspath + path;
+		if (path.startsWith("/")) {
+			return syspath + path;
+		}
+		return syspath + "/" + path;
+	}
+	
+	public void closeInputStream(InputStream inputStream) {
+		if (inputStream != null) {
+			try {
+				inputStream.close();
+			} catch (IOException e) {
+				//Nothing to do.
+			}
+		}
+	}
+
+	/**
+	 * Get {@code InputStream} of the {@code filepath}, if {@code filepath} represents a filename, this method
+	 * tries to convert it to full path first.
+	 * @param filepath the file to open.
+	 * @return the InputStream representing the file.
+	 * @throws FileNotFoundException
+	 */
+	public InputStream getInputStream(String filepath) throws FileNotFoundException {
+		Expect.notEmpty(filepath, "filepath must not be empty.");
+		if (filepath.indexOf(syspath) != -1) {
+			return new FileInputStream(filepath);
+		} else {
+			return new FileInputStream(convertToFullPath(filepath));
+		}
 	}
 	
 	/**

@@ -41,7 +41,7 @@ public class WebXmlParser extends BasicXmlParser {
 		super(inputStream, WEB_APP_TAG);
 	}
 
-	
+
 	private List<Element> selectElements(String elementName) {
 		Element root = document.getRootElement();
 		return root.elements(elementName);
