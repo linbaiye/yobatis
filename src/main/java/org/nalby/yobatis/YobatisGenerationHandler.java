@@ -101,6 +101,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			System.out.println(parser.getDatabaseUrl());
 			System.out.println(parser.getDatabasePassword());
 			System.out.println(parser.getDatabaseUsername());
+			System.out.println(parser.getPropertiesFilePath());
 			//String webxmlPath = getWebXmlPath(eclipseProject);
 			//WebXmlParser parser = new WebXmlParser(new FileInputStream(new File(webxmlPath)));
 			//List<String> springConfigPaths = parser.getSpringConfigLocations();

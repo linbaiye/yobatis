@@ -19,7 +19,7 @@ import org.nalby.yobatis.exception.ProjectNotFoundException;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SourceCodeFolder;
 import org.nalby.yobatis.util.Expect;
-import org.nalby.yobatis.xml.RootPomXmlParser;
+import org.nalby.yobatis.xml.PomXmlParser;
 import org.nalby.yobatis.xml.SpringXmlParser;
 import org.nalby.yobatis.xml.WebXmlParser;
 
@@ -27,7 +27,7 @@ public class EclipseProject extends Project {
 
 	private IProject wrappedProject;
 
-	private RootPomXmlParser pom;
+	private PomXmlParser pom;
 
 	private SpringXmlParser spring;
 
@@ -182,8 +182,8 @@ public class EclipseProject extends Project {
 		return springXmlParser;
 	}
 	
-	private static RootPomXmlParser getPomXmlParser(IProject project) throws FileNotFoundException, DocumentException, IOException {
-		RootPomXmlParser xmlParser = new RootPomXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/pom.xml"));
+	private static PomXmlParser getPomXmlParser(IProject project) throws FileNotFoundException, DocumentException, IOException {
+		PomXmlParser xmlParser = new PomXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/pom.xml"));
 		return xmlParser;
 	}
 

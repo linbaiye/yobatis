@@ -8,7 +8,7 @@ import java.io.IOException;
 import org.dom4j.DocumentException;
 import org.junit.Test;
 
-public class RootPomXmlParserTests {
+public class PomXmlParserTests {
 	
 	@Test
 	public void testNoVersionConfigured() throws DocumentException, IOException {
@@ -18,7 +18,7 @@ public class RootPomXmlParserTests {
 				+ "<artifactId>mysql-connector-java</artifactId>"
 				+ "</dependency>"
 				+ "</dependencies></project>";
-		RootPomXmlParser parser = new RootPomXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
 		String tmp = parser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver");
 		assertTrue(null == tmp);
 		
@@ -29,7 +29,7 @@ public class RootPomXmlParserTests {
 				+ "<version>${mysql.version}</version>"
 				+ "</dependency>"
 				+ "</dependencies></project>";
-		parser = new RootPomXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
 		tmp = parser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver");
 		assertTrue(null == tmp);
 	}
@@ -43,7 +43,7 @@ public class RootPomXmlParserTests {
 				+ "<version>5.4.9</version>"
 				+ "</dependency>"
 				+ "</dependencies></project>";
-		RootPomXmlParser parser = new RootPomXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
 		String tmp = parser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver");
 		assertTrue("mysql/mysql-connector-java/5.4.9/mysql-connector-java-5.4.9.jar".equals(tmp));
 	}
@@ -58,8 +58,28 @@ public class RootPomXmlParserTests {
 				+ "<version>${mysql.version}</version>"
 				+ "</dependency>"
 				+ "</dependencies></project>";
-		RootPomXmlParser parser = new RootPomXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
 		String tmp = parser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver");
 		assertTrue("mysql/mysql-connector-java/5.4.1/mysql-connector-java-5.4.1.jar".equals(tmp));
+	}
+	
+	@Test
+	public void testNoProfileProperty() throws DocumentException, IOException {
+		String xml = "<project><profiles><profile><id>develop</id><activation><activeByDefault>true</activeByDefault>"
+				+ "</activation><properties><uplending.jdbc.datasource.type></uplending.jdbc.datasource.type>" + 
+		    "</properties></profile></profiles></project>";
+		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertTrue(null == parser.getProfileProperty("uplending.jdbc.datasource.type"));
+	}
+	
+	@Test
+	public void testProfileProperty() throws DocumentException, IOException {
+		String xml = "<project><profiles><profile><id>develop</id><activation><activeByDefault>true</activeByDefault>"
+				+ "</activation><properties><uplending.jdbc.datasource.type>test</uplending.jdbc.datasource.type>"
+				+ "<type>test</type>" + 
+		    "</properties></profile></profiles></project>";
+		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertTrue("test".equals(parser.getProfileProperty("uplending.jdbc.datasource.type")));
+		assertTrue("test".equals(parser.getProfileProperty("type")));
 	}
 }

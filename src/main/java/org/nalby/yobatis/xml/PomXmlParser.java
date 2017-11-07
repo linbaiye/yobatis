@@ -2,13 +2,17 @@ package org.nalby.yobatis.xml;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 
-public class RootPomXmlParser extends BasicXmlParser {
+public class PomXmlParser extends BasicXmlParser {
 
 	private static final String MYSQL_DRIVER_CLASS = "com.mysql.jdbc.Driver";
 	
@@ -18,9 +22,45 @@ public class RootPomXmlParser extends BasicXmlParser {
 	
 	private static final String VERSION_TAG = "version";
 	
-	public RootPomXmlParser(InputStream inputStream)
+	private Map<String, String> profileProperties;
+	
+	public PomXmlParser(InputStream inputStream)
 			throws DocumentException, IOException {
 		super(inputStream, "project");
+		profileProperties = new HashMap<String, String>();
+		loadProfileProperties();
+	}
+	
+	private boolean isActive(Element profileElement) {
+		Element activation = profileElement.element("activation");
+		if (activation == null) {
+			return false;
+		}
+		Element activeByDefault = activation.element("activeByDefault");
+		if (activeByDefault == null || activeByDefault.getText() == null) {
+			return false;
+		}
+		return "true".equals(activeByDefault.getText().trim());
+	}
+	
+	private void loadProfileProperties() {
+		Element root = document.getRootElement();
+		Element profilesElement = root.element("profiles");
+		if (profilesElement == null) {
+			return;
+		}
+		List<Element> profileElements = profilesElement.elements("profile");
+		for (Element profileElement : profileElements) {
+			if (!isActive(profileElement)) {
+				continue;
+			}
+			Element propertiesElement = profileElement.element("properties");
+			for (Element property: propertiesElement.elements()) {
+				if (property.getText() != null && !"".equals(property.getText().trim())) {
+					profileProperties.put(property.getName(), property.getText().trim());
+				}
+			}
+		}
 	}
 	
 	private boolean isMysqlDependency(Element dependencyElement) {
@@ -107,6 +147,18 @@ public class RootPomXmlParser extends BasicXmlParser {
 	public String dbConnectorJarRelativePath(String driverClassName) {
 		if (MYSQL_DRIVER_CLASS.equals(driverClassName)) {
 			return buildMysqlJarRelativePath();
+		}
+		return null;
+	}
+	
+	/**
+	 * Get profile property.
+	 * @param name property name
+	 * @return the property if found, null else.
+	 */
+	public String getProfileProperty(String name) {
+		if (profileProperties.containsKey(name)) {
+			return profileProperties.get(name);
 		}
 		return null;
 	}
