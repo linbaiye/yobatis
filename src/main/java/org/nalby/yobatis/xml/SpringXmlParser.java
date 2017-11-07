@@ -9,6 +9,7 @@ import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.Namespace;
 import org.dom4j.QName;
+import org.nalby.yobatis.exception.UnsupportedProjectException;
 public class SpringXmlParser extends BasicXmlParser {
 
 	private static final String BEANS_TAG = "beans";
@@ -18,6 +19,8 @@ public class SpringXmlParser extends BasicXmlParser {
 			"org.apache.commons.dbcp.BasicDataSource" };
 
 	private static final String P_NAMESPACE = "http://www.springframework.org/schema/p";
+	
+	private static final String PROPERTY_CLASS = "org.springframework.beans.factory.config.PropertyPlaceholderConfigurer";
 
 	public SpringXmlParser(InputStream inputStream) throws DocumentException, IOException {
 		super(inputStream, BEANS_TAG);
@@ -117,6 +120,41 @@ public class SpringXmlParser extends BasicXmlParser {
 			}
 		}
 		return list;
+	}
+	
+	/**
+	 * Get properties file path contained by PropertyPlaceholderConfigurer bean.
+	 * @return file names.
+	 */
+	public String getPropertiesFile() {
+		List<Element> beanElements = document.getRootElement().elements("bean");
+		for (Element beanElement: beanElements)  {
+			String clazz = beanElement.attributeValue("class");
+			if (!PROPERTY_CLASS.equals(clazz)) {
+				continue;
+			}
+			List<Element> propertyList = beanElement.elements("property");
+			for (Element property: propertyList) {
+				String value = property.attributeValue("name");
+				if (!"locations".equals(value)) {
+					continue;
+				}
+				Element listElement = property.element("list");
+				if (listElement == null) {
+					return null;
+				}
+				List<Element> valueElements = listElement.elements("value");
+				if (valueElements.size() != 1)  {
+					throw new UnsupportedProjectException("Can't cope with multiple properties files for now.");
+				}
+				for (Element valueElement: valueElements) {
+					if (valueElement.getText() != null && !"".equals(valueElement.getText())) {
+						return valueElement.getText();
+					}
+				}
+			}
+		}
+		return null;
 	}
 
 }

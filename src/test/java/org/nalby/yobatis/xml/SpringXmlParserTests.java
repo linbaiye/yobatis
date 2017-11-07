@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.dom4j.DocumentException;
 import org.junit.Test;
+import org.nalby.yobatis.exception.UnsupportedProjectException;
 
 public class SpringXmlParserTests {
 	private final static String[] DATASOURCE_CLASSES = {"org.apache.commons.dbcp.BasicDataSource", "com.alibaba.druid.pool.DruidDataSource"};
@@ -60,4 +61,37 @@ public class SpringXmlParserTests {
 		assertTrue(importedConfigFiles.size() == 1 && importedConfigFiles.get(0).equals("classpath:test.config"));
 	}
 	
+	@Test
+	public void testNoProperties() throws DocumentException, IOException {
+		String xml = "<beans><bean id=\"propertyConfigurer\" " +
+        "class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
+        "<property name=\"systemPropertiesModeName\" value=\"SYSTEM_PROPERTIES_MODE_OVERRIDE\" />" + 
+        "<property name=\"ignoreResourceNotFound\" value=\"true\" /></bean></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		String file = parser.getPropertiesFile();
+		assertTrue(file == null);
+	}
+
+	@Test
+	public void testProperties() throws DocumentException, IOException {
+		String xml = "<beans><bean id=\"propertyConfigurer\" " +
+        "class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
+        "<property name=\"systemPropertiesModeName\" value=\"SYSTEM_PROPERTIES_MODE_OVERRIDE\" />" + 
+        "<property name=\"ignoreResourceNotFound\" value=\"true\" />" +
+        "<property name=\"locations\"><list><value>classpath:conf/important.properties</value></list></property></bean></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		String file = parser.getPropertiesFile();
+		assertTrue(file.equals("classpath:conf/important.properties"));
+	}
+
+	@Test(expected = UnsupportedProjectException.class)
+	public void testMultipleProperties() throws DocumentException, IOException {
+		String xml = "<beans><bean id=\"propertyConfigurer\" " +
+        "class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
+        "<property name=\"systemPropertiesModeName\" value=\"SYSTEM_PROPERTIES_MODE_OVERRIDE\" />" + 
+        "<property name=\"ignoreResourceNotFound\" value=\"true\" />" +
+        "<property name=\"locations\"><list><value>classpath:conf/important.properties</value><value>classpath:conf/test.properties</value></list></property></bean></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		parser.getPropertiesFile();
+	}
 }

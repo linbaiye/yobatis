@@ -1,6 +1,5 @@
 package org.nalby.yobatis.structure;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -34,12 +33,22 @@ public class SpringParser {
 		Set<String> tracker = new HashSet<String>();
 		String webxmlPath = getWebXmlPath();
 		try {
-			WebXmlParser parser = new WebXmlParser(new FileInputStream(new File(webxmlPath)));
+			WebXmlParser parser = new WebXmlParser(new FileInputStream(webxmlPath));
 			List<String> springConfigPaths = parser.getSpringConfigLocations();
 			loadSpringConfigFiles(springConfigPaths, tracker);
 		} catch (Exception e) {
 			throw new UnsupportedProjectException(e);
 		}
+	}
+	
+	public String getPropertiesFilePath() {
+		for (SpringXmlParser parser : springXmlParsers) {
+			String val = parser.getPropertiesFile();
+			if (val != null) {
+				return convertClassPathToFilesystemPath(val);
+			}
+		}
+		return  null;
 	}
 	
 	public String getDatabaseUrl() {
@@ -102,7 +111,7 @@ public class SpringParser {
 		return project.convertToFullPath(folder.path() + "/web.xml");
 	}
 	
-	private String convertImportPathToFilesystemPath(String path) {
+	private String convertClassPathToFilesystemPath(String path) {
 		String[] tokens = path.split(":");
 		if (tokens.length != 2)  {
 			throw new UnsupportedProjectException("invalid spring config file: " + path);
@@ -128,7 +137,7 @@ public class SpringParser {
 				continue;
 			}
 			tracker.add(path);
-			String fspath = convertImportPathToFilesystemPath(path);
+			String fspath = convertClassPathToFilesystemPath(path);
 			SpringXmlParser xmlParser = new SpringXmlParser(new FileInputStream(fspath));
 			springXmlParsers.add(xmlParser);
 			List<String> newFileNames  = xmlParser.getImportedConfigFiles();
