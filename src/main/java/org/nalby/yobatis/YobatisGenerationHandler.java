@@ -28,10 +28,12 @@ import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.sql.mysql.Mysql;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.MybatisFilesGenerator;
+import org.nalby.yobatis.structure.PomParser;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
+import org.nalby.yobatis.xml.PomXmlParser;
 import org.nalby.yobatis.xml.WebXmlParser;
 
 public class YobatisGenerationHandler extends AbstractHandler {
@@ -95,13 +97,14 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		//IFolder folder = project.getFolder("/learn");
 		try {
 			EclipseProject eclipseProject = new EclipseProject(project);
-
-			SpringParser parser  = new SpringParser(eclipseProject);
+			PomParser parser = new PomParser(eclipseProject);
+			System.out.println(parser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver"));
+			/*SpringParser parser  = new SpringParser(eclipseProject);
 			System.out.println(parser.getDatabaseDriverClassName());
 			System.out.println(parser.getDatabaseUrl());
 			System.out.println(parser.getDatabasePassword());
 			System.out.println(parser.getDatabaseUsername());
-			System.out.println(parser.getPropertiesFilePath());
+			System.out.println(parser.getPropertiesFilePath());*/
 			//String webxmlPath = getWebXmlPath(eclipseProject);
 			//WebXmlParser parser = new WebXmlParser(new FileInputStream(new File(webxmlPath)));
 			//List<String> springConfigPaths = parser.getSpringConfigLocations();

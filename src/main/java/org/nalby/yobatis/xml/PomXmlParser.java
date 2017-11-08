@@ -27,13 +27,14 @@ public class PomXmlParser extends BasicXmlParser {
 	private Map<String, String> properties;
 	
 	private String artificatId;
-	
-	private List<String> containingModules;
+	private List<String> moduleNames;
+	private List<PomXmlParser> dependentPom;
 	
 	public PomXmlParser(InputStream inputStream)
 			throws DocumentException, IOException {
 		super(inputStream, "project");
-		profileProperties = new HashMap<String, String>();
+		this.profileProperties = new HashMap<String, String>();
+		this.moduleNames = new LinkedList<String>();
 		loadProfileProperties();
 		loadProperties();
 		loadModules();
@@ -47,12 +48,33 @@ public class PomXmlParser extends BasicXmlParser {
 		}
 	}
 	
+	/**
+	 * Select submodules from {@code pomXmlParsers}.
+	 * @param pomXmlParsers all the pom.xml of this project.
+	 */
+	public void resolveModules(List<PomXmlParser> pomXmlParsers) {
+		if (pomXmlParsers == null || pomXmlParsers.isEmpty() || dependentPom != null) {
+			return;
+		}
+		dependentPom = new LinkedList<PomXmlParser>();
+		for (PomXmlParser parser : pomXmlParsers) {
+			for (String moduleName: moduleNames) {
+				if (parser.artifactIdEquals(moduleName)) {
+					dependentPom.add(parser);
+				}
+			}
+		}
+	}
+	
+	public String getArtifactId() {
+		return artificatId;
+	}
+
 	public boolean artifactIdEquals(String str) {
 		return artificatId.equals(str);
 	}
 	
 	private void loadModules() {
-		containingModules = new LinkedList<String>();
 		Element root = document.getRootElement();
 		Element modulesElement = root.element("modules");
 		if (modulesElement == null) {
@@ -60,7 +82,7 @@ public class PomXmlParser extends BasicXmlParser {
 		}
 		for (Element moduleElement : modulesElement.elements()) {
 			if (moduleElement.getTextTrim() != null && !"".equals(moduleElement.getTextTrim())) {
-				containingModules.add(moduleElement.getTextTrim());
+				moduleNames.add(moduleElement.getTextTrim());
 			}
 		}
 	}
@@ -164,6 +186,10 @@ public class PomXmlParser extends BasicXmlParser {
 	private String buildMysqlJarRelativePath() {
 		Element root = document.getRootElement();
 		Element dependenciesElement = root.element("dependencies");
+		Element dependencyManagementElement = root.element("dependencyManagement");
+		if (dependencyManagementElement != null) {
+			dependenciesElement = dependencyManagementElement.element("dependencies");
+		}
 		if (dependenciesElement == null) {
 			return null;
 		}
@@ -195,9 +221,6 @@ public class PomXmlParser extends BasicXmlParser {
 	 * @return the property if found, null else.
 	 */
 	public String getProfileProperty(String name) {
-		if (profileProperties.containsKey(name)) {
-			return profileProperties.get(name);
-		}
-		return null;
+		return profileProperties.get(name);
 	}
 }

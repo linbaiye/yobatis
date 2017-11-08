@@ -86,6 +86,9 @@ public abstract class Project {
 	 */
 	public InputStream getInputStream(String filepath) throws FileNotFoundException {
 		Expect.notEmpty(filepath, "filepath must not be empty.");
+		if (!filepath.startsWith(root.path())) {
+			filepath = root.path() + "/" + filepath;
+		}
 		if (filepath.indexOf(syspath) != -1) {
 			return new FileInputStream(filepath);
 		} else {

@@ -65,6 +65,22 @@ public class PomXmlParserTests {
 	}
 	
 	@Test
+	public void testDependencyManagement() throws DocumentException, IOException {
+		String xml = "<project><artifactId>test</artifactId><properties>"
+				+ "<mysql.version>5.4.1</mysql.version></properties>"
+				+ "<dependencyManagement><dependencies><dependency>"
+				+ "<groupId>mysql</groupId>"
+				+ "<artifactId>mysql-connector-java</artifactId>"
+				+ "<version>${mysql.version}</version>"
+				+ "</dependency>"
+				+ "</dependencies></dependencyManagement></project>";
+		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		String tmp = parser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver");
+		assertTrue("mysql/mysql-connector-java/5.4.1/mysql-connector-java-5.4.1.jar".equals(tmp));
+	}
+	
+
+	@Test
 	public void testNoProfileProperty() throws DocumentException, IOException {
 		String xml = "<project><artifactId>test</artifactId><profiles><profile><id>develop</id><activation><activeByDefault>true</activeByDefault>"
 				+ "</activation><properties><uplending.jdbc.datasource.type></uplending.jdbc.datasource.type>" + 
