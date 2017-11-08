@@ -148,8 +148,8 @@ public class SpringXmlParser extends BasicXmlParser {
 					throw new UnsupportedProjectException("Can't cope with multiple properties files for now.");
 				}
 				for (Element valueElement: valueElements) {
-					if (valueElement.getText() != null && !"".equals(valueElement.getText())) {
-						return valueElement.getText();
+					if (valueElement.getTextTrim() != null && !"".equals(valueElement.getTextTrim())) {
+						return valueElement.getTextTrim();
 					}
 				}
 			}

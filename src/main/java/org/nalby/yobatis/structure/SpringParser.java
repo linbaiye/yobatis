@@ -26,21 +26,24 @@ public class SpringParser {
 	private Project project;
 
 	private List<SpringXmlParser> springXmlParsers;
+
+	private WebXmlParser parser;
 	
 	public SpringParser(Project project) {
 		Expect.notNull(project, "project must not be null.");
 		this.project = project;
 		springXmlParsers = new LinkedList<SpringXmlParser>();
 		Set<String> tracker = new HashSet<String>();
-		String webxmlPath = getWebXmlPath();
+		InputStream inputStream =  null;
 		try {
-			InputStream inputStream = project.getInputStream(webxmlPath);
-			WebXmlParser parser = new WebXmlParser(inputStream);
-			project.closeInputStream(inputStream);
+			inputStream = project.getInputStream(getWebXmlPath());
+			this.parser = new WebXmlParser(inputStream);
 			List<String> springConfigPaths = parser.getSpringConfigLocations();
 			loadSpringConfigFiles(springConfigPaths, tracker);
 		} catch (Exception e) {
 			throw new UnsupportedProjectException(e);
+		} finally {
+			project.closeInputStream(inputStream);
 		}
 	}
 	
@@ -48,7 +51,7 @@ public class SpringParser {
 		for (SpringXmlParser parser : springXmlParsers) {
 			String val = parser.getPropertiesFile();
 			if (val != null) {
-				return convertClassPathToFilesystemPath(val);
+				return convertClassPathToProjectPath(val);
 			}
 		}
 		return  null;
@@ -96,8 +99,10 @@ public class SpringParser {
 			@Override
 			public boolean isSelected(Folder folder) {
 				if (path.indexOf("/") == -1) {
+					//only filename.
 					return folder.containsFile(path);
 				}
+				//file path.
 				String folderPath  = path.replaceFirst("/.*$", "");
 				String filename = path.replace(folderPath + "/", "");
 				return folder.path().indexOf(folderPath) != -1 && folder.containsFile(filename);
@@ -111,10 +116,10 @@ public class SpringParser {
 			throw new UnsupportedProjectException("Unable to find web.xml");
 		}
 		Folder folder = folders.get(0);
-		return project.convertToFullPath(folder.path() + "/web.xml");
+		return folder.path() + "/web.xml";
 	}
 	
-	private String convertClassPathToFilesystemPath(String path) {
+	private String convertClassPathToProjectPath(String path) {
 		String[] tokens = path.split(":");
 		if (tokens.length != 2)  {
 			throw new UnsupportedProjectException("invalid spring config file: " + path);
@@ -129,7 +134,7 @@ public class SpringParser {
 			String folderPath  = tokens[1].replaceFirst("/.*$", "");
 			filename = tokens[1].replace(folderPath + "/", "");
 		}
-		return project.convertToFullPath(folder.path() + "/" + filename);
+		return folder.path() + "/" + filename;
 	}
 
 	
@@ -140,17 +145,20 @@ public class SpringParser {
 				continue;
 			}
 			tracker.add(path);
-			String fspath = convertClassPathToFilesystemPath(path);
-
+			String fspath = convertClassPathToProjectPath(path);
 			InputStream inputStream = project.getInputStream(fspath);
-			SpringXmlParser xmlParser = new SpringXmlParser(inputStream);
-			project.closeInputStream(inputStream);
-
-			springXmlParsers.add(xmlParser);
-			List<String> newFileNames  = xmlParser.getImportedConfigFiles();
-			if (!newFileNames.isEmpty()) {
-				loadSpringConfigFiles(newFileNames, tracker);
+			try {
+				SpringXmlParser xmlParser = new SpringXmlParser(inputStream);
+				project.closeInputStream(inputStream);
+				springXmlParsers.add(xmlParser);
+				List<String> newFileNames  = xmlParser.getImportedConfigFiles();
+				if (!newFileNames.isEmpty()) {
+					loadSpringConfigFiles(newFileNames, tracker);
+				}
+			} finally {
+				project.closeInputStream(inputStream);
 			}
+
 		}
 	}
 }

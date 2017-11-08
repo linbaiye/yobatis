@@ -72,6 +72,21 @@ public class PomParser {
 	}
 	
 	/**
+	 * Get property of active profile.
+	 * @param name property name
+	 * @return the property value if found, null else.
+	 */
+	public String getProfileProperty(String name) {
+		for (PomXmlParser parser : pomXmlParsers) {
+			String tmp = parser.getProfileProperty(name);
+			if (tmp != null) {
+				return tmp;
+			}
+		}
+		return null;
+	}
+	
+	/**
 	 * Get sql connector's jar path based on the {@code driverClassName},
 	 * the first <dependency> will be used if multiple found.
 	 * @param driverClassName the sql's driver class name.

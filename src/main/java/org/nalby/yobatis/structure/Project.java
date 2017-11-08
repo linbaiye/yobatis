@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
+import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.util.Expect;
 
 public abstract class Project {
@@ -59,7 +60,7 @@ public abstract class Project {
 		return root.containsFile(filename);
 	}
 	
-	public String convertToFullPath(String path) {
+	private String convertToFullPath(String path) {
 		Expect.notEmpty(path, "Invalid path.");
 		if (path.startsWith("/")) {
 			return syspath + path;
@@ -79,7 +80,7 @@ public abstract class Project {
 
 	/**
 	 * Get {@code InputStream} of the {@code filepath}, if {@code filepath} represents a filename, this method
-	 * tries to convert it to full path first.
+	 * tries to convert it to full path first. The caller needs to close the inputstream, calling {@code closeInputStream} if prefer.
 	 * @param filepath the file to open.
 	 * @return the InputStream representing the file.
 	 * @throws FileNotFoundException

@@ -30,6 +30,7 @@ import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.MybatisFilesGenerator;
 import org.nalby.yobatis.structure.PomParser;
 import org.nalby.yobatis.structure.Project;
+import org.nalby.yobatis.structure.PropertiesParser;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
@@ -73,20 +74,6 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	}
 	
 	
-	private String getWebXmlPath(Project project) {
-		List<Folder> folders = project.findFolders(new FolderSelector() {
-			@Override
-			public boolean isSelected(Folder folder) {
-				return folder.containsFile("web.xml");
-			}
-		});
-		if (folders.size() != 1) {
-			throw new UnsupportedProjectException("Unable to find web.xml");
-		}
-		Folder folder = folders.get(0);
-		return project.convertToFullPath(folder.path() + "/web.xml");
-	}
-
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
@@ -98,8 +85,10 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		try {
 			EclipseProject eclipseProject = new EclipseProject(project);
 			PomParser parser = new PomParser(eclipseProject);
-			System.out.println(parser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver"));
-			/*SpringParser parser  = new SpringParser(eclipseProject);
+			SpringParser springParser  = new SpringParser(eclipseProject);
+			PropertiesParser propertiesParser = new PropertiesParser(eclipseProject, parser, springParser.getPropertiesFilePath());
+			System.out.println(propertiesParser.getProperty(springParser.getDatabaseUrl()));
+			/*System.out.println(parser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver"));
 			System.out.println(parser.getDatabaseDriverClassName());
 			System.out.println(parser.getDatabaseUrl());
 			System.out.println(parser.getDatabasePassword());
