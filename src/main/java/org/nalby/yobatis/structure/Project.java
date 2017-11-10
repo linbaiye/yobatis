@@ -4,9 +4,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.core.runtime.Platform;
 import org.nalby.yobatis.exception.ProjectException;
@@ -46,8 +49,6 @@ public abstract class Project {
 	public abstract String getModelLayerPath();
 
 	public abstract String getDaoLayerPath();
-
-	public abstract String getFullPath();
 	
 	public abstract void writeFile(String path, String source);
 	
@@ -61,6 +62,10 @@ public abstract class Project {
 	
 	public boolean containsFile(String filename) {
 		return root.containsFile(filename);
+	}
+
+	public  String getFullPath() {
+		return syspath + root.path();
 	}
 	
 	public String convertToFullPath(String path) {
@@ -80,6 +85,28 @@ public abstract class Project {
 		return result;
 	}
 	
+	private final static Pattern PATTERN = Pattern.compile("^.+" + MAVEN_SOURCE_CODE_PATH + "/(.+)$");
+	
+	/**
+	 * Parse package name from the {@code path}. 
+	 * @param path
+	 * @return package name if the path follows the maven  naming rule, null if can't find.
+	 */
+	public  String getPackageName(String path) {
+		if (path == null || !path.contains(MAVEN_SOURCE_CODE_PATH)) {
+			return null;
+		}
+		Matcher matcher = PATTERN.matcher(path);
+		String ret = null;
+		if (matcher.find()) {
+			ret = matcher.group(1);
+		}
+		if (ret != null) {
+			ret = ret.replaceAll("/", ".");
+		}
+		return ret;
+	}
+	
 	/**
 	 * List the full path of the possible 'DAO' layers.
 	 * @return possible paths if any, empty list else.
@@ -95,7 +122,7 @@ public abstract class Project {
 	}
 	
 	/**
-	 * List the full path of the possible 'model' layers.
+	 * List full paths of the possible 'model' layers.
 	 * @return possible paths if any, empty list else.
 	 */
 	public List<String> getSyspathsOfModel() {
@@ -107,15 +134,23 @@ public abstract class Project {
 			}
 		});
 	}
+	
 
-	public List<String> gerResourcesPath() {
-		return pathList(new FolderSelector() {
-			@Override
-			public boolean isSelected(Folder folder) {
-				return folder.path().endsWith(MAVEN_RESOURCES_PATH);
-			}
-		});
+	/**
+	 * List full paths of possible resources which are close to the dao layer. By 'close to', it means
+	 * the ones that are contained by the same submodule containing 'dao'.
+	 * @return full paths
+	 */
+	public List<String> getSyspathsOfResources() {
+		List<String> paths = getSyspathsOfDao();
+		List<String> result = new LinkedList<String>();
+		for (String path: paths) {
+			String tmp = path.replaceFirst(MAVEN_RESOURCES_PATH + ".+$", MAVEN_RESOURCES_PATH);
+			result.add(tmp);
+		}
+		return result;
 	}
+
 	
 	public void closeInputStream(InputStream inputStream) {
 		if (inputStream != null) {

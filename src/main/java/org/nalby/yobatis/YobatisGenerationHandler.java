@@ -25,6 +25,7 @@ import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.sql.mysql.Mysql;
 import org.nalby.yobatis.sql.mysql.Mysql.Builder;
 import org.nalby.yobatis.structure.Folder;
+import org.nalby.yobatis.structure.MybatisConfigFileGenerator;
 import org.nalby.yobatis.structure.MybatisFilesGenerator;
 import org.nalby.yobatis.structure.PomParser;
 import org.nalby.yobatis.structure.Project;
@@ -85,16 +86,6 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			PomParser pomParser = new PomParser(eclipseProject);
 			SpringParser springParser  = new SpringParser(eclipseProject);
 			PropertiesParser propertiesParser = new PropertiesParser(eclipseProject, pomParser, springParser.getPropertiesFilePath());
-			System.out.println(propertiesParser.getProperty(springParser.getDatabaseUrl()));
-			List<String> paths = eclipseProject.getSyspathsOfDao();
-			for (String path: paths) {
-				System.out.println(path);
-			}
-			System.out.println(eclipseProject.concatMavenResitoryPath(pomParser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver")));
-			System.out.println(propertiesParser.getProperty(springParser.getDatabaseDriverClassName()));
-			System.out.println(propertiesParser.getProperty(springParser.getDatabaseUrl()));
-			System.out.println(propertiesParser.getProperty(springParser.getDatabasePassword()));
-			System.out.println(propertiesParser.getProperty(springParser.getDatabaseUsername()));
 			Builder builder = Mysql.builder();
 			builder.setConnectorJarPath(eclipseProject.concatMavenResitoryPath(pomParser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver")))
 			.setDriverClassName(propertiesParser.getProperty(springParser.getDatabaseDriverClassName()))
@@ -102,13 +93,8 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			.setPassword(propertiesParser.getProperty(springParser.getDatabasePassword()))
 			.setUrl(propertiesParser.getProperty(springParser.getDatabaseUrl()));
 			Sql mysql = builder.build();
-			List<String> names = mysql.getTableNames();
-			for (String name: names) {
-				System.out.println(name);
-			}
-			
-			
-			
+			MybatisConfigFileGenerator configFile = new MybatisConfigFileGenerator(eclipseProject, mysql);
+			System.out.println(configFile.getXmlConfig());
 			//System.out.println(parser.getPropertiesFilePath());*/
 			//String webxmlPath = getWebXmlPath(eclipseProject);
 			//WebXmlParser parser = new WebXmlParser(new FileInputStream(new File(webxmlPath)));

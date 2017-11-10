@@ -105,7 +105,7 @@ public class EclipseProject extends Project {
 		String home = Platform.getUserLocation().getURL().getPath();
 		// Not sure why the '/user' suffix is attached.
 		if (home.endsWith("/user/")) {
-			home = home.replaceFirst("/user/$", "/.m2/repository/");
+			home = home.replaceFirst("/user/$", "/.m2/repository");
 		}
 		return home + (path.startsWith("/")? path : "/" + path);
 	}
