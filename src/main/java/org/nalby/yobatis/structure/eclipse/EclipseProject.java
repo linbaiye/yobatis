@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Set;
 
 import org.dom4j.DocumentException;
 import org.eclipse.core.resources.IFile;
@@ -21,26 +20,25 @@ import org.nalby.yobatis.exception.ProjectNotFoundException;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SourceCodeFolder;
 import org.nalby.yobatis.util.Expect;
-import org.nalby.yobatis.xml.RootPomXmlParser;
-import org.nalby.yobatis.xml.RootSpringXmlParser;
+import org.nalby.yobatis.xml.PomXmlParser;
+import org.nalby.yobatis.xml.SpringXmlParser;
 import org.nalby.yobatis.xml.WebXmlParser;
 
 public class EclipseProject extends Project {
 
 	private IProject wrappedProject;
 
-	private RootPomXmlParser pom;
+	private PomXmlParser pom;
 
-	private RootSpringXmlParser spring;
+	private SpringXmlParser spring;
 
 	private SourceCodeFolder sourceCodeFolder;
-	
-	private EclipseProject(IProject project, RootPomXmlParser pom,
-			RootSpringXmlParser spring, SourceCodeFolder sourceCodeFolder) {
+
+	public EclipseProject(IProject project) {
 		this.wrappedProject = project;
-		this.pom = pom;
-		this.spring = spring;
-		this.sourceCodeFolder = sourceCodeFolder;
+		this.root = new EclipseFolder("/",  wrappedProject);
+		this.syspath = project.getLocationURI().getPath();
+		this.syspath = this.syspath.replace("/" + project.getName(), "");
 	}
 
 	@Override
@@ -101,6 +99,16 @@ public class EclipseProject extends Project {
 			throw new ProjectException(e);
 		}
 	}
+	
+	public  String concatMavenResitoryPath(String path) {
+		Expect.notEmpty(path, "Path should not be null.");
+		String home = Platform.getUserLocation().getURL().getPath();
+		// Not sure why the '/user' suffix is attached.
+		if (home.endsWith("/user/")) {
+			home = home.replaceFirst("/user/$", "/.m2/repository");
+		}
+		return home + (path.startsWith("/")? path : "/" + path);
+	}
 
 	@Override
 	public String getDatabaseConnectorFullPath() {
@@ -153,29 +161,30 @@ public class EclipseProject extends Project {
 	}
 
 	private static String getServletConfigPath(WebXmlParser webXmlParser) throws DocumentException {
-		Set<String> servletConfigPath = webXmlParser.getServletConfigLocation();
+		return null;
+		/*Set<String> servletConfigPath = webXmlParser.getServletConfigLocation();
 		if (servletConfigPath.size() != 1) {
 			throw new ProjectException("Should have only one servlet config.");
 		}
 		for (String path: servletConfigPath) {
 			return path.replace(CLASSPATH_PREFIX, MAVEN_RESOURCES_PATH);
 		}
-		return null;
+		return null;*/
 	}
 	
-	private static RootSpringXmlParser getSpringXmlParser(IProject project, WebXmlParser webXmlParser) throws DocumentException, FileNotFoundException, IOException {
-		String appConfigPath = webXmlParser.getAppConfigLocation();
-		RootSpringXmlParser springXmlParser = null;
+	private static SpringXmlParser getSpringXmlParser(IProject project, WebXmlParser webXmlParser) throws DocumentException, FileNotFoundException, IOException {
+		String appConfigPath = null;
+		SpringXmlParser springXmlParser = null;
 		if (appConfigPath != null) {
 			appConfigPath.replace(CLASSPATH_PREFIX, MAVEN_RESOURCES_PATH);
-			springXmlParser  = new RootSpringXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + appConfigPath));
+			springXmlParser  = new SpringXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + appConfigPath));
 		}
 		String servletConfigPath = getServletConfigPath(webXmlParser);
 		if (servletConfigPath != null) {
 			if (springXmlParser != null) {
-				springXmlParser.appendSpringXmlConfig(new FileInputStream(project.getLocationURI().getPath() + "/" + servletConfigPath));
+				//springXmlParser.appendSpringXmlConfig(new FileInputStream(project.getLocationURI().getPath() + "/" + servletConfigPath));
 			} else {
-				springXmlParser = new RootSpringXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + servletConfigPath));
+				springXmlParser = new SpringXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + servletConfigPath));
 			}
 		}
 		if (springXmlParser == null) {
@@ -184,8 +193,8 @@ public class EclipseProject extends Project {
 		return springXmlParser;
 	}
 	
-	private static RootPomXmlParser getPomXmlParser(IProject project) throws FileNotFoundException, DocumentException, IOException {
-		RootPomXmlParser xmlParser = new RootPomXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/pom.xml"));
+	private static PomXmlParser getPomXmlParser(IProject project) throws FileNotFoundException, DocumentException, IOException {
+		PomXmlParser xmlParser = new PomXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/pom.xml"));
 		return xmlParser;
 	}
 
@@ -200,10 +209,12 @@ public class EclipseProject extends Project {
 			if (project.exists() && !project.isOpen()) {
 				project.open(null);
 			}
-			IFolder ifolder = project.getFolder(MAVEN_SOURCE_CODE_PATH);
-			SourceCodeFolder sourceCodeFolder = new SourceCodeFolder(new EclipseFolder(null, ifolder));
-			WebXmlParser webXmlParser = new WebXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + WEB_XML_PATH));
-			return new EclipseProject(project, getPomXmlParser(project), getSpringXmlParser(project, webXmlParser), sourceCodeFolder);
+
+			//WebXmlParser webXmlParser = new WebXmlParser(new FileInputStream(project.getLocationURI().getPath() + "/" + WEB_XML_PATH));
+			//IFolder ifolder = project.getFolder(MAVEN_SOURCE_CODE_PATH);
+			//SourceCodeFolder sourceCodeFolder = new SourceCodeFolder(new EclipseFolder(null, ifolder));
+			//return new EclipseProject(project, getPomXmlParser(project), getSpringXmlParser(project, webXmlParser), sourceCodeFolder);
+			return null;
 		} catch (Exception e) {
 			throw new ProjectException(e.getMessage());
 		}

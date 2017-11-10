@@ -21,28 +21,35 @@ import java.util.regex.Pattern;
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.exception.SqlConfigIncompleteException;
 import org.nalby.yobatis.sql.Sql;
-import org.nalby.yobatis.structure.Project;
+import org.nalby.yobatis.util.Expect;
 
-public class Mysql implements Sql {
-	
-	private Project project;
+public class Mysql extends Sql {
 	
 	private List<String> tableNames;
 
-	public Mysql(Project project) {
-		this.project = project;
-		tableNames = new LinkedList<String>();
+	private Mysql(String username, String password, String url, String connectorJarPath, String driverClassName) {
+		this.username = username;
+		this.password = password;
+		this.url = url;
+		this.connectorJarPath = connectorJarPath;
+		this.driverClassName = driverClassName;
+		this.tableNames = new LinkedList<String>();
 	}
 	
 	private Connection getConnection() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException, MalformedURLException {
-		URL url = new URL("file://" + project.getDatabaseConnectorFullPath());
+		URL url = new URL("file://" + connectorJarPath);
 		URLClassLoader classLoader = new URLClassLoader(new URL[] { url });
-		Driver driver =  (Driver)Class.forName(project.getDatabaseDriverClassName(), true, classLoader).newInstance();
+		Driver driver =  (Driver)Class.forName(driverClassName, true, classLoader).newInstance();
 		DriverWrapper driverWrapper = new DriverWrapper(driver);
 		DriverManager.registerDriver(driverWrapper);
-		return DriverManager.getConnection(project.getDatabaseUrl(), project.getDatabaseUsername(), project.getDatabasePassword());
+		return DriverManager.getConnection(this.url, username, password);
 	}
 	
+	/**
+	 * Get all table names associated with the {@code url}.
+	 * @return table names.
+	 * @throws ProjectException, if any configuration value is not valid.
+	 */
 	@Override
 	public List<String> getTableNames() {
 		tableNames.clear();
@@ -67,16 +74,56 @@ public class Mysql implements Sql {
 		}
 	}
 	
+	public static class Builder {
+		private String username;
+		private String password;
+		private String url;
+		private String connectorJarPath;
+		private String driverClassName;
+		private Builder(){}
+		public Builder setUsername(String username) {
+			this.username = username;
+			return this;
+		}
+		public Builder setPassword(String password) {
+			this.password = password;
+			return this;
+		}
+		public Builder setUrl(String url) {
+			this.url = url;
+			return this;
+		}
+		public Builder setConnectorJarPath(String connectorJarPath) {
+			this.connectorJarPath = connectorJarPath;
+			return this;
+		}
+		public Builder setDriverClassName(String driverClassName) {
+			this.driverClassName = driverClassName;
+			return this;
+		}
+		public Mysql build() {
+			Expect.notEmpty(username, "username must not be null.");
+			Expect.notEmpty(password, "password must not be null.");
+			Expect.notEmpty(url, "url must not be null.");
+			Expect.notEmpty(connectorJarPath, "connectorJarPath must not be null.");
+			Expect.notEmpty(driverClassName, "driverClassName must not be null.");
+			return new Mysql(username, password, url, connectorJarPath, driverClassName);
+		}
+	}
+	
+	public static Builder builder() {
+		return new Builder();
+	}
+	
 	@Override
 	public String getSchema() {
 		try {
 			Pattern pattern = Pattern.compile("jdbc:mysql://[^/]+/([^?]+).*");
-			Matcher matcher = pattern.matcher(project.getDatabaseUrl());
-			return matcher.find() ? matcher.group(1) : "";
+			Matcher matcher = pattern.matcher(url);
+			return matcher.find() ? matcher.group(1) : null;
 		} catch (SqlConfigIncompleteException e) {
-			return "";
+			return null;
 		}
-
 	}
 	
 	// See http://www.kfu.com/~nsayer/Java/dyn-jdbc.html

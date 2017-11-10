@@ -3,43 +3,47 @@ package org.nalby.yobatis.structure.eclipse;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.util.Expect;
 
-public final class EclipseFolder implements Folder {
+public  class EclipseFolder implements Folder {
 
-	private IFolder wrappedFolder;
+	private IResource wrappedFolder;
 
-	private String path = null;
+	private String path;
+	
+	private List<Folder> subFolders;
 
-	private List<Folder> subFolders = null;
-
-	public EclipseFolder(EclipseFolder parent, IFolder wrapped) {
+	public EclipseFolder(String parentPath, IResource wrapped) {
+		Expect.notNull(parentPath, "parent path not be null.");
 		Expect.notNull(wrapped, "Folder must not be null.");
+		Expect.asTrue((wrapped instanceof IFolder) || (wrapped instanceof IProject),  "Invalid type.");
 		wrappedFolder = wrapped;
-		if (parent == null) {
-			path = "";
-		} else {
-			path = parent.path + ("".equals(parent.path) ? "" : ".") + wrapped.getName();
-		}
+		path = "/".equals(parentPath) ? "/" + wrapped.getName() : parentPath + "/" + wrapped.getName();
 	}
 
 	private void listSubFolders() throws CoreException {
 		subFolders = new LinkedList<Folder>();
-		IResource[] resources = wrappedFolder.members();
+		IResource[] resources = null;
+		if (wrappedFolder instanceof IProject) {
+			resources = ((IProject)wrappedFolder).members();
+		} else {
+			resources = ((IFolder)wrappedFolder).members();
+		}
 		for (IResource resource : resources) {
 			if (resource.getType() == IResource.FOLDER) {
-				subFolders.add(new EclipseFolder(this, (IFolder) resource));
+				if (("target".equals(resource.getName()) || "bin".equals(resource.getName()))
+					&& this.containsFile("pom.xml")) {
+					continue;
+				}
+				subFolders.add(new EclipseFolder(this.path, (IFolder) resource));
 			}
 		}
-	}
-
-	@Override
-	public String path() {
-		return wrappedFolder.getLocationURI().getPath();
 	}
 
 	@Override
@@ -55,12 +59,7 @@ public final class EclipseFolder implements Folder {
 	}
 
 	@Override
-	public String name() {
-		return wrappedFolder.getName();
-	}
-
-	@Override
-	public List<Folder> folders() {
+	public List<Folder> getSubFolders() {
 		try {
 			if (subFolders == null) {
 				listSubFolders();
@@ -72,15 +71,26 @@ public final class EclipseFolder implements Folder {
 	}
 
 	@Override
-	public boolean isDaoLayer() {
-		return path != null &&
-			(path.endsWith("dao") || path.endsWith("repository"));
+	public boolean containsFile(String name) {
+		if (name == null || "".equals(name.trim())) {
+			return false;
+		}
+		IFile file = null;
+		if (wrappedFolder instanceof IProject) {
+			file = ((IProject)wrappedFolder).getFile(name);
+		} else {
+			file = ((IFolder)wrappedFolder).getFile(name);
+		}
+		return file.exists();
 	}
 
 	@Override
-	public boolean isModelLayer() {
-		return path != null &&
-			(path.endsWith("model") || path.endsWith("domain"));
+	public String path() {
+		return this.path;
 	}
 
+	@Override
+	public String name() {
+		return wrappedFolder.getName();
+	}
 }

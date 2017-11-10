@@ -12,7 +12,7 @@ public class SourceCodeFolder {
 		stack.push(root);
 		do {
 			Folder node = stack.pop();
-			List<Folder> subFolders = node.folders();
+			List<Folder> subFolders = node.getSubFolders();
 			for (Folder child: subFolders) {
 				if (selector.isSelected(child)) {
 					return child;
@@ -33,7 +33,8 @@ public class SourceCodeFolder {
 		Folder folder = parsePackages(new FolderSelector() {
 			@Override
 			public boolean isSelected(Folder folder) {
-				return folder.isModelLayer();
+				return true;
+				//return folder.isModelLayer();
 			}
 		});
 		return folder == null? null : folder.path();
@@ -43,7 +44,8 @@ public class SourceCodeFolder {
 		Folder folder = parsePackages(new FolderSelector() {
 			@Override
 			public boolean isSelected(Folder folder) {
-				return folder.isDaoLayer();
+				return true;
+				//return folder.isDaoLayer();
 			}
 		});
 		return folder == null? null : folder.path();

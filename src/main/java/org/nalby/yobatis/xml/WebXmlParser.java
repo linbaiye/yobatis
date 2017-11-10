@@ -2,12 +2,12 @@ package org.nalby.yobatis.xml;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
+import org.nalby.yobatis.exception.UnsupportedProjectException;
 
 public class WebXmlParser extends BasicXmlParser {
 
@@ -41,7 +41,7 @@ public class WebXmlParser extends BasicXmlParser {
 		super(inputStream, WEB_APP_TAG);
 	}
 
-	
+
 	private List<Element> selectElements(String elementName) {
 		Element root = document.getRootElement();
 		return root.elements(elementName);
@@ -62,17 +62,17 @@ public class WebXmlParser extends BasicXmlParser {
 	/**
 	 * Get the value of contextConfigLocation.
 	 * @return the value of contextConfigLocation or null if not found.
-	 * @throws DocumentException if multiple locations detected.
+	 * @throws UnsupportedProjectException if multiple locations or no location detected.
 	 */
-	public String getAppConfigLocation() throws DocumentException {
+	private String getAppConfigLocation() {
 		String result = null;
 		for (Element it: selectElements(CONTEXT_PARAM_TAG)) {
 			String paramValue = getParamValue(it);
-			if (paramValue == null) {
+			if (paramValue == null || "".equals(paramValue.trim())) {
 				continue;
 			}
 			if (result != null) {
-				throw new DocumentException("Multiple contextConfigLocation detected.");
+				throw new UnsupportedProjectException("Multiple contextConfigLocations detected.");
 			}
 			result = paramValue;
 		}
@@ -81,12 +81,12 @@ public class WebXmlParser extends BasicXmlParser {
 
 	
 	/**
-	 * Get servlets' config locations.
-	 * @return a set which contains all the locations or an empty set if locations not specified.
-	 * @throws DocumentException if the same location appears more than once.
+	 * Get servlet's config location.
+	 * @return the value of config location.
+	 * @throws UnsupportedProjectException if multiple or no config locations found.
 	 */
-	public Set<String> getServletConfigLocation() throws DocumentException {
-		Set<String> result = new HashSet<String>();
+	private String getServletConfigLocation() {
+		String result = null;
 		for (Element servletElement: selectElements(SERVLET_TAG)) {
 			Element classElement = servletElement.element(SERVLET_CLASS_TAG);
 			if (classElement == null || 
@@ -97,21 +97,40 @@ public class WebXmlParser extends BasicXmlParser {
 			if (initParamElements == null || initParamElements.isEmpty()) {
 				continue;
 			}
-			int counter = 0;
 			for (Element initParam: initParamElements) {
 				String value = getParamValue(initParam);
-				if (value != null && result.contains(value)) {
-					throw new DocumentException("multiple contextConfigLocation " + value + " in servlet config.");
+				if (value == null || "".equals(value.trim())) {
+					continue;
 				}
-				if (value != null) {
-					result.add(value);
-					++counter;
+				if (result != null) {
+					throw new UnsupportedProjectException("Multiple contextConfigLocations found.");
 				}
-				if (counter > 1) {
-					throw new DocumentException("multiple contextConfigLocation detected in the same servlet config.");
-				}
+				result = value;
 			}
 		}
 		return result;
 	}
+	
+	/**
+	 * Get spring's configuration files.
+	 * @return configuration files if found.
+	 * @throws UnsupportedProjectException if this project is out of scope, for instance, no spring's configuration or more
+	 * that 2 configuration files found.
+	 */
+	public List<String> getSpringConfigLocations() {
+		List<String> result = new LinkedList<String>();
+		String tmp = getAppConfigLocation();
+		if (tmp != null) {
+			result.add(tmp);
+		}
+		tmp = getServletConfigLocation();
+		if (tmp != null) {
+			result.add(tmp);
+		}
+		if (result.isEmpty()) {
+			throw new UnsupportedProjectException("Unable to find spring's config files.");
+		}
+		return result;
+	}
+	
 }

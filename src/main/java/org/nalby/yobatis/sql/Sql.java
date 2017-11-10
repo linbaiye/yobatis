@@ -2,10 +2,37 @@ package org.nalby.yobatis.sql;
 
 import java.util.List;
 
-public interface Sql {
+
+public abstract class Sql {
 	
-	public List<String> getTableNames();
+	protected String username;
+	protected String password;
+	protected String url;
+	protected String connectorJarPath;
+	protected String driverClassName;
+
+	public String getUsername() {
+		return username;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public String getUrl() {
+		return url;
+	}
+
+	public String getConnectorJarPath() {
+		return connectorJarPath;
+	}
+
+	public String getDriverClassName() {
+		return driverClassName;
+	}
 	
-	public String getSchema();
+	public abstract List<String> getTableNames();
+	
+	public abstract String getSchema();
 
 }
