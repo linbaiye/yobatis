@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
+import org.eclipse.core.runtime.Platform;
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.util.Expect;
 
@@ -18,9 +19,9 @@ public abstract class Project {
 	//The full path of this project on system.
 	protected String syspath;
 	
-	protected final static String MAVEN_SOURCE_CODE_PATH = "src/main/java/";
+	protected final static String MAVEN_SOURCE_CODE_PATH = "src/main/java";
 
-	protected final static String MAVEN_RESOURCES_PATH = "src/main/resources/";
+	protected final static String MAVEN_RESOURCES_PATH = "src/main/resources";
 
 	protected final static String WEB_XML_PATH = "src/main/webapp/WEB-INF/web.xml";
 	
@@ -56,16 +57,64 @@ public abstract class Project {
 		public boolean isSelected(Folder folder);
 	}
 	
+	public abstract String concatMavenResitoryPath(String path);
+	
 	public boolean containsFile(String filename) {
 		return root.containsFile(filename);
 	}
 	
-	private String convertToFullPath(String path) {
+	public String convertToFullPath(String path) {
 		Expect.notEmpty(path, "Invalid path.");
 		if (path.startsWith("/")) {
 			return syspath + path;
 		}
 		return syspath + "/" + path;
+	}
+	
+	private List<String> pathList(FolderSelector selector) {
+		List<Folder> folders = findFolders(selector);
+		List<String> result = new LinkedList<String>();
+		for (Folder folder : folders) {
+			result.add(convertToFullPath(folder.path()));
+		}
+		return result;
+	}
+	
+	/**
+	 * List the full path of the possible 'DAO' layers.
+	 * @return possible paths if any, empty list else.
+	 */
+	public List<String> getSyspathsOfDao() {
+		return pathList(new FolderSelector() {
+			@Override
+			public boolean isSelected(Folder folder) {
+				return folder.path().contains(MAVEN_SOURCE_CODE_PATH) &&
+						("dao".equals(folder.name()) || "repository".equals(folder.name()));
+			}
+		});
+	}
+	
+	/**
+	 * List the full path of the possible 'model' layers.
+	 * @return possible paths if any, empty list else.
+	 */
+	public List<String> getSyspathsOfModel() {
+		return pathList(new FolderSelector() {
+			@Override
+			public boolean isSelected(Folder folder) {
+				return folder.path().contains(MAVEN_SOURCE_CODE_PATH) && 
+						("model".equals(folder.name()) || "domain".equals(folder.name()));
+			}
+		});
+	}
+
+	public List<String> gerResourcesPath() {
+		return pathList(new FolderSelector() {
+			@Override
+			public boolean isSelected(Folder folder) {
+				return folder.path().endsWith(MAVEN_RESOURCES_PATH);
+			}
+		});
 	}
 	
 	public void closeInputStream(InputStream inputStream) {

@@ -90,7 +90,7 @@ public class PomParser {
 	 * Get sql connector's jar path based on the {@code driverClassName},
 	 * the first <dependency> will be used if multiple found.
 	 * @param driverClassName the sql's driver class name.
-	 * @return the relative path of the connector.
+	 * @return the relative path of the connector, null if not found.
 	 */
 	public String dbConnectorJarRelativePath(String driverClassName) {
 		String tmp = null;

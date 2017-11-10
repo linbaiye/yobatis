@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+
 import org.dom4j.DocumentException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -97,6 +98,16 @@ public class EclipseProject extends Project {
 		} catch (CoreException e) {
 			throw new ProjectException(e);
 		}
+	}
+	
+	public  String concatMavenResitoryPath(String path) {
+		Expect.notEmpty(path, "Path should not be null.");
+		String home = Platform.getUserLocation().getURL().getPath();
+		// Not sure why the '/user' suffix is attached.
+		if (home.endsWith("/user/")) {
+			home = home.replaceFirst("/user/$", "/.m2/repository/");
+		}
+		return home + (path.startsWith("/")? path : "/" + path);
 	}
 
 	@Override

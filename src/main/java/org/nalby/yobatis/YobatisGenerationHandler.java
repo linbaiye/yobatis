@@ -1,14 +1,11 @@
 package org.nalby.yobatis;
 
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.util.List;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
-import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IWorkspace;
@@ -26,6 +23,7 @@ import org.nalby.yobatis.exception.ProjectNotFoundException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.sql.mysql.Mysql;
+import org.nalby.yobatis.sql.mysql.Mysql.Builder;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.MybatisFilesGenerator;
 import org.nalby.yobatis.structure.PomParser;
@@ -63,7 +61,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 				thisProject.open(null);
 			}
 			Project project = EclipseProject.build(thisProject.getName());
-			Sql sql = new Mysql(project);
+			Sql sql = null;//new Mysql(project);
 			MybatisFilesGenerator generator = new MybatisFilesGenerator(project, sql, new LibraryRunner());
 			generator.writeAllFiles();
 		} catch (Exception e) {
@@ -84,16 +82,34 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		//IFolder folder = project.getFolder("/learn");
 		try {
 			EclipseProject eclipseProject = new EclipseProject(project);
-			PomParser parser = new PomParser(eclipseProject);
+			PomParser pomParser = new PomParser(eclipseProject);
 			SpringParser springParser  = new SpringParser(eclipseProject);
-			PropertiesParser propertiesParser = new PropertiesParser(eclipseProject, parser, springParser.getPropertiesFilePath());
+			PropertiesParser propertiesParser = new PropertiesParser(eclipseProject, pomParser, springParser.getPropertiesFilePath());
 			System.out.println(propertiesParser.getProperty(springParser.getDatabaseUrl()));
-			/*System.out.println(parser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver"));
-			System.out.println(parser.getDatabaseDriverClassName());
-			System.out.println(parser.getDatabaseUrl());
-			System.out.println(parser.getDatabasePassword());
-			System.out.println(parser.getDatabaseUsername());
-			System.out.println(parser.getPropertiesFilePath());*/
+			List<String> paths = eclipseProject.getSyspathsOfDao();
+			for (String path: paths) {
+				System.out.println(path);
+			}
+			System.out.println(eclipseProject.concatMavenResitoryPath(pomParser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver")));
+			System.out.println(propertiesParser.getProperty(springParser.getDatabaseDriverClassName()));
+			System.out.println(propertiesParser.getProperty(springParser.getDatabaseUrl()));
+			System.out.println(propertiesParser.getProperty(springParser.getDatabasePassword()));
+			System.out.println(propertiesParser.getProperty(springParser.getDatabaseUsername()));
+			Builder builder = Mysql.builder();
+			builder.setConnectorJarPath(eclipseProject.concatMavenResitoryPath(pomParser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver")))
+			.setDriverClassName(propertiesParser.getProperty(springParser.getDatabaseDriverClassName()))
+			.setUsername(propertiesParser.getProperty(springParser.getDatabaseUsername()))
+			.setPassword(propertiesParser.getProperty(springParser.getDatabasePassword()))
+			.setUrl(propertiesParser.getProperty(springParser.getDatabaseUrl()));
+			Sql mysql = builder.build();
+			List<String> names = mysql.getTableNames();
+			for (String name: names) {
+				System.out.println(name);
+			}
+			
+			
+			
+			//System.out.println(parser.getPropertiesFilePath());*/
 			//String webxmlPath = getWebXmlPath(eclipseProject);
 			//WebXmlParser parser = new WebXmlParser(new FileInputStream(new File(webxmlPath)));
 			//List<String> springConfigPaths = parser.getSpringConfigLocations();
