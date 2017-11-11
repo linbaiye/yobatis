@@ -61,7 +61,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			if (thisProject.exists() && !thisProject.isOpen()) {
 				thisProject.open(null);
 			}
-			Project project = EclipseProject.build(thisProject.getName());
+			Project project = null; //EclipseProject.build(thisProject.getName());
 			Sql sql = null;//new Mysql(project);
 			MybatisFilesGenerator generator = new MybatisFilesGenerator(project, sql, new LibraryRunner());
 			generator.writeAllFiles();
@@ -83,8 +83,9 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		//IFolder folder = project.getFolder("/learn");
 		try {
 			EclipseProject eclipseProject = new EclipseProject(project);
+			WebXmlParser webXmlParser = WebXmlParser.build(eclipseProject);
 			PomParser pomParser = new PomParser(eclipseProject);
-			SpringParser springParser  = new SpringParser(eclipseProject);
+			SpringParser springParser  = new SpringParser(eclipseProject, webXmlParser.getSpringConfigLocations());
 			PropertiesParser propertiesParser = new PropertiesParser(eclipseProject, pomParser, springParser.getPropertiesFilePath());
 			Builder builder = Mysql.builder();
 			builder.setConnectorJarPath(eclipseProject.concatMavenResitoryPath(pomParser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver")))

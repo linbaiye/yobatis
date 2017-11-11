@@ -13,8 +13,6 @@ import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.xml.SpringXmlParser;
-import org.nalby.yobatis.xml.WebXmlParser;
-
 /**
  * Used to parse spring configuration files. The main purpose is to locate
  * database's properties.
@@ -27,23 +25,19 @@ public class SpringParser {
 
 	private List<SpringXmlParser> springXmlParsers;
 
-	private WebXmlParser parser;
-	
-	public SpringParser(Project project) {
+	public SpringParser(Project project, List<String> springConfigEntryPaths) {
 		Expect.notNull(project, "project must not be null.");
+		Expect.notNull(springConfigEntryPaths, "Spring config entry paths must not be null.");
 		this.project = project;
 		springXmlParsers = new LinkedList<SpringXmlParser>();
 		Set<String> tracker = new HashSet<String>();
-		InputStream inputStream =  null;
 		try {
-			inputStream = project.getInputStream(getWebXmlPath());
-			this.parser = new WebXmlParser(inputStream);
-			List<String> springConfigPaths = parser.getSpringConfigLocations();
-			loadSpringConfigFiles(springConfigPaths, tracker);
+			//inputStream = project.getInputStream(webxmlPath);
+			//his.parser = new WebXmlParser(inputStream);
+			//List<String> springConfigPaths = parser.getSpringConfigLocations();
+			loadSpringConfigFiles(springConfigEntryPaths, tracker);
 		} catch (Exception e) {
 			throw new UnsupportedProjectException(e);
-		} finally {
-			project.closeInputStream(inputStream);
 		}
 	}
 	
@@ -109,16 +103,7 @@ public class SpringParser {
 			}
 		});
 	}
-	
-	private String getWebXmlPath() {
-		List<Folder> folders = findFoldersContainingFile("web.xml");
-		if (folders.size() != 1) {
-			throw new UnsupportedProjectException("Unable to find web.xml");
-		}
-		Folder folder = folders.get(0);
-		return folder.path() + "/web.xml";
-	}
-	
+
 	private String convertClassPathToProjectPath(String path) {
 		String[] tokens = path.split(":");
 		if (tokens.length != 2)  {

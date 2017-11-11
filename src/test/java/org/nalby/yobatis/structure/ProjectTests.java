@@ -14,7 +14,6 @@ import static org.mockito.Mockito.*;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.Project.FolderSelector;
-import org.nalby.yobatis.structure.SourceCodeFolder;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProjectTests {
