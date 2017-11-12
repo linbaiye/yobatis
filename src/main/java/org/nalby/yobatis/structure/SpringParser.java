@@ -10,7 +10,6 @@ import java.util.Set;
 
 import org.dom4j.DocumentException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
-import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.xml.SpringXmlParser;
 /**
@@ -27,14 +26,12 @@ public class SpringParser {
 
 	public SpringParser(Project project, List<String> springConfigEntryPaths) {
 		Expect.notNull(project, "project must not be null.");
-		Expect.notNull(springConfigEntryPaths, "Spring config entry paths must not be null.");
+		Expect.asTrue(springConfigEntryPaths != null && !springConfigEntryPaths.isEmpty(),
+				"Spring config entry paths must not be empty.");
 		this.project = project;
 		springXmlParsers = new LinkedList<SpringXmlParser>();
 		Set<String> tracker = new HashSet<String>();
 		try {
-			//inputStream = project.getInputStream(webxmlPath);
-			//his.parser = new WebXmlParser(inputStream);
-			//List<String> springConfigPaths = parser.getSpringConfigLocations();
 			loadSpringConfigFiles(springConfigEntryPaths, tracker);
 		} catch (Exception e) {
 			throw new UnsupportedProjectException(e);
@@ -87,35 +84,23 @@ public class SpringParser {
 		throw new UnsupportedProjectException("Failed to find database driver class name.");
 	}
 
-	
-	private List<Folder> findFoldersContainingFile(final String path) {
-		return project.findFolders(new FolderSelector() {
-			@Override
-			public boolean isSelected(Folder folder) {
-				if (path.indexOf("/") == -1) {
-					//only filename.
-					return folder.containsFile(path);
-				}
-				//file path.
-				String folderPath  = path.replaceFirst("/.*$", "");
-				String filename = path.replace(folderPath + "/", "");
-				return folder.path().indexOf(folderPath) != -1 && folder.containsFile(filename);
-			}
-		});
-	}
 
 	private String convertClassPathToProjectPath(String path) {
 		String[] tokens = path.split(":");
 		if (tokens.length != 2)  {
-			throw new UnsupportedProjectException("invalid spring config file: " + path);
+			throw new UnsupportedProjectException("invalid spring config file path: " + path + "', format should be classpath:filename" );
 		}
-		List<Folder> folders = findFoldersContainingFile(tokens[1]);
+		List<Folder> folders = project.findFoldersContainingFile(tokens[1]);
+		if (folders.isEmpty()) {
+			throw new UnsupportedProjectException("Could not find config file: " + path);
+		}
 		if (folders.size() != 1) {
-			throw new UnsupportedProjectException("Unable to cope with file: " + path);
+			throw new UnsupportedProjectException("More than one file found: " + path);
 		}
 		Folder folder = folders.get(0);
 		String filename = tokens[1];
 		if (filename.indexOf("/") != -1) {
+			//remove duplicated paths.
 			String folderPath  = tokens[1].replaceFirst("/.*$", "");
 			filename = tokens[1].replace(folderPath + "/", "");
 		}
@@ -134,7 +119,6 @@ public class SpringParser {
 			InputStream inputStream = project.getInputStream(fspath);
 			try {
 				SpringXmlParser xmlParser = new SpringXmlParser(inputStream);
-				project.closeInputStream(inputStream);
 				springXmlParsers.add(xmlParser);
 				List<String> newFileNames  = xmlParser.getImportedConfigFiles();
 				if (!newFileNames.isEmpty()) {

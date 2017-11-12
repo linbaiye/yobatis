@@ -69,7 +69,6 @@ public abstract class Project {
 	}
 	
 	public String convertToFullPath(String path) {
-		Expect.notEmpty(path, "Invalid path.");
 		if (path.startsWith("/")) {
 			return syspath + path;
 		}
@@ -170,7 +169,6 @@ public abstract class Project {
 	 * @throws FileNotFoundException
 	 */
 	public InputStream getInputStream(String filepath) throws FileNotFoundException {
-		Expect.notEmpty(filepath, "filepath must not be empty.");
 		if (!filepath.startsWith(root.path())) {
 			filepath = root.path() + "/" + filepath;
 		}
@@ -203,5 +201,26 @@ public abstract class Project {
 			}
 		} while (!stack.isEmpty());
 		return result;
+	}
+	
+	/**
+	 * Find folders that contains the filename.
+	 * @param path 
+	 * @return the folders that contains the filename, empty list returned if not found.
+	 */
+	public List<Folder> findFoldersContainingFile(final String path) {
+		return findFolders(new FolderSelector() {
+			@Override
+			public boolean isSelected(Folder folder) {
+				if (path.indexOf("/") == -1) {
+					//only filename.
+					return folder.containsFile(path);
+				}
+				//file path.
+				String folderPath  = path.replaceFirst("/.*$", "");
+				String filename = path.replace(folderPath + "/", "");
+				return folder.path().indexOf(folderPath) != -1 && folder.containsFile(filename);
+			}
+		});
 	}
 }
