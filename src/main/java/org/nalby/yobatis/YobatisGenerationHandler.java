@@ -96,6 +96,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			Sql mysql = builder.build();
 			MybatisConfigFileGenerator configFile = new MybatisConfigFileGenerator(eclipseProject, mysql);
 			System.out.println(configFile.getXmlConfig());
+			eclipseProject.writeFile(MybatisConfigFileGenerator.CONFIG_FILENAME,  configFile.getXmlConfig());
 			//System.out.println(parser.getPropertiesFilePath());*/
 			//String webxmlPath = getWebXmlPath(eclipseProject);
 			//WebXmlParser parser = new WebXmlParser(new FileInputStream(new File(webxmlPath)));

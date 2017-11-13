@@ -32,7 +32,7 @@ public class MybatisConfigFileGenerator {
 		NO_TABLES
 	}
 	
-	private final static String CONFIG_PATH = "mybatisGeneratorConfig.xml";
+	public final static String CONFIG_FILENAME = "mybatisGeneratorConfig.xml";
 	
 	private DocumentFactory factory = DocumentFactory.getInstance();
 	

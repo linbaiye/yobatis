@@ -50,8 +50,6 @@ public abstract class Project {
 
 	public abstract String getDaoLayerPath();
 	
-	public abstract void writeFile(String path, String source);
-	
 	public abstract void createDir(String dirPath);
 	
 	public static interface FolderSelector {
@@ -206,7 +204,7 @@ public abstract class Project {
 	/**
 	 * Find folders that contains the filename.
 	 * @param path 
-	 * @return the folders that contains the filename, empty list returned if not found.
+	 * @return the folders that contain the filename, empty list returned if not found.
 	 */
 	public List<Folder> findFoldersContainingFile(final String path) {
 		return findFolders(new FolderSelector() {
@@ -222,5 +220,25 @@ public abstract class Project {
 				return folder.path().indexOf(folderPath) != -1 && folder.containsFile(filename);
 			}
 		});
+	}
+	
+	public void writeFile(String path, String content) {
+		Expect.asTrue(path != null && content != null, "invalid param");
+		if (path.startsWith("/")) {
+			Expect.asTrue(path.startsWith(root.path()), "invalid path.");
+		}
+		path = path.replaceFirst("^" + root.path(), "");
+		String[] tokens = path.split("/");
+		Folder folder = root;
+		for (int i = 0; i < tokens.length; i++) {
+			if ("".equals(tokens[i])) {
+				continue;
+			}
+			if (i == tokens.length - 1) {
+				folder.writeFile(tokens[i], content);
+			} else {
+				folder = folder.createFolder(tokens[i]);
+			}
+		}
 	}
 }

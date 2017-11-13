@@ -34,5 +34,19 @@ public interface Folder {
 	 * @return true if so, false if not.
 	 */
 	public boolean containsFile(String name);
+	
+	/**
+	 * Write {@code content} to file {@code filename} under this folder.
+	 * @param filename
+	 * @param content content to write.
+	 */
+	public void writeFile(String filename, String content);
+	
+	/**
+	 * Create folder under this folder.
+	 * @param folderName the folder name.
+	 * @return the folder created.
+	 */
+	public Folder createFolder(String folderName);
 
 }
