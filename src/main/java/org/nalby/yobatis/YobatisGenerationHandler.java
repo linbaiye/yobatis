@@ -33,6 +33,7 @@ import org.nalby.yobatis.structure.PropertiesParser;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
+import org.nalby.yobatis.xml.MybatisXmlParser;
 import org.nalby.yobatis.xml.PomXmlParser;
 import org.nalby.yobatis.xml.WebXmlParser;
 
@@ -96,7 +97,9 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			Sql mysql = builder.build();
 			MybatisConfigFileGenerator configFile = new MybatisConfigFileGenerator(eclipseProject, mysql);
 			System.out.println(configFile.getXmlConfig());
-			eclipseProject.writeFile(MybatisConfigFileGenerator.CONFIG_FILENAME,  configFile.getXmlConfig());
+			MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(eclipseProject.getInputStream(MybatisConfigFileGenerator.CONFIG_FILENAME));
+			System.out.println(mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(configFile));
+			//eclipseProject.writeFile(MybatisConfigFileGenerator.CONFIG_FILENAME,  configFile.getXmlConfig());
 			//System.out.println(parser.getPropertiesFilePath());*/
 			//String webxmlPath = getWebXmlPath(eclipseProject);
 			//WebXmlParser parser = new WebXmlParser(new FileInputStream(new File(webxmlPath)));

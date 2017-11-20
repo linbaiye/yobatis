@@ -14,7 +14,7 @@ public abstract class BasicXmlParser {
 	private static final int MAX_STREAM_SIZE = 5 * 1024 * 1024;
 
 	Document document;
-	
+
 	public BasicXmlParser(InputStream inputStream, String rootElmentTag) throws DocumentException, IOException {
 		Expect.asTrue(inputStream != null
 				&& inputStream.available() <= MAX_STREAM_SIZE
@@ -23,11 +23,15 @@ public abstract class BasicXmlParser {
 		Expect.notNull(rootElmentTag, "root element tag is null.");
 		SAXReader saxReader = new SAXReader();
 		saxReader.setValidation(false);
+		customSAXReader(saxReader);
+	
 		document = saxReader.read(new BufferedInputStream(inputStream));
 		if (document == null || document.getRootElement() == null
 				|| !rootElmentTag.equals(document.getRootElement().getName())) {
 			throw new DocumentException("Unpexpected document.");
 		}
 	}
+	
+	void customSAXReader(SAXReader saxReader) {}
 
 }

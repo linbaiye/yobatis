@@ -4,15 +4,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.eclipse.core.runtime.Platform;
-import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.util.Expect;
 
 public abstract class Project {

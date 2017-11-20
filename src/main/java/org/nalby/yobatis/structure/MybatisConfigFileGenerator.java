@@ -4,7 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.dom4j.Document;
 import org.dom4j.DocumentFactory;
@@ -14,6 +16,7 @@ import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.sql.Sql;
+import org.nalby.yobatis.xml.MybatisXmlParser;
 
 public class MybatisConfigFileGenerator {
 	private Project project;
@@ -35,19 +38,81 @@ public class MybatisConfigFileGenerator {
 	public final static String CONFIG_FILENAME = "mybatisGeneratorConfig.xml";
 	
 	private DocumentFactory factory = DocumentFactory.getInstance();
+
+	private Element root;
+
+	private Element classPathEntry;
+	
+	private Element context;
+	
+	private Element jdbConnection;
+	
+	private Element typeResolver;
+
+	private Set<Element> javaModelGenerators = new HashSet<Element>();
+
+	private Set<Element> sqlMapGenerators = new HashSet<Element>();
+	
+	private Set<Element> javaClientGenerators = new HashSet<Element>();
+
+	private Set<Element> tables = new HashSet<Element>();
 	
 	public MybatisConfigFileGenerator(Project project, Sql sql) {
 		this.project = project;
 		this.sql = sql;
+		errorCode = ErrorCode.OK;
+		createDocument();
+		root = factory.createElement("generatorConfiguration");
+		document.setRootElement(root);
+		appendClassPathEntry(root);
+		context = appendContext(root);
+		appendJdbcConnection(context);
+		appendTypeResolver(context);
+		appendJavaModelGenerator(context);
+		appendSqlMapGenerator(context);
+		appendJavaClientGenerator(context);
+		appendTables(context);
+	}
+
+	public Element getClassPathEntryElement() {
+		return classPathEntry;
+	}
+	
+	public Element getJdbConnectionElement() {
+		return jdbConnection;
+	}
+	
+	public Element getJavaTypeResolverElement() {
+		return typeResolver;
+	}
+	
+	public Set<Element> getJavaModelGeneratorElements() {
+		return javaModelGenerators;
+	}
+	
+	public Set<Element> getSqlMapGeneratorElements() {
+		return sqlMapGenerators;
+	}
+	
+	public Set<Element> getJavaClientGeneratorElements() {
+		return javaClientGenerators;
+	}
+	
+	public Set<Element> getTableElements() {
+		return tables;
+	}
+	
+	public Element getContext() {
+		return context;
 	}
 	
 	private void appendClassPathEntry(Element root) {
-		Element classPathEntry = root.addElement("classPathEntry");
+		classPathEntry = root.addElement(MybatisXmlParser.CLASS_PATH_ENTRY_TAG);
 		classPathEntry.addAttribute("location", sql.getConnectorJarPath());
 	}
 	
 	private void appendTypeResolver(Element root) {
-		Element typeResolver = root.addElement("javaTypeResolver");
+		typeResolver = root.addElement("javaTypeResolver");
 		Element property = typeResolver.addElement("property");
 		property.addAttribute("name", "forceBigDecimals");
 		property.addAttribute("value", "false");
@@ -73,11 +138,12 @@ public class MybatisConfigFileGenerator {
 			Element table = context.addElement("table");
 			table.addAttribute("tableName", name);
 			table.addAttribute("schema", sql.getSchema());
+			tables.add(table);
 		}
 	}
 	
 	private void appendJdbcConnection(Element root) {
-		Element jdbConnection = root.addElement("jdbcConnection");
+		jdbConnection = root.addElement("jdbcConnection");
 		jdbConnection.addAttribute("driverClass", sql.getDriverClassName());
 		jdbConnection.addAttribute("connectionURL", sql.getUrl());
 		jdbConnection.addAttribute("userId", sql.getUsername());
@@ -97,13 +163,14 @@ public class MybatisConfigFileGenerator {
 			Element javaModelGenerator = context.addElement("javaModelGenerator");
 			javaModelGenerator.addAttribute("targetPackage", packageName == null? "": packageName);
 			javaModelGenerator.addAttribute("targetProject", path);
+			javaModelGenerators.add(javaModelGenerator);
 		}
 	}
 	
 	private Element appendContext(Element root) {
-		Element context = root.addElement("context");
-		context.addAttribute("id", "mysqlTables");
-		context.addAttribute("targetRuntime", "MyBatis3");
+		context = root.addElement("context");
+		context.addAttribute("id", MybatisXmlParser.CONTEXT_ID);
+		context.addAttribute("targetRuntime", MybatisXmlParser.TARGET_RUNTIME);
 		return context;
 	}
 	
@@ -119,6 +186,7 @@ public class MybatisConfigFileGenerator {
 			Element generator = context.addElement("sqlMapGenerator");
 			generator.addAttribute("targetPackage", "mybatis-mappers/autogen");
 			generator.addAttribute("targetProject", path);
+			sqlMapGenerators.add(generator);
 		}
 	}
 	
@@ -136,6 +204,7 @@ public class MybatisConfigFileGenerator {
 			generator.addAttribute("type", "XMLMAPPER");
 			generator.addAttribute("targetPackage", packageName == null ? "" : packageName);
 			generator.addAttribute("targetProject", path);
+			javaClientGenerators.add(generator);
 		}
 	}
 	
@@ -150,18 +219,6 @@ public class MybatisConfigFileGenerator {
 	}
 	
 	public String getXmlConfig() {
-		errorCode = ErrorCode.OK;
-		createDocument();
-		Element root = factory.createElement("generatorConfiguration");
-		document.setRootElement(root);
-		appendClassPathEntry(root);
-		Element context = appendContext(root);
-		appendJdbcConnection(context);
-		appendTypeResolver(context);
-		appendJavaModelGenerator(context);
-		appendSqlMapGenerator(context);
-		appendJavaClientGenerator(context);
-		appendTables(context);
 		try {
 			return convertToString();
 		} catch (IOException e) {
