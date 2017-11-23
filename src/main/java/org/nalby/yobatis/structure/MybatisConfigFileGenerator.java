@@ -7,6 +7,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.dom4j.Document;
 import org.dom4j.DocumentFactory;
@@ -159,10 +161,10 @@ public class MybatisConfigFileGenerator {
 			errorCode = ErrorCode.MULTIPLE_MODEL_PATHS;
 		}
 		for (String path: paths) {
-			String packageName = project.getPackageName(path);
+			String packageName = getPackageName(path);
 			Element javaModelGenerator = context.addElement("javaModelGenerator");
 			javaModelGenerator.addAttribute("targetPackage", packageName == null? "": packageName);
-			javaModelGenerator.addAttribute("targetProject", path);
+			javaModelGenerator.addAttribute("targetProject", eliminatePackagePath(path));
 			javaModelGenerators.add(javaModelGenerator);
 		}
 	}
@@ -190,6 +192,35 @@ public class MybatisConfigFileGenerator {
 		}
 	}
 	
+	private final static Pattern PATTERN = Pattern.compile("^.+" + Project.MAVEN_SOURCE_CODE_PATH + "/(.+)$");
+	
+	private  String getPackageName(String path) {
+		if (path == null || !path.contains(Project.MAVEN_SOURCE_CODE_PATH)) {
+			return null;
+		}
+		Matcher matcher = PATTERN.matcher(path);
+		String ret = null;
+		if (matcher.find()) {
+			ret = matcher.group(1);
+		}
+		if (ret != null) {
+			ret = ret.replaceAll("/", ".");
+		}
+		return ret;
+	}
+	
+	private String eliminatePackagePath(String fullpath) {
+		Matcher matcher = PATTERN.matcher(fullpath);
+		String ret = null;
+		if (matcher.find()) {
+			ret = matcher.group(1);
+		}
+		if (ret == null) {
+			return fullpath;
+		}
+		return fullpath.replace(ret, "");
+	}
+	
 	private void appendJavaClientGenerator(Element context) {
 		List<String> paths = project.getSyspathsOfDao();
 		if (paths.isEmpty()) {
@@ -199,11 +230,11 @@ public class MybatisConfigFileGenerator {
 			errorCode = ErrorCode.MULTIPLE_MODEL_PATHS;
 		}
 		for (String path: paths) {
-			String packageName = project.getPackageName(path);
+			String packageName = getPackageName(path);
 			Element generator = context.addElement("javaClientGenerator");
 			generator.addAttribute("type", "XMLMAPPER");
 			generator.addAttribute("targetPackage", packageName == null ? "" : packageName);
-			generator.addAttribute("targetProject", path);
+			generator.addAttribute("targetProject", eliminatePackagePath(path));
 			javaClientGenerators.add(generator);
 		}
 	}

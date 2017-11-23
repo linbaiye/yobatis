@@ -7,8 +7,6 @@ import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.nalby.yobatis.util.Expect;
 
 public abstract class Project {
@@ -18,7 +16,7 @@ public abstract class Project {
 	//The full path of this project on system.
 	protected String syspath;
 	
-	protected final static String MAVEN_SOURCE_CODE_PATH = "src/main/java";
+	public final static String MAVEN_SOURCE_CODE_PATH = "src/main/java";
 
 	protected final static String MAVEN_RESOURCES_PATH = "src/main/resources";
 
@@ -78,27 +76,7 @@ public abstract class Project {
 		return result;
 	}
 	
-	private final static Pattern PATTERN = Pattern.compile("^.+" + MAVEN_SOURCE_CODE_PATH + "/(.+)$");
-	
-	/**
-	 * Parse package name from the {@code path}. 
-	 * @param path
-	 * @return package name if the path follows the maven  naming rule, null if can't find.
-	 */
-	public  String getPackageName(String path) {
-		if (path == null || !path.contains(MAVEN_SOURCE_CODE_PATH)) {
-			return null;
-		}
-		Matcher matcher = PATTERN.matcher(path);
-		String ret = null;
-		if (matcher.find()) {
-			ret = matcher.group(1);
-		}
-		if (ret != null) {
-			ret = ret.replaceAll("/", ".");
-		}
-		return ret;
-	}
+
 	
 	/**
 	 * List the full path of the possible 'DAO' layers.
@@ -138,7 +116,7 @@ public abstract class Project {
 		List<String> paths = getSyspathsOfDao();
 		List<String> result = new LinkedList<String>();
 		for (String path: paths) {
-			String tmp = path.replaceFirst(MAVEN_RESOURCES_PATH + ".+$", MAVEN_RESOURCES_PATH);
+			String tmp = path.replaceFirst(MAVEN_SOURCE_CODE_PATH + ".+$", MAVEN_RESOURCES_PATH);
 			result.add(tmp);
 		}
 		return result;

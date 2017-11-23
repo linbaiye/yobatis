@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.dom4j.Comment;
-import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentFactory;
 import org.dom4j.Element;
@@ -482,14 +481,24 @@ public class MybatisXmlParser extends BasicXmlParser {
 		}
 	}
 	
+	private void appendJdbcConnection(MybatisConfigFileGenerator configFileGenerator) {
+		if (jdbcConnection == null) {
+			context.add(configFileGenerator.getJdbConnectionElement().createCopy());
+		} else {
+			context.add(jdbcConnection);
+		}
+	}
+	
 	private void appendTables(MybatisConfigFileGenerator configFileGenerator) {
 		Set<Element> newTables = configFileGenerator.getTableElements();
-		for (Element table: newTables) {
-			if (isTableCommented(table)) {
-				continue;
-			}
-			if (!hasTable(table)) {
-				tables.add(table.createCopy());
+		if (newTables != null && !newTables.isEmpty()) {
+			for (Element table: newTables) {
+				if (isTableCommented(table)) {
+					continue;
+				}
+				if (!hasTable(table)) {
+					tables.add(table.createCopy());
+				}
 			}
 		}
 		for (Node e: tables) {
@@ -508,6 +517,7 @@ public class MybatisXmlParser extends BasicXmlParser {
 		try {
 			appendClasspathEntry(configFileGenerator);
 			if (appendContextAndTestIfContinueAppending(configFileGenerator)) {
+				appendJdbcConnection(configFileGenerator);
 				appendJavaTypeResolver(configFileGenerator);
 				appendJavaModelGenerators(configFileGenerator);
 				appendSqlMapGenerators(configFileGenerator);
@@ -519,7 +529,7 @@ public class MybatisXmlParser extends BasicXmlParser {
 			throw new ProjectException("Failed to merge generated xml into existent xml.");
 		}
 	}
-	
+
 	
 	@Override
 	void  customSAXReader(SAXReader saxReader ) {

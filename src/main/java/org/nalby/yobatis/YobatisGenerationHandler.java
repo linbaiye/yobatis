@@ -97,17 +97,18 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			Sql mysql = builder.build();
 			MybatisConfigFileGenerator configFile = new MybatisConfigFileGenerator(eclipseProject, mysql);
 			System.out.println(configFile.getXmlConfig());
-			MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(eclipseProject.getInputStream(MybatisConfigFileGenerator.CONFIG_FILENAME));
-			System.out.println(mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(configFile));
-			//eclipseProject.writeFile(MybatisConfigFileGenerator.CONFIG_FILENAME,  configFile.getXmlConfig());
-			//System.out.println(parser.getPropertiesFilePath());*/
-			//String webxmlPath = getWebXmlPath(eclipseProject);
-			//WebXmlParser parser = new WebXmlParser(new FileInputStream(new File(webxmlPath)));
-			//List<String> springConfigPaths = parser.getSpringConfigLocations();
-			/*for (String path: springConfigPaths) {
-				System.out.println(path);
-			}*/
-
+			MybatisXmlParser mybatisXmlParser = null;
+			try {
+				mybatisXmlParser = new MybatisXmlParser(eclipseProject.getInputStream(MybatisConfigFileGenerator.CONFIG_FILENAME));
+			}  catch (Exception e) {
+			}
+			String xmlFileContent = null;
+			if (mybatisXmlParser != null) {
+				xmlFileContent = mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(configFile);
+			} else {
+				xmlFileContent = configFile.getXmlConfig();
+			}
+			eclipseProject.writeFile(MybatisConfigFileGenerator.CONFIG_FILENAME, xmlFileContent);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

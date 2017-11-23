@@ -139,25 +139,7 @@ public class ProjectTests {
 		});
 		assertTrue(result.isEmpty());
 	}
-	
-	@Test
-	public void testGetPackageName() {
-		Project project = new TestingProject(null);
-		String path = "/";
-		assertTrue(null == project.getPackageName(path));
 
-		path = "/src/main/java/";
-		assertTrue(null == project.getPackageName(path));
-
-		path = "/src/main/java";
-		assertTrue(null == project.getPackageName(path));
-
-		path = "/src/main/java/test";
-		assertTrue("test".equals(project.getPackageName(path)));
-
-		path = "/src/main/java/test/hello/world";
-		assertTrue("test.hello.world".equals(project.getPackageName(path)));
-	}
 	
 	@Test
 	public void testWriteFileOnlyFileName() {
