@@ -7,10 +7,12 @@ import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import org.dom4j.Comment;
+import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentFactory;
 import org.dom4j.Element;
@@ -312,7 +314,7 @@ public class MybatisXmlParser extends BasicXmlParser {
 		loadNodes(MODEL_GENERATOR_TAG,  javaModelGenerators);
 		loadNodes(SQLMAP_GENERATOR_TAG,  sqlMapGenerators);
 		loadNodes(CLIENT_GENERATOR_TAG,  javaClientGenerators);
-		loadNodes(TABLE_TAG,  tables);
+		loadTables();
 		document.remove(root);
 		root = documentFactory.createElement(ROOT_TAG);
 		document.setRootElement(root);
@@ -324,6 +326,23 @@ public class MybatisXmlParser extends BasicXmlParser {
 			classPathEntry.detach();
 		}
 	}
+	
+	private void loadTables() {
+		loadNodes(TABLE_TAG,  tables);
+		for (Iterator<Node> iterator = context.nodeIterator(); iterator.hasNext(); ) {
+			Node node = iterator.next();
+			if (node.getNodeType() != Node.COMMENT_NODE) {
+				continue;
+			}
+			iterator.remove();
+			Comment comment = (Comment) node;
+			String tmp = comment.getText().replace("<!--", "");
+			if (tmp.trim().startsWith("table")) {
+				tables.add(node.detach());
+			}
+		}
+	}
+	
 	
 	private void loadContext() {
 		context = root.element("context");
@@ -361,6 +380,34 @@ public class MybatisXmlParser extends BasicXmlParser {
 			Element e = (Element) node;
 			if (e.attributeValue("targetPackage").equals(element.attributeValue("targetPackage")) &&
 				e.attributeValue("targetProject").equals(element.attributeValue("targetProject"))) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private boolean hasTable(Element table) {
+		for (Node node: tables) {
+			if (!(node instanceof Element)) {
+				continue;
+			}
+			Element e = (Element) node;
+			if (e.attributeValue("tableName").equals(table.attributeValue("tableName"))) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private boolean isTableCommented(Element table) {
+		for (Node node: tables) {
+			if (!(node instanceof Comment)) {
+				continue;
+			}
+			Comment comment = (Comment)node;
+			String text = comment.getText().replaceAll("\\s", "");
+			if (text.contains("tableName=\"" + table.attributeValue("tableName") + "\"")
+				&& text.contains("schema=\"" + table.attributeValue("schema") + "\"")) {
 				return true;
 			}
 		}
@@ -435,6 +482,21 @@ public class MybatisXmlParser extends BasicXmlParser {
 		}
 	}
 	
+	private void appendTables(MybatisConfigFileGenerator configFileGenerator) {
+		Set<Element> newTables = configFileGenerator.getTableElements();
+		for (Element table: newTables) {
+			if (isTableCommented(table)) {
+				continue;
+			}
+			if (!hasTable(table)) {
+				tables.add(table.createCopy());
+			}
+		}
+		for (Node e: tables) {
+			context.add(e);
+		}
+	}
+	
 	/**
 	 * Under some circumstances, we might find multiple dao/domain layers, so it's necessary
 	 * to merge generated elements. If this existed config file does not have the element in the new one,
@@ -450,12 +512,14 @@ public class MybatisXmlParser extends BasicXmlParser {
 				appendJavaModelGenerators(configFileGenerator);
 				appendSqlMapGenerators(configFileGenerator);
 				appendJavaClientGenerators(configFileGenerator);
+				appendTables(configFileGenerator);
 			}
 			return toXmlString();
 		} catch (IOException e) {
 			throw new ProjectException("Failed to merge generated xml into existent xml.");
 		}
 	}
+	
 	
 	@Override
 	void  customSAXReader(SAXReader saxReader ) {
