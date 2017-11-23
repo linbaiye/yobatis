@@ -38,7 +38,7 @@ public class SpringXmlParser extends BasicXmlParser {
 	private String parsePropertyValue(Element datasourceBean, String propertyName) {
 		QName qname = new QName(propertyName, new Namespace("p", P_NAMESPACE));
 		if (null != datasourceBean.attributeValue(qname)) {
-			return datasourceBean.attributeValue(qname);
+			return datasourceBean.attributeValue(qname).trim();
 		}
 		for (Element property : datasourceBean.elements("property")) {
 			String nameAttr = property.attributeValue("name");
@@ -116,7 +116,7 @@ public class SpringXmlParser extends BasicXmlParser {
 		for (Element importElement: importElements) {
 			String val = importElement.attributeValue("resource");
 			if (val != null && !"".equals(val.trim())) {
-				list.add(val);
+				list.add(val.trim());
 			}
 		}
 		return list;
@@ -124,7 +124,7 @@ public class SpringXmlParser extends BasicXmlParser {
 	
 	/**
 	 * Get properties file path contained by PropertyPlaceholderConfigurer bean.
-	 * @return file names.
+	 * @return file name.
 	 */
 	public String getPropertiesFile() {
 		List<Element> beanElements = document.getRootElement().elements("bean");

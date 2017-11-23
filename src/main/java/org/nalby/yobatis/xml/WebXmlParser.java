@@ -8,6 +8,9 @@ import java.util.List;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
+import org.nalby.yobatis.structure.Folder;
+import org.nalby.yobatis.structure.Project;
+import org.nalby.yobatis.structure.Project.FolderSelector;
 
 public class WebXmlParser extends BasicXmlParser {
 
@@ -131,6 +134,31 @@ public class WebXmlParser extends BasicXmlParser {
 			throw new UnsupportedProjectException("Unable to find spring's config files.");
 		}
 		return result;
+	}
+	
+	
+	public static WebXmlParser build(Project project) {
+		List<Folder> folders = project.findFolders(new FolderSelector() {
+			@Override
+			public boolean isSelected(Folder folder) {
+				return  folder.path().contains("src/main/webapp/WEB-INF") && folder.containsFile("web.xml");
+			}
+		});
+		if (folders.size() != 1) {
+			throw new UnsupportedProjectException("Unable to find web.xml");
+		}
+		Folder folder = folders.get(0);
+		InputStream inputStream = null;
+		try {
+			inputStream = project.getInputStream(folder.path() + "/web.xml");
+			return new WebXmlParser(inputStream);
+		} catch (IOException e) {
+			throw new UnsupportedProjectException(e);
+		} catch (DocumentException e) {
+			throw new UnsupportedProjectException(e);
+		} finally {
+			project.closeInputStream(inputStream);
+		}
 	}
 	
 }

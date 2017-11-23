@@ -4,15 +4,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.eclipse.core.runtime.Platform;
-import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.util.Expect;
 
 public abstract class Project {
@@ -50,8 +46,6 @@ public abstract class Project {
 
 	public abstract String getDaoLayerPath();
 	
-	public abstract void writeFile(String path, String source);
-	
 	public abstract void createDir(String dirPath);
 	
 	public static interface FolderSelector {
@@ -69,7 +63,6 @@ public abstract class Project {
 	}
 	
 	public String convertToFullPath(String path) {
-		Expect.notEmpty(path, "Invalid path.");
 		if (path.startsWith("/")) {
 			return syspath + path;
 		}
@@ -170,7 +163,6 @@ public abstract class Project {
 	 * @throws FileNotFoundException
 	 */
 	public InputStream getInputStream(String filepath) throws FileNotFoundException {
-		Expect.notEmpty(filepath, "filepath must not be empty.");
 		if (!filepath.startsWith(root.path())) {
 			filepath = root.path() + "/" + filepath;
 		}
@@ -203,5 +195,46 @@ public abstract class Project {
 			}
 		} while (!stack.isEmpty());
 		return result;
+	}
+	
+	/**
+	 * Find folders that contains the filename.
+	 * @param path 
+	 * @return the folders that contain the filename, empty list returned if not found.
+	 */
+	public List<Folder> findFoldersContainingFile(final String path) {
+		return findFolders(new FolderSelector() {
+			@Override
+			public boolean isSelected(Folder folder) {
+				if (path.indexOf("/") == -1) {
+					//only filename.
+					return folder.containsFile(path);
+				}
+				//file path.
+				String folderPath  = path.replaceFirst("/.*$", "");
+				String filename = path.replace(folderPath + "/", "");
+				return folder.path().indexOf(folderPath) != -1 && folder.containsFile(filename);
+			}
+		});
+	}
+	
+	public void writeFile(String path, String content) {
+		Expect.asTrue(path != null && content != null, "invalid param");
+		if (path.startsWith("/")) {
+			Expect.asTrue(path.startsWith(root.path()), "invalid path.");
+		}
+		path = path.replaceFirst("^" + root.path(), "");
+		String[] tokens = path.split("/");
+		Folder folder = root;
+		for (int i = 0; i < tokens.length; i++) {
+			if ("".equals(tokens[i])) {
+				continue;
+			}
+			if (i == tokens.length - 1) {
+				folder.writeFile(tokens[i], content);
+			} else {
+				folder = folder.createFolder(tokens[i]);
+			}
+		}
 	}
 }

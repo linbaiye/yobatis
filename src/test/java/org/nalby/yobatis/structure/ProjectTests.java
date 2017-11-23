@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -14,13 +13,9 @@ import static org.mockito.Mockito.*;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.Project.FolderSelector;
-import org.nalby.yobatis.structure.SourceCodeFolder;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProjectTests {
-	
-	@Mock
-	private Folder mockedRoot;
 	
 	private class TestingProject extends Project {
 		public TestingProject(Folder root) {
@@ -87,16 +82,6 @@ public class ProjectTests {
 			return null;
 		}
 
-		@Override
-		public String getFullPath() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public void writeFile(String path, String source) {
-			// TODO Auto-generated method stub
-		}
 
 		@Override
 		public void createDir(String dirPath) {
@@ -121,6 +106,7 @@ public class ProjectTests {
 	
 	@Test
 	public void testFindFoldersWithEmptySub() {
+		Folder mockedRoot = mock(Folder.class);
 		when(mockedRoot.getSubFolders()).thenReturn(new ArrayList<Folder>());
 		Project project = new TestingProject(mockedRoot);
 		List<Folder> result = project.findFolders(new FolderSelector() {
@@ -135,6 +121,7 @@ public class ProjectTests {
 	@Test
 	public void testFindFolders() {
 		List<Folder> list = buildMockedSubFolders(10);
+		Folder mockedRoot = mock(Folder.class);
 		when(mockedRoot.getSubFolders()).thenReturn(list);
 		Project project = new TestingProject(mockedRoot);
 		List<Folder> result = project.findFolders(new FolderSelector() {
@@ -170,5 +157,42 @@ public class ProjectTests {
 
 		path = "/src/main/java/test/hello/world";
 		assertTrue("test.hello.world".equals(project.getPackageName(path)));
+	}
+	
+	@Test
+	public void testWriteFileOnlyFileName() {
+		Folder mockedRoot = mock(Folder.class);
+		Project project = new TestingProject(mockedRoot);
+		project.writeFile("test.con", "hello");
+		verify(mockedRoot).writeFile("test.con", "hello");
+	}
+	
+	@Test
+	public void testWriteFileWithRootPath() {
+		Folder mockedRoot = mock(Folder.class);
+		Project project = new TestingProject(mockedRoot);
+		when(mockedRoot.path()).thenReturn("/test");
+		project.writeFile("/test/test.con", "hello");
+		verify(mockedRoot).writeFile("test.con", "hello");
+	}
+	
+	@Test
+	public void testWriteFileWithAbspath() {
+		Folder mockedRoot = mock(Folder.class);
+		Project project = new TestingProject(mockedRoot);
+		when(mockedRoot.path()).thenReturn("/test");
+		when(mockedRoot.createFolder("axxxx")).thenReturn(mockedRoot);
+		project.writeFile("/test/axxxx/test.con", "hello");
+		verify(mockedRoot).createFolder("axxxx");
+		verify(mockedRoot).writeFile("test.con", "hello");
+	}
+	@Test
+	public void testWriteFileWithRelativepath() {
+		Folder mockedRoot = mock(Folder.class);
+		Project project = new TestingProject(mockedRoot);
+		when(mockedRoot.createFolder("axxxx")).thenReturn(mockedRoot);
+		project.writeFile("axxxx/test.con", "hello");
+		verify(mockedRoot).createFolder("axxxx");
+		verify(mockedRoot).writeFile("test.con", "hello");
 	}
 }

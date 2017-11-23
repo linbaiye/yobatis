@@ -33,6 +33,7 @@ import org.nalby.yobatis.structure.PropertiesParser;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
+import org.nalby.yobatis.xml.MybatisXmlParser;
 import org.nalby.yobatis.xml.PomXmlParser;
 import org.nalby.yobatis.xml.WebXmlParser;
 
@@ -61,7 +62,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			if (thisProject.exists() && !thisProject.isOpen()) {
 				thisProject.open(null);
 			}
-			Project project = EclipseProject.build(thisProject.getName());
+			Project project = null; //EclipseProject.build(thisProject.getName());
 			Sql sql = null;//new Mysql(project);
 			MybatisFilesGenerator generator = new MybatisFilesGenerator(project, sql, new LibraryRunner());
 			generator.writeAllFiles();
@@ -83,8 +84,9 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		//IFolder folder = project.getFolder("/learn");
 		try {
 			EclipseProject eclipseProject = new EclipseProject(project);
+			WebXmlParser webXmlParser = WebXmlParser.build(eclipseProject);
 			PomParser pomParser = new PomParser(eclipseProject);
-			SpringParser springParser  = new SpringParser(eclipseProject);
+			SpringParser springParser  = new SpringParser(eclipseProject, webXmlParser.getSpringConfigLocations());
 			PropertiesParser propertiesParser = new PropertiesParser(eclipseProject, pomParser, springParser.getPropertiesFilePath());
 			Builder builder = Mysql.builder();
 			builder.setConnectorJarPath(eclipseProject.concatMavenResitoryPath(pomParser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver")))
@@ -95,6 +97,9 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			Sql mysql = builder.build();
 			MybatisConfigFileGenerator configFile = new MybatisConfigFileGenerator(eclipseProject, mysql);
 			System.out.println(configFile.getXmlConfig());
+			MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(eclipseProject.getInputStream(MybatisConfigFileGenerator.CONFIG_FILENAME));
+			System.out.println(mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(configFile));
+			//eclipseProject.writeFile(MybatisConfigFileGenerator.CONFIG_FILENAME,  configFile.getXmlConfig());
 			//System.out.println(parser.getPropertiesFilePath());*/
 			//String webxmlPath = getWebXmlPath(eclipseProject);
 			//WebXmlParser parser = new WebXmlParser(new FileInputStream(new File(webxmlPath)));
