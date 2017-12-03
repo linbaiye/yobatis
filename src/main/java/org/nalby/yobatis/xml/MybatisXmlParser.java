@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.dom4j.Comment;
-import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentFactory;
 import org.dom4j.Element;
@@ -21,7 +20,7 @@ import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
 import org.nalby.yobatis.exception.ProjectException;
-import org.nalby.yobatis.structure.MybatisConfigFileGenerator;
+import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -285,6 +284,8 @@ public class MybatisXmlParser extends BasicXmlParser {
 	
 	private Element javaTypeResolver;
 	
+	private Element pluginElement;
+	
 	private DocumentFactory documentFactory  = DocumentFactory.getInstance();
 	
 	private Set<Node> javaModelGenerators = new HashSet<Node>();
@@ -315,6 +316,7 @@ public class MybatisXmlParser extends BasicXmlParser {
 		loadNodes(SQLMAP_GENERATOR_TAG,  sqlMapGenerators);
 		loadNodes(CLIENT_GENERATOR_TAG,  javaClientGenerators);
 		loadTables();
+		loadRenamePlugin();
 		document.remove(root);
 		root = documentFactory.createElement(ROOT_TAG);
 		document.setRootElement(root);
@@ -343,6 +345,16 @@ public class MybatisXmlParser extends BasicXmlParser {
 		}
 	}
 	
+	private void loadRenamePlugin() {
+		List<Element> elemtns = context.elements("plugin");
+		for (Element element : elemtns) {
+			if ("org.mybatis.generator.plugins.RenameExampleClassPlugin".equals(element.attributeValue("type"))) {
+				pluginElement = context.element("plugin");
+				pluginElement.detach();
+				return;
+			}
+		}
+	}
 	
 	private void loadContext() {
 		context = root.element("context");
@@ -482,18 +494,36 @@ public class MybatisXmlParser extends BasicXmlParser {
 		}
 	}
 	
+	private void appendJdbcConnection(MybatisConfigFileGenerator configFileGenerator) {
+		if (jdbcConnection == null) {
+			context.add(configFileGenerator.getJdbConnectionElement().createCopy());
+		} else {
+			context.add(jdbcConnection);
+		}
+	}
+	
 	private void appendTables(MybatisConfigFileGenerator configFileGenerator) {
 		Set<Element> newTables = configFileGenerator.getTableElements();
-		for (Element table: newTables) {
-			if (isTableCommented(table)) {
-				continue;
-			}
-			if (!hasTable(table)) {
-				tables.add(table.createCopy());
+		if (newTables != null && !newTables.isEmpty()) {
+			for (Element table: newTables) {
+				if (isTableCommented(table)) {
+					continue;
+				}
+				if (!hasTable(table)) {
+					tables.add(table.createCopy());
+				}
 			}
 		}
 		for (Node e: tables) {
 			context.add(e);
+		}
+	}
+	
+	private void appendRenamePlugin(MybatisConfigFileGenerator configFileGenerator) {
+		if (pluginElement == null) {
+			context.add(configFileGenerator.getJdbConnectionElement().createCopy());
+		} else {
+			context.add(pluginElement);
 		}
 	}
 	
@@ -508,6 +538,8 @@ public class MybatisXmlParser extends BasicXmlParser {
 		try {
 			appendClasspathEntry(configFileGenerator);
 			if (appendContextAndTestIfContinueAppending(configFileGenerator)) {
+				appendRenamePlugin(configFileGenerator);
+				appendJdbcConnection(configFileGenerator);
 				appendJavaTypeResolver(configFileGenerator);
 				appendJavaModelGenerators(configFileGenerator);
 				appendSqlMapGenerators(configFileGenerator);
@@ -519,7 +551,7 @@ public class MybatisXmlParser extends BasicXmlParser {
 			throw new ProjectException("Failed to merge generated xml into existent xml.");
 		}
 	}
-	
+
 	
 	@Override
 	void  customSAXReader(SAXReader saxReader ) {

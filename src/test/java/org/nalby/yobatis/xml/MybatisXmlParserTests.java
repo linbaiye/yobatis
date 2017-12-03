@@ -18,7 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.nalby.yobatis.structure.MybatisConfigFileGenerator;
+import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
