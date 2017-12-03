@@ -23,67 +23,6 @@ public class ProjectTests {
 		} 
 
 		@Override
-		public String getDatabaseUrl() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getDatabaseUsername() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getDatabasePassword() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getDatabaseDriverClassName() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getDatabaseConnectorPath() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getDatabaseConnectorFullPath() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getSourceCodeDirPath() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getResourcesDirPath() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getModelLayerPath() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getDaoLayerPath() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-
-		@Override
 		public void createDir(String dirPath) {
 			// TODO Auto-generated method stub
 		}

@@ -24,26 +24,6 @@ public abstract class Project {
 	
 	protected final static String CLASSPATH_PREFIX = "classpath:";
 	
-	public abstract String getDatabaseUrl();
-	
-	public abstract String getDatabaseUsername();
-	
-	public abstract String getDatabasePassword();
-	
-	public abstract String getDatabaseDriverClassName();
-	
-	public abstract String getDatabaseConnectorPath();
-
-	public abstract String getDatabaseConnectorFullPath();
-	
-	public abstract String getSourceCodeDirPath();
-
-	public abstract String getResourcesDirPath();
-	
-	public abstract String getModelLayerPath();
-
-	public abstract String getDaoLayerPath();
-	
 	public abstract void createDir(String dirPath);
 	
 	public static interface FolderSelector {
@@ -56,11 +36,11 @@ public abstract class Project {
 		return root.containsFile(filename);
 	}
 
-	public  String getFullPath() {
+	public String getFullPath() {
 		return syspath + root.path();
 	}
 	
-	public String convertToFullPath(String path) {
+	private String convertToFullPath(String path) {
 		if (path.startsWith("/")) {
 			return syspath + path;
 		}
@@ -75,8 +55,6 @@ public abstract class Project {
 		}
 		return result;
 	}
-	
-
 	
 	/**
 	 * List the full path of the possible 'DAO' layers.
@@ -106,11 +84,10 @@ public abstract class Project {
 		});
 	}
 	
-
 	/**
-	 * List full paths of possible resources which are close to the dao layer. By 'close to', it means
-	 * the ones that are contained by the same submodule containing 'dao'.
-	 * @return full paths
+	 * List full paths of possible resources which are close to the dao layer. By 'close to', 
+	 * it means the ones that are contained by the same submodule containing 'dao'.
+	 * @return A list that contains path names.
 	 */
 	public List<String> getSyspathsOfResources() {
 		List<String> paths = getSyspathsOfDao();
@@ -134,8 +111,9 @@ public abstract class Project {
 	}
 
 	/**
-	 * Get {@code InputStream} of the {@code filepath}, if {@code filepath} represents a filename, this method
-	 * tries to convert it to full path first. The caller needs to close the inputstream, calling {@code closeInputStream} if prefer.
+	 * Get {@code InputStream} of the {@code filepath}, if {@code filepath} represents a filename,
+	 * this method tries to convert it to full path first. The caller needs to close 
+	 * the inputstream, calling {@code closeInputStream} if prefer.
 	 * @param filepath the file to open.
 	 * @return the InputStream representing the file.
 	 * @throws FileNotFoundException
