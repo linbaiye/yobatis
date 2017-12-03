@@ -12,7 +12,7 @@ import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.xml.PomXmlParser;
 
 /**
- * Take over all pom files as a whole.
+ * Treat all pom files as a whole.
  * @author Kyle Lin
  *
  */

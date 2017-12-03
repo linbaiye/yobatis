@@ -1,10 +1,11 @@
-package org.nalby.yobatis.structure;
+package org.nalby.yobatis.mybatis;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -16,11 +17,13 @@ import org.dom4j.DocumentType;
 import org.dom4j.Element;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
+import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.sql.Sql;
+import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.xml.MybatisXmlParser;
 
-public class MybatisConfigFileGenerator {
+public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	private Project project;
 	private Document document;
 	private Sql sql;
@@ -50,6 +53,8 @@ public class MybatisConfigFileGenerator {
 	private Element jdbConnection;
 	
 	private Element typeResolver;
+	
+	private Element pluginElement;
 
 	private Set<Element> javaModelGenerators = new HashSet<Element>();
 
@@ -68,6 +73,7 @@ public class MybatisConfigFileGenerator {
 		document.setRootElement(root);
 		appendClassPathEntry(root);
 		context = appendContext(root);
+		appendRenamePlugin(context);
 		appendJdbcConnection(context);
 		appendTypeResolver(context);
 		appendJavaModelGenerator(context);
@@ -106,6 +112,10 @@ public class MybatisConfigFileGenerator {
 	
 	public Element getContext() {
 		return context;
+	}
+	
+	public Element getPluginElement() {
+		return pluginElement;
 	}
 	
 	private void appendClassPathEntry(Element root) {
@@ -167,6 +177,17 @@ public class MybatisConfigFileGenerator {
 			javaModelGenerator.addAttribute("targetProject", eliminatePackagePath(path));
 			javaModelGenerators.add(javaModelGenerator);
 		}
+	}
+	
+	private void appendRenamePlugin(Element context) {
+		pluginElement = context.addElement("plugin");
+		pluginElement.addAttribute("type",  "org.mybatis.generator.plugins.RenameExampleClassPlugin");
+		Element property = pluginElement.addElement("property");
+		property.addAttribute("name", "searchString");
+		property.addAttribute("value", "Example$");
+		property = pluginElement.addElement("property");
+		property.addAttribute("name", "replaceString");
+		property.addAttribute("value", "Criteria");
 	}
 	
 	private Element appendContext(Element root) {
@@ -255,6 +276,43 @@ public class MybatisConfigFileGenerator {
 		} catch (IOException e) {
 			throw new ProjectException(e);
 		}
+	}
+	
+	
+	private String glueTargetPackageToTargetProject(Set<Element> generators, String name) {
+		if (generators == null || generators.isEmpty()) {
+			throw new InvalidMybatisGeneratorConfigException(
+					String.format("There is no %s configured, please set the element and re-run.", name));
+		}
+		if (generators.size() > 1) {
+			throw new InvalidMybatisGeneratorConfigException(
+					String.format("More than one %s configured, please remove unintentional ones and re-run.", name));
+		}
+		Iterator<Element> iterator =  generators.iterator();
+		while (iterator.hasNext()) {
+			Element element = iterator.next();
+			String packageName = element.attributeValue("targetPackage");
+			String targetProject = element.attributeValue("targetProject");
+			return targetProject + "/" + packageName.replace(".", "/");
+		}
+		throw new InvalidMybatisGeneratorConfigException("Should not happen.");
+		
+	}
+
+	@Override
+	public String getDaoPath() {
+		return glueTargetPackageToTargetProject(javaClientGenerators, "javaClientGenerator");
+	}
+
+	@Override
+	public String getDomainPaht() {
+		return glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
+	}
+
+	@Override
+	public String getCriteriaPath() {
+		String daoPath =  glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
+		return daoPath + "/criteria";
 	}
 	
 }

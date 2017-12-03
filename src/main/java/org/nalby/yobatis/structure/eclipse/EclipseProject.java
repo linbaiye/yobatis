@@ -72,11 +72,6 @@ public class EclipseProject extends Project {
 	}
 
 	@Override
-	public String getFullPath() {
-		return wrappedProject.getLocationURI().getPath();
-	}
-
-	@Override
 	public void writeFile(String path, String source) {
 		try {
 			if (!wrappedProject.isOpen()) {

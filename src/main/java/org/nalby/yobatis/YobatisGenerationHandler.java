@@ -18,15 +18,17 @@ import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
+import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.LibraryRunner;
 import org.nalby.yobatis.exception.ProjectNotFoundException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
+import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
 import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.sql.mysql.Mysql;
 import org.nalby.yobatis.sql.mysql.Mysql.Builder;
 import org.nalby.yobatis.structure.Folder;
-import org.nalby.yobatis.structure.MybatisConfigFileGenerator;
 import org.nalby.yobatis.structure.MybatisFilesGenerator;
+import org.nalby.yobatis.structure.MybatisGeneratorWrapper;
 import org.nalby.yobatis.structure.PomParser;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.PropertiesParser;
@@ -109,6 +111,24 @@ public class YobatisGenerationHandler extends AbstractHandler {
 				xmlFileContent = configFile.getXmlConfig();
 			}
 			eclipseProject.writeFile(MybatisConfigFileGenerator.CONFIG_FILENAME, xmlFileContent);
+			LibraryRunner runner = new LibraryRunner();
+			System.out.println(eclipseProject.convertToFullPath(MybatisConfigFileGenerator.CONFIG_FILENAME));
+			runner.parse(eclipseProject.getFullPath() + "/" + MybatisConfigFileGenerator.CONFIG_FILENAME);
+			MybatisGeneratorWrapper wrapper = new MybatisGeneratorWrapper(runner);
+			List<GeneratedJavaFile> files = wrapper.getCriteriaFiles();
+			for (GeneratedJavaFile file: files) {
+				System.out.println(file.getFileName());
+			}
+			
+			files = wrapper.getDomainFiles();
+			for (GeneratedJavaFile file: files) {
+				System.out.println(file.getFileName());
+			}
+
+			files = wrapper.getMapperFiles();
+			for (GeneratedJavaFile file: files) {
+				System.out.println(file.getFileName());
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
