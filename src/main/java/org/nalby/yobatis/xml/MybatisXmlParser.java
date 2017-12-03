@@ -19,13 +19,15 @@ import org.dom4j.Node;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
+import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
+import org.nalby.yobatis.mybatis.MybatisConfigReader;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-public class MybatisXmlParser extends BasicXmlParser {
+public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigReader {
 	private static final String DTD = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
 			"<!--\n" + 
 			"\n" + 
@@ -565,5 +567,74 @@ public class MybatisXmlParser extends BasicXmlParser {
 				return null;
 			}
 		});
+	}
+	
+	
+	/*
+	 * Each generator set can only has one valid element, while others
+	 * need to be commented out, to enable mybatis-generator to work properly.
+	 */
+	private Element findAcitveElement(Set<Node> generators, String name) {
+		if (generators == null || generators.isEmpty()) {
+			throw new InvalidMybatisGeneratorConfigException(
+					String.format("There is no %s configured, please set the element and re-run.", name));
+		}
+		Iterator<Node> iterator =  generators.iterator();
+		for (int i = 0; iterator.hasNext(); ) {
+			Node node = iterator.next();
+			i += node instanceof Element? 1 : 0;
+			if (i > 1) {
+				throw new InvalidMybatisGeneratorConfigException(
+					String.format("More than one %s configured, please remove unintentional ones and re-run.", name));
+			}
+		}
+		iterator =  generators.iterator();
+		while (iterator.hasNext()) {
+			Node node = iterator.next();
+			if (!(node instanceof Element)) {
+				continue;
+			}
+			return (Element)node;
+		}
+		throw new InvalidMybatisGeneratorConfigException("Should not happen.");
+	}
+
+	private String glueTargetPackageToTargetProject(Set<Node> generators, String name) {
+		Element element = findAcitveElement(generators, name);
+		String packageName = element.attributeValue("targetPackage");
+		String targetProject = element.attributeValue("targetProject");
+		return targetProject + "/" + packageName.replace(".", "/");
+	}
+
+	@Override
+	public String getDaoDirPath() {
+		return glueTargetPackageToTargetProject(javaClientGenerators, "javaClientGenerator");
+	}
+
+	@Override
+	public String getDomainDirPath() {
+		return glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
+	}
+
+	@Override
+	public String getCriteriaDirPath() {
+		String daoPath =  glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
+		return daoPath + "/criteria";
+	}
+
+	@Override
+	public String getConfigeFilename() {
+		return MybatisConfigFileGenerator.CONFIG_FILENAME;
+	}
+
+	@Override
+	public String getPackageNameOfDomains() {
+		Element element = findAcitveElement(javaModelGenerators, "javaModelGenerator");
+		return element.attributeValue("targetPackage");
+	}
+
+	@Override
+	public String getMapperDirPath() {
+		return glueTargetPackageToTargetProject(sqlMapGenerators, "sqlMapGenerator");
 	}
 }

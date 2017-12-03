@@ -22,11 +22,13 @@ import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.LibraryRunner;
 import org.nalby.yobatis.exception.ProjectNotFoundException;
 import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
+import org.nalby.yobatis.mybatis.MybatisConfigReader;
+import org.nalby.yobatis.mybatis.MybatisFilesWriter;
 import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.sql.mysql.Mysql;
 import org.nalby.yobatis.sql.mysql.Mysql.Builder;
 import org.nalby.yobatis.structure.PomParser;
-import org.nalby.yobatis.structure.PropertiesParser;
+import org.nalby.yobatis.structure.DatabasePropertiesParser;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
 import org.nalby.yobatis.xml.MybatisXmlParser;
@@ -52,16 +54,17 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			WebXmlParser webXmlParser = WebXmlParser.build(eclipseProject);
 			PomParser pomParser = new PomParser(eclipseProject);
 			SpringParser springParser  = new SpringParser(eclipseProject, webXmlParser.getSpringConfigLocations());
-			PropertiesParser propertiesParser = new PropertiesParser(eclipseProject, pomParser, springParser.getPropertiesFilePath());
+			DatabasePropertiesParser propertiesParser = new DatabasePropertiesParser(eclipseProject, pomParser, springParser);
 			Builder builder = Mysql.builder();
 			builder.setConnectorJarPath(eclipseProject.concatMavenResitoryPath(pomParser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver")))
-			.setDriverClassName(propertiesParser.getProperty(springParser.getDatabaseDriverClassName()))
-			.setUsername(propertiesParser.getProperty(springParser.getDatabaseUsername()))
-			.setPassword(propertiesParser.getProperty(springParser.getDatabasePassword()))
-			.setUrl(propertiesParser.getProperty(springParser.getDatabaseUrl()));
+			.setDriverClassName(propertiesParser.getDatabaseDriverClassName())
+			.setUsername(propertiesParser.getDatabaseUsername())
+			.setPassword(propertiesParser.getDatabasePassword())
+			.setUrl(propertiesParser.getDatabaseUrl());
 			Sql mysql = builder.build();
-			MybatisConfigFileGenerator configFile = new MybatisConfigFileGenerator(eclipseProject, mysql);
-			System.out.println(configFile.getXmlConfig());
+			MybatisConfigFileGenerator generator = new MybatisConfigFileGenerator(eclipseProject, mysql);
+			MybatisConfigReader reader = generator;
+			System.out.println(generator.getXmlConfig());
 			MybatisXmlParser mybatisXmlParser = null;
 			try {
 				mybatisXmlParser = new MybatisXmlParser(eclipseProject.getInputStream(MybatisConfigFileGenerator.CONFIG_FILENAME));
@@ -69,13 +72,14 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			}
 			String xmlFileContent = null;
 			if (mybatisXmlParser != null) {
-				xmlFileContent = mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(configFile);
+				xmlFileContent = mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(generator);
+				reader = mybatisXmlParser;
 			} else {
-				xmlFileContent = configFile.getXmlConfig();
+				xmlFileContent = generator.getXmlConfig();
 			}
 			eclipseProject.writeFile(MybatisConfigFileGenerator.CONFIG_FILENAME, xmlFileContent);
-			LibraryRunner runner = new LibraryRunner();
-			runner.parse(eclipseProject.convertToSyspath(MybatisConfigFileGenerator.CONFIG_FILENAME));
+			MybatisFilesWriter filesWriter = new MybatisFilesWriter(eclipseProject, reader);
+			filesWriter.writeAll();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
