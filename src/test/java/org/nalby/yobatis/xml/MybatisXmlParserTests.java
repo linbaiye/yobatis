@@ -186,10 +186,6 @@ public class MybatisXmlParserTests {
 			}
 			return false;
 		}
-		
-		public void display() {
-			System.out.println(document.asXML());
-		}
 	}
 	
 	@Test

@@ -23,72 +23,6 @@ public class ProjectTests {
 		} 
 
 		@Override
-		public String getDatabaseUrl() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getDatabaseUsername() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getDatabasePassword() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getDatabaseDriverClassName() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getDatabaseConnectorPath() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getDatabaseConnectorFullPath() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getSourceCodeDirPath() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getResourcesDirPath() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getModelLayerPath() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-		@Override
-		public String getDaoLayerPath() {
-			// TODO Auto-generated method stub
-			return null;
-		}
-
-
-		@Override
-		public void createDir(String dirPath) {
-			// TODO Auto-generated method stub
-		}
-
-		@Override
 		public String concatMavenResitoryPath(String path) {
 			// TODO Auto-generated method stub
 			return null;
@@ -139,11 +73,61 @@ public class ProjectTests {
 		});
 		assertTrue(result.isEmpty());
 	}
-
 	
 	@Test
-	public void testWriteFileOnlyFileName() {
+	public void converToSyspathWithRelativePath() {
 		Folder mockedRoot = mock(Folder.class);
+		when(mockedRoot.path()).thenReturn("/test");
+		Project project = new TestingProject(mockedRoot);
+		project.syspath = "/sys/test";
+		assertTrue("/sys/test/hello".equals(project.convertToSyspath("hello")));
+	}
+	
+	
+	@Test
+	public void converToSyspathWithRootPath() {
+		Folder mockedRoot = mock(Folder.class);
+		when(mockedRoot.path()).thenReturn("/test");
+		Project project = new TestingProject(mockedRoot);
+		project.syspath = "/sys/test";
+		assertTrue("/sys/test".equals(project.convertToSyspath("/test")));
+	}
+	
+	
+	@Test
+	public void converToSyspathWithValidAbspath() {
+		Folder mockedRoot = mock(Folder.class);
+		when(mockedRoot.path()).thenReturn("/test");
+		Project project = new TestingProject(mockedRoot);
+		project.syspath = "/sys/test";
+		assertTrue("/sys/test/hello".equals(project.convertToSyspath("/test/hello")));
+	}
+	
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void converToSyspathWithInvalidAbspath() {
+		Folder mockedRoot = mock(Folder.class);
+		when(mockedRoot.path()).thenReturn("/test");
+		Project project = new TestingProject(mockedRoot);
+		project.syspath = "/sys/test";
+		project.convertToSyspath("/hello");
+	}
+
+
+	@Test
+	public void writeFileWithSyspath() {
+		Folder mockedRoot = mock(Folder.class);
+		when(mockedRoot.path()).thenReturn("/test");
+		Project project = new TestingProject(mockedRoot);
+		project.syspath = "/sys/test";
+		project.writeFile("/sys/test/test.con", "hello");
+		verify(mockedRoot).writeFile("test.con", "hello");
+	}
+	
+	@Test
+	public void writeFileDirectly() {
+		Folder mockedRoot = mock(Folder.class);
+		when(mockedRoot.path()).thenReturn("/test");
 		Project project = new TestingProject(mockedRoot);
 		project.writeFile("test.con", "hello");
 		verify(mockedRoot).writeFile("test.con", "hello");
@@ -172,6 +156,7 @@ public class ProjectTests {
 	public void testWriteFileWithRelativepath() {
 		Folder mockedRoot = mock(Folder.class);
 		Project project = new TestingProject(mockedRoot);
+		when(mockedRoot.path()).thenReturn("/test");
 		when(mockedRoot.createFolder("axxxx")).thenReturn(mockedRoot);
 		project.writeFile("axxxx/test.con", "hello");
 		verify(mockedRoot).createFolder("axxxx");

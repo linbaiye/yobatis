@@ -21,22 +21,15 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.LibraryRunner;
 import org.nalby.yobatis.exception.ProjectNotFoundException;
-import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
 import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.sql.mysql.Mysql;
 import org.nalby.yobatis.sql.mysql.Mysql.Builder;
-import org.nalby.yobatis.structure.Folder;
-import org.nalby.yobatis.structure.MybatisFilesGenerator;
-import org.nalby.yobatis.structure.MybatisGeneratorWrapper;
 import org.nalby.yobatis.structure.PomParser;
-import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.PropertiesParser;
 import org.nalby.yobatis.structure.SpringParser;
-import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
 import org.nalby.yobatis.xml.MybatisXmlParser;
-import org.nalby.yobatis.xml.PomXmlParser;
 import org.nalby.yobatis.xml.WebXmlParser;
 
 public class YobatisGenerationHandler extends AbstractHandler {
@@ -47,37 +40,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		MessageDialog.openInformation(window.getShell(), "Yobatis", message);
 	}
 	
-	
-	private Object work(ExecutionEvent event) throws ExecutionException {
-		try {
-			ISelectionService selectionService = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getSelectionService();
-
-			ISelection selection = selectionService.getSelection();
-			if (!(selection instanceof IStructuredSelection)) {
-				return null;
-			}
-			Object element = ((IStructuredSelection) selection).getFirstElement();
-			if (element == null || !(element instanceof IProject)) {
-				return null;
-			}
-			IProject thisProject = (IProject)element;
-			if (thisProject.exists() && !thisProject.isOpen()) {
-				thisProject.open(null);
-			}
-			Project project = null; //EclipseProject.build(thisProject.getName());
-			Sql sql = null;//new Mysql(project);
-			MybatisFilesGenerator generator = new MybatisFilesGenerator(project, sql, new LibraryRunner());
-			generator.writeAllFiles();
-		} catch (Exception e) {
-			IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);
-			MessageDialog.openInformation(window.getShell(), "Yobatis", e.getMessage());
-		}
-		return null;
-	}
-	
-	
-	@Override
-	public Object execute(ExecutionEvent event) throws ExecutionException {
+	private void fun2() {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IProject project = workspace.getRoot().getProject("uplending-all");
 		if (!project.exists()) {
@@ -112,26 +75,24 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			}
 			eclipseProject.writeFile(MybatisConfigFileGenerator.CONFIG_FILENAME, xmlFileContent);
 			LibraryRunner runner = new LibraryRunner();
-			System.out.println(eclipseProject.convertToFullPath(MybatisConfigFileGenerator.CONFIG_FILENAME));
-			runner.parse(eclipseProject.getFullPath() + "/" + MybatisConfigFileGenerator.CONFIG_FILENAME);
-			MybatisGeneratorWrapper wrapper = new MybatisGeneratorWrapper(runner);
-			List<GeneratedJavaFile> files = wrapper.getCriteriaFiles();
-			for (GeneratedJavaFile file: files) {
-				System.out.println(file.getFileName());
-			}
-			
-			files = wrapper.getDomainFiles();
-			for (GeneratedJavaFile file: files) {
-				System.out.println(file.getFileName());
-			}
-
-			files = wrapper.getMapperFiles();
-			for (GeneratedJavaFile file: files) {
-				System.out.println(file.getFileName());
-			}
+			runner.parse(eclipseProject.convertToSyspath(MybatisConfigFileGenerator.CONFIG_FILENAME));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+	}
+
+	@Override
+	public Object execute(ExecutionEvent event) throws ExecutionException {
+		/*IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		IProject project = workspace.getRoot().getProject("uplending-all");
+		if (!project.exists()) {
+			throw new ProjectNotFoundException();
+		}
+		// IFolder folder = project.getFolder("/learn");
+		EclipseProject eclipseProject = new EclipseProject(project);
+		System.out.println(eclipseProject.getFullPath());*/
+		fun2();
 		return null;
 	}
 
