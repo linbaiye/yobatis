@@ -26,8 +26,6 @@ public abstract class Project {
 	
 	protected final static String CLASSPATH_PREFIX = "classpath:";
 	
-	public abstract void createDir(String dirPath);
-	
 	public static interface FolderSelector {
 		public boolean isSelected(Folder folder);
 	}
@@ -131,6 +129,7 @@ public abstract class Project {
 	 * @throws FileNotFoundException
 	 */
 	public InputStream getInputStream(String filepath) throws FileNotFoundException {
+		Expect.notEmpty(filepath, "filepath must not be null.");
 		if (!filepath.startsWith(root.path())) {
 			filepath = root.path() + "/" + filepath;
 		}
@@ -147,6 +146,7 @@ public abstract class Project {
 	 * @return the folders or empty list if none is met.
 	 */
 	public List<Folder> findFolders(FolderSelector selector) {
+		Expect.notNull(selector, "selector must not be null.");
 		Stack<Folder> stack = new Stack<Folder>();
 		stack.push(root);
 		List<Folder> result = new LinkedList<Folder>();
@@ -167,10 +167,11 @@ public abstract class Project {
 	
 	/**
 	 * Find folders that contains the filename.
-	 * @param path 
+	 * @param path
 	 * @return the folders that contain the filename, empty list returned if not found.
 	 */
 	public List<Folder> findFoldersContainingFile(final String path) {
+		Expect.notEmpty(path, "path must not be empty.");
 		return findFolders(new FolderSelector() {
 			@Override
 			public boolean isSelected(Folder folder) {

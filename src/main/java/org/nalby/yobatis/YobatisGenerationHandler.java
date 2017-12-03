@@ -75,6 +75,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			}
 			eclipseProject.writeFile(MybatisConfigFileGenerator.CONFIG_FILENAME, xmlFileContent);
 			LibraryRunner runner = new LibraryRunner();
+			runner.parse(eclipseProject.convertToSyspath(MybatisConfigFileGenerator.CONFIG_FILENAME));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

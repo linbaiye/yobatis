@@ -23,11 +23,6 @@ public class ProjectTests {
 		} 
 
 		@Override
-		public void createDir(String dirPath) {
-			// TODO Auto-generated method stub
-		}
-
-		@Override
 		public String concatMavenResitoryPath(String path) {
 			// TODO Auto-generated method stub
 			return null;
