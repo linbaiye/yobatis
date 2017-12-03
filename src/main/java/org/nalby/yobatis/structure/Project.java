@@ -7,13 +7,15 @@ import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
+
 import org.nalby.yobatis.util.Expect;
 
 public abstract class Project {
 	
 	protected Folder root;
 	
-	//The full path of this project on system.
+	//The full path of this project on system,
+	//and will contain root.path()
 	protected String syspath;
 	
 	public final static String MAVEN_SOURCE_CODE_PATH = "src/main/java";
@@ -36,22 +38,32 @@ public abstract class Project {
 		return root.containsFile(filename);
 	}
 
-	public String getFullPath() {
-		return syspath + root.path();
+	public String convertToSyspath(String path) {
+		Expect.notEmpty(path, "path must not be null.");
+		if (path.startsWith(root.path())) {
+			return syspath + path.replaceFirst(root.path(), "");
+		} else if (!path.startsWith("/")) {
+			return syspath + "/" + path;
+		}
+		throw new IllegalArgumentException("Not a valid path:" + path);
 	}
 	
-	private String convertToFullPath(String path) {
-		if (path.startsWith("/")) {
-			return syspath + path;
+	private String convertToProjectPath(String path) {
+		if (path.startsWith(root.path())
+			||!path.startsWith("/")) {
+			return path.replaceFirst(root.path() + "/", "");
 		}
-		return syspath + "/" + path;
+		if (path.startsWith(this.syspath)) {
+			return path.replaceFirst(this.syspath + "/", "");
+		}
+		throw new IllegalArgumentException("Not a valid path:" + path);
 	}
 	
 	private List<String> pathList(FolderSelector selector) {
 		List<Folder> folders = findFolders(selector);
 		List<String> result = new LinkedList<String>();
 		for (Folder folder : folders) {
-			result.add(convertToFullPath(folder.path()));
+			result.add(convertToSyspath(folder.path()));
 		}
 		return result;
 	}
@@ -125,7 +137,7 @@ public abstract class Project {
 		if (filepath.indexOf(syspath) != -1) {
 			return new FileInputStream(filepath);
 		} else {
-			return new FileInputStream(convertToFullPath(filepath));
+			return new FileInputStream(convertToSyspath(filepath));
 		}
 	}
 	
@@ -168,24 +180,19 @@ public abstract class Project {
 				}
 				//file path.
 				String folderPath  = path.replaceFirst("/.*$", "");
-				String filename = path.replace(folderPath + "/", "");
+				String filename = path.replaceFirst(folderPath + "/", "");
 				return folder.path().indexOf(folderPath) != -1 && folder.containsFile(filename);
 			}
 		});
 	}
 	
 	public void writeFile(String path, String content) {
-		Expect.asTrue(path != null && content != null, "invalid param");
-		if (path.startsWith("/")) {
-			Expect.asTrue(path.startsWith(root.path()), "invalid path.");
-		}
-		path = path.replaceFirst("^" + root.path(), "");
+		Expect.notEmpty(path, "path must not be null.");
+		Expect.notEmpty(content, "content must not be null.");
+		path = convertToProjectPath(path);
 		String[] tokens = path.split("/");
 		Folder folder = root;
 		for (int i = 0; i < tokens.length; i++) {
-			if ("".equals(tokens[i])) {
-				continue;
-			}
 			if (i == tokens.length - 1) {
 				folder.writeFile(tokens[i], content);
 			} else {

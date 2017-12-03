@@ -83,14 +83,15 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
-		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		/*IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IProject project = workspace.getRoot().getProject("uplending-all");
 		if (!project.exists()) {
 			throw new ProjectNotFoundException();
 		}
 		// IFolder folder = project.getFolder("/learn");
 		EclipseProject eclipseProject = new EclipseProject(project);
-		System.out.println(eclipseProject.getFullPath());
+		System.out.println(eclipseProject.getFullPath());*/
+		fun2();
 		return null;
 	}
 

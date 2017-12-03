@@ -23,6 +23,11 @@ import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.xml.MybatisXmlParser;
 
+/**
+ * Used to generate mybaits generator's config file according to
+ * current project structure.
+ * @author Kyle Lin
+ */
 public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	private Project project;
 	private Document document;
@@ -166,7 +171,6 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		List<String> paths = project.getSyspathsOfModel();
 		if (paths.isEmpty()) {
 			errorCode = ErrorCode.NO_MODEL_PATH;
-			paths.add(project.getFullPath());
 		} else if (paths.size() > 1) {
 			errorCode = ErrorCode.MULTIPLE_MODEL_PATHS;
 		}
@@ -201,7 +205,6 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		List<String> paths = project.getSyspathsOfResources();
 		if (paths.isEmpty()) {
 			errorCode = ErrorCode.NO_RESOURCES_PATH;
-			paths.add(project.getFullPath());
 		} else if (paths.size() > 1) {
 			errorCode = ErrorCode.MULTIPLE_RESOURCES_PATHS;
 		}
@@ -246,7 +249,6 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		List<String> paths = project.getSyspathsOfDao();
 		if (paths.isEmpty()) {
 			errorCode = ErrorCode.NO_DAO_PATH;
-			paths.add(project.getFullPath());
 		} else if (paths.size() > 1) {
 			errorCode = ErrorCode.MULTIPLE_MODEL_PATHS;
 		}
@@ -296,7 +298,6 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 			return targetProject + "/" + packageName.replace(".", "/");
 		}
 		throw new InvalidMybatisGeneratorConfigException("Should not happen.");
-		
 	}
 
 	@Override

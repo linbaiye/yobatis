@@ -63,7 +63,7 @@ public  class EclipseFolder implements Folder {
 	@Override
 	public List<Folder> getSubFolders() {
 		try {
-				listSubFolders();
+			listSubFolders();
 		} catch (CoreException e) {
 			//Do nothing since the subFolders will be empty.
 		}
