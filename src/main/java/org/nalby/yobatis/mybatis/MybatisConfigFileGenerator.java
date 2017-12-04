@@ -281,7 +281,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	
-	private String glueTargetPackageToTargetProject(Set<Element> generators, String name) {
+	private Element findActiveElement(Set<Element> generators, String name) {
 		if (generators == null || generators.isEmpty()) {
 			throw new InvalidMybatisGeneratorConfigException(
 					String.format("There is no %s configured, please set the element and re-run.", name));
@@ -293,27 +293,48 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		Iterator<Element> iterator =  generators.iterator();
 		while (iterator.hasNext()) {
 			Element element = iterator.next();
-			String packageName = element.attributeValue("targetPackage");
-			String targetProject = element.attributeValue("targetProject");
-			return targetProject + "/" + packageName.replace(".", "/");
+			return element;
 		}
 		throw new InvalidMybatisGeneratorConfigException("Should not happen.");
 	}
 
+	private String glueTargetPackageToTargetProject(Set<Element> generators, String name) {
+		Element element = findActiveElement(generators, name);
+		String packageName = element.attributeValue("targetPackage");
+		String targetProject = element.attributeValue("targetProject");
+		return targetProject + "/" + packageName.replace(".", "/");
+	}
+
 	@Override
-	public String getDaoPath() {
+	public String getDaoDirPath() {
 		return glueTargetPackageToTargetProject(javaClientGenerators, "javaClientGenerator");
 	}
 
 	@Override
-	public String getDomainPaht() {
+	public String getDomainDirPath() {
 		return glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
 	}
 
 	@Override
-	public String getCriteriaPath() {
+	public String getCriteriaDirPath() {
 		String daoPath =  glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
 		return daoPath + "/criteria";
+	}
+
+	@Override
+	public String getConfigeFilename() {
+		return CONFIG_FILENAME;
+	}
+
+	@Override
+	public String getPackageNameOfDomains() {
+		Element element = findActiveElement(javaModelGenerators, "javaModelGenerator");
+		return element.attributeValue("targetPackage");
+	}
+
+	@Override
+	public String getMapperDirPath() {
+		return glueTargetPackageToTargetProject(sqlMapGenerators, "sqlMapGenerator");
 	}
 	
 }

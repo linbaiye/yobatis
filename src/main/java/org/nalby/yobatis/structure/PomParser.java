@@ -44,6 +44,7 @@ public class PomParser {
 		}
 		InputStream inputStream = project.getInputStream("pom.xml");
 		rootPom = new PomXmlParser(inputStream);
+		pomXmlParsers.add(rootPom);
 		project.closeInputStream(inputStream);
 		List<Folder> folders = project.findFolders(new FolderSelector() {
 			@Override
@@ -61,14 +62,6 @@ public class PomParser {
 				pomXmlParsers.add(parser);
 			}
 		}
-	}
-
-	public List<PomXmlParser> getPomXmlParsers() {
-		return pomXmlParsers;
-	}
-	
-	public PomXmlParser getRootPom() {
-		return rootPom;
 	}
 	
 	/**

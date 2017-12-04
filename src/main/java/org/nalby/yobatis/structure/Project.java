@@ -194,6 +194,10 @@ public abstract class Project {
 		String[] tokens = path.split("/");
 		Folder folder = root;
 		for (int i = 0; i < tokens.length; i++) {
+			//In case of paths like 'name1//name2'
+			if ("".equals(tokens[i])) {
+				continue;
+			}
 			if (i == tokens.length - 1) {
 				folder.writeFile(tokens[i], content);
 			} else {

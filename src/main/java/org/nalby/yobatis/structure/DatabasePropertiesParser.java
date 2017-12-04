@@ -10,20 +10,25 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.nalby.yobatis.exception.UnsupportedProjectException;
+import org.nalby.yobatis.xml.SpringXmlParser;
 
-public class PropertiesParser {
+public class DatabasePropertiesParser {
 	
 	private PomParser pomParser;
 
 	private Properties properties;
 
 	private Map<String, String> valuedProperties;
-	
-	public PropertiesParser(Project project, PomParser pomParser, String filepath) {
+
+	private SpringParser springParser;
+
+	public DatabasePropertiesParser(Project project, PomParser pomParser, SpringParser springParser) {
+		String filepath = springParser.getPropertiesFilePath();
 		try {
 			this.pomParser = pomParser;
 			this.properties = new Properties();
 			this.valuedProperties = new HashMap<String, String>();
+			this.springParser = springParser;
 			if (filepath == null) {
 				return;
 			}
@@ -32,7 +37,7 @@ public class PropertiesParser {
 			project.closeInputStream(inputStream);
 			replaceProperties();
 		} catch (IOException e) {
-			throw new UnsupportedProjectException("Failed to open:" + filepath);
+			throw new UnsupportedProjectException("Failed to open:" + filepath != null? filepath : "");
 		}
 	}
 	
@@ -56,7 +61,7 @@ public class PropertiesParser {
 				value = pomParser.getProfileProperty(placeholderName(value));
 			}
 			if (value == null) {
-				throw new UnsupportedProjectException("Unable to find property of  '" + name + "'");
+				continue;
 			}
 			valuedProperties.put(name, value);
 		}
@@ -67,10 +72,43 @@ public class PropertiesParser {
 	 * @param name the property name
 	 * @return the value if found, {@code null} else.
 	 */
-	public String getProperty(String name) {
-		if (name.startsWith("${") && name.endsWith("}")) {
-			name = placeholderName(name);
+	private String getProperty(String name) {
+		if (!name.startsWith("${")) {
+			return name;
 		}
-		return name == null? null : valuedProperties.get(name);
+		name = placeholderName(name);
+		return valuedProperties.get(name);
+	}
+	
+	public String getDatabaseUrl() {
+		String val = springParser.getDatabaseUrl();
+		if (val == null) {
+			throw new UnsupportedProjectException("Failed to find database url.");
+		}
+		return getProperty(val);
+	}
+	
+	public String getDatabaseUsername() {
+		String val = springParser.getDatabaseUsername();
+		if (val == null) {
+			throw new UnsupportedProjectException("Failed to find database username.");
+		}
+		return getProperty(val);
+	}
+	
+	public String getDatabasePassword() {
+		String val = springParser.getDatabasePassword();
+		if (val == null) {
+			throw new UnsupportedProjectException("Failed to find database password.");
+		}
+		return getProperty(val);
+	}
+	
+	public String getDatabaseDriverClassName() {
+		String val = springParser.getDatabaseDriverClassName();
+		if (val == null) {
+			throw new UnsupportedProjectException("Failed to find database driver class name.");
+		}
+		return getProperty(val);
 	}
 }
