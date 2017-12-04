@@ -3,7 +3,6 @@ package org.nalby.yobatis.xml;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -23,21 +22,17 @@ public class PomXmlParser extends BasicXmlParser {
 	
 	private static final String VERSION_TAG = "version";
 	
+	//The values in <profile></profile>
 	private Map<String, String> profileProperties;
+	//The values in <properties></properties>.
 	private Map<String, String> properties;
-	
 	private String artificatId;
-	private List<String> moduleNames;
-	private List<PomXmlParser> dependentPom;
-	
 	public PomXmlParser(InputStream inputStream)
 			throws DocumentException, IOException {
 		super(inputStream, "project");
 		this.profileProperties = new HashMap<String, String>();
-		this.moduleNames = new LinkedList<String>();
 		loadProfileProperties();
 		loadProperties();
-		loadModules();
 		Element root = document.getRootElement();
 		if (root.element("artifactId") == null ) {
 			throw new UnsupportedProjectException("pom has no artifactId.");
@@ -48,43 +43,12 @@ public class PomXmlParser extends BasicXmlParser {
 		}
 	}
 	
-	/**
-	 * Select submodules from {@code pomXmlParsers}.
-	 * @param pomXmlParsers all the pom.xml of this project.
-	 */
-	public void resolveModules(List<PomXmlParser> pomXmlParsers) {
-		if (pomXmlParsers == null || pomXmlParsers.isEmpty() || dependentPom != null) {
-			return;
-		}
-		dependentPom = new LinkedList<PomXmlParser>();
-		for (PomXmlParser parser : pomXmlParsers) {
-			for (String moduleName: moduleNames) {
-				if (parser.artifactIdEquals(moduleName)) {
-					dependentPom.add(parser);
-				}
-			}
-		}
-	}
-	
 	public String getArtifactId() {
 		return artificatId;
 	}
 
 	public boolean artifactIdEquals(String str) {
 		return artificatId.equals(str);
-	}
-	
-	private void loadModules() {
-		Element root = document.getRootElement();
-		Element modulesElement = root.element("modules");
-		if (modulesElement == null) {
-			return;
-		}
-		for (Element moduleElement : modulesElement.elements()) {
-			if (moduleElement.getTextTrim() != null && !"".equals(moduleElement.getTextTrim())) {
-				moduleNames.add(moduleElement.getTextTrim());
-			}
-		}
 	}
 
 	private void loadProperties() {

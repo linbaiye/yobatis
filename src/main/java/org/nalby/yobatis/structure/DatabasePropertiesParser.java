@@ -10,7 +10,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.nalby.yobatis.exception.UnsupportedProjectException;
-import org.nalby.yobatis.xml.SpringXmlParser;
 
 public class DatabasePropertiesParser {
 	
