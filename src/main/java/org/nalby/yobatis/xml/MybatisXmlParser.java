@@ -287,6 +287,8 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 	private Element javaTypeResolver;
 	
 	private Element pluginElement;
+
+	private Element pagingAndLockElement;
 	
 	private DocumentFactory documentFactory  = DocumentFactory.getInstance();
 	
@@ -319,6 +321,7 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 		loadNodes(CLIENT_GENERATOR_TAG,  javaClientGenerators);
 		loadTables();
 		loadRenamePlugin();
+		loadPagingAndLockPlugin();
 		document.remove(root);
 		root = documentFactory.createElement(ROOT_TAG);
 		document.setRootElement(root);
@@ -353,6 +356,18 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 			if ("org.mybatis.generator.plugins.RenameExampleClassPlugin".equals(element.attributeValue("type"))) {
 				pluginElement = context.element("plugin");
 				pluginElement.detach();
+				return;
+			}
+		}
+	}
+	
+	
+	private void loadPagingAndLockPlugin() {
+		List<Element> elemtns = context.elements("plugin");
+		for (Element element : elemtns) {
+			if ("org.mybatis.generator.plugins.PagingAndLockPlugin".equals(element.attributeValue("type"))) {
+				pagingAndLockElement = context.element("plugin");
+				pagingAndLockElement.detach();
 				return;
 			}
 		}
@@ -529,6 +544,15 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 		}
 	}
 	
+	private void appendPagingAndLockPlugin(MybatisConfigFileGenerator configFileGenerator) {
+		if (pagingAndLockElement == null) {
+			context.add(configFileGenerator.getPagingAndLockElement().createCopy());
+		} else {
+			context.add(pagingAndLockElement);
+		}
+	}
+	
+	
 	/**
 	 * Under some circumstances, we might find multiple dao/domain layers, so it's necessary
 	 * to merge generated elements. If this existed config file does not have the element in the new one,
@@ -541,6 +565,7 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 			appendClasspathEntry(configFileGenerator);
 			if (appendContextAndTestIfContinueAppending(configFileGenerator)) {
 				appendRenamePlugin(configFileGenerator);
+				appendPagingAndLockPlugin(configFileGenerator);
 				appendJdbcConnection(configFileGenerator);
 				appendJavaTypeResolver(configFileGenerator);
 				appendJavaModelGenerators(configFileGenerator);

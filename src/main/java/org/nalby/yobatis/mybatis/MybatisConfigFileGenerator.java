@@ -61,6 +61,8 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	
 	private Element pluginElement;
 
+	private Element pagingAndLockElement;
+
 	private Set<Element> javaModelGenerators = new HashSet<Element>();
 
 	private Set<Element> sqlMapGenerators = new HashSet<Element>();
@@ -79,6 +81,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		appendClassPathEntry(root);
 		context = appendContext(root);
 		appendRenamePlugin(context);
+		appendPagingAndLock(context);
 		appendJdbcConnection(context);
 		appendTypeResolver(context);
 		appendJavaModelGenerator(context);
@@ -86,7 +89,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		appendJavaClientGenerator(context);
 		appendTables(context);
 	}
-
+	
 	public Element getClassPathEntryElement() {
 		return classPathEntry;
 	}
@@ -121,6 +124,10 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	
 	public Element getPluginElement() {
 		return pluginElement;
+	}
+	
+	public Element getPagingAndLockElement() {
+		return pagingAndLockElement;
 	}
 	
 	private void appendClassPathEntry(Element root) {
@@ -181,6 +188,11 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 			javaModelGenerator.addAttribute("targetProject", eliminatePackagePath(path));
 			javaModelGenerators.add(javaModelGenerator);
 		}
+	}
+
+	private void appendPagingAndLock(Element context) {
+		pagingAndLockElement = context.addElement("plugin");
+		pagingAndLockElement.addAttribute("type",  "org.mybatis.generator.plugins.PagingAndLockPlugin");
 	}
 	
 	private void appendRenamePlugin(Element context) {
