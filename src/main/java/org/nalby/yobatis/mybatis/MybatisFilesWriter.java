@@ -58,11 +58,11 @@ public class MybatisFilesWriter {
 		return result;
 	}
 
-	public List<GeneratedJavaFile> getMapperFiles() {
+	private List<GeneratedJavaFile> getMapperFiles() {
 		return listFile("Mapper.java");
 	}
 	
-	public List<GeneratedJavaFile> getCriteriaFiles() {
+	private List<GeneratedJavaFile> getCriteriaFiles() {
 		return listFile("Criteria.java");
 	}
 
@@ -122,7 +122,7 @@ public class MybatisFilesWriter {
 	}
 	
 	
-	public List<GeneratedXmlFile> getXmlFiles() {
+	private List<GeneratedXmlFile> getXmlFiles() {
 		return runner.getGeneratedXmlFiles();
 	}
 	
