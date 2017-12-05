@@ -1,8 +1,10 @@
 package org.nalby.yobatis.structure.eclipse;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -12,6 +14,8 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.nalby.yobatis.exception.ProjectException;
+import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
+import org.nalby.yobatis.exception.ResourceNotFoundException;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.util.Expect;
 
@@ -130,15 +134,20 @@ public  class EclipseFolder implements Folder {
 			throw new ProjectException(e);
 		}
 	}
-	
-	private Folder findFolder(String name) throws CoreException {
-		listSubFolders();
-		for (Folder folder : subFolders) {
-			if (folder.name().equals(name)) {
-				return folder;
+
+	private Folder findFolder(String name) {
+		//Expect.asTrue(name != null && name.indexOf("/") == -1, "filename must not contain '/'.");
+		try {
+			listSubFolders();
+			for (Folder folder : subFolders) {
+				if (folder.name().equals(name)) {
+					return folder;
+				}
 			}
+		} catch (CoreException e) {
+			throw new ResourceNotFoundException(e);
 		}
-		throw new ProjectException("Failed to find subfolder : " + name);
+		throw new ResourceNotFoundException("Failed to find dir:" + name);
 	}
 
 	@Override
@@ -163,4 +172,51 @@ public  class EclipseFolder implements Folder {
 			throw new ProjectException(e);
 		}
 	}
+	
+	private String readContent(IFile file) {
+		BufferedReader inputStream = null;
+		try {
+			InputStreamReader fileReader = new InputStreamReader(file.getContents());
+			inputStream = new BufferedReader(fileReader);
+			StringBuffer sb = new StringBuffer();
+			String line;
+			while ((line = inputStream.readLine()) != null) {
+				sb.append(line);
+			}
+			return sb.toString();
+		} catch (CoreException e) {
+			throw new ResourceNotAvailableExeception(e);
+		} catch (IOException e) {
+			throw new ResourceNotAvailableExeception(e);
+		} finally {
+			try {
+				if (inputStream != null) {
+					inputStream.close();
+				}
+			} catch (IOException e) {
+				//Ignore.
+			}
+		}
+	}
+
+
+/*	@Override
+	public String readFile(String filename) {
+		Expect.asTrue(filename != null && filename.indexOf("/") == -1, "filename must not contain '/'.");
+		try {
+			IFile file = null;
+			if (wrappedFolder instanceof IProject) {
+				open();
+				file = ((IProject)wrappedFolder).getFile(filename);
+			} else {
+				file = ((IFolder)wrappedFolder).getFile(filename);
+			}
+			if (!file.exists()) {
+				throw new ResourceNotFoundException("File " + filename + " does not exist");
+			}
+			return readContent(file);
+		} catch (CoreException e) {
+			throw new ResourceNotFoundException(e);
+		}
+	}*/
 }

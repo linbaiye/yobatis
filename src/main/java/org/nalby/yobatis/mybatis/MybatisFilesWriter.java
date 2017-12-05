@@ -89,6 +89,7 @@ public class MybatisFilesWriter {
 		return content.replaceFirst(name, name + ".criteria");
 	}
 	
+	/* The renameClassName plug-in does not rename methods. */
 	private String replaceExamples(String newContent) {
 		newContent = newContent.replaceFirst("countByExample", "countByCriteria");
 		newContent = newContent.replaceFirst("deleteByExample", "deleteByCriteria");
@@ -109,6 +110,9 @@ public class MybatisFilesWriter {
 		return replaceExamples(newContent);
 	}
 	
+	/*
+	 * import xxx.domain.XXXCriteria; -> import xxx.domain.criteria.XXXCriteria;
+	 */
 	private String correctXmlContent(String content, String domainPackageName) {
 		String patternStr = domainPackageName + "\\.(.+Criteria)";
 		Pattern pattern = Pattern.compile(patternStr);
@@ -126,29 +130,51 @@ public class MybatisFilesWriter {
 		return runner.getGeneratedXmlFiles();
 	}
 	
-	public void writeAll() {
-		List<GeneratedJavaFile> files = getCriteriaFiles();
-		for (GeneratedJavaFile file : files) {
-			String path = reader.getCriteriaDirPath() + "/" + file.getFileName();
-			project.writeFile(path, modifyPackagePathOfCriteria(file.getFormattedContent()));
-		}
-		files = getDomainFiles();
-		for (GeneratedJavaFile file : files) {
-			String path = reader.getDomainDirPath() + "/" + file.getFileName();
-			project.writeFile(path, file.getFormattedContent());
-		}
-		files = getMapperFiles();
+	private void writeJavaMappers() {
+		List<GeneratedJavaFile> files = getMapperFiles();
 		for (GeneratedJavaFile file : files) {
 			String domainPackage = reader.getPackageNameOfDomains();
 			String path = reader.getDaoDirPath() + "/" + file.getFileName();
 			project.writeFile(path, correctMapper(file.getFormattedContent(), domainPackage));
 		}
+	}
+	
+	private void writeJavaDomains() {
+		List<GeneratedJavaFile> files = getDomainFiles();
+		for (GeneratedJavaFile file : files) {
+			String path = reader.getDomainDirPath() + "/" + file.getFileName();
+			project.writeFile(path, file.getFormattedContent());
+		}
+	}
+	
+	private void writeCriteriaFiles() {
+		List<GeneratedJavaFile> files = getCriteriaFiles();
+		for (GeneratedJavaFile file : files) {
+			String path = reader.getCriteriaDirPath() + "/" + file.getFileName();
+			project.writeFile(path, modifyPackagePathOfCriteria(file.getFormattedContent()));
+		}
+	}
+	
+	private void readFile(String path) {
+		String content = project.readFile(path);
+		System.out.println(content);
+	}
+	
+	private void writeXmlFiles() {
 		List<GeneratedXmlFile> xmlFiles = getXmlFiles();
 		for (GeneratedXmlFile file : xmlFiles) {
 			String domainPackage = reader.getPackageNameOfDomains();
 			String path = reader.getMapperDirPath() + "/" + file.getFileName();
 			project.writeFile(path, correctXmlContent(file.getFormattedContent(), domainPackage));
+			readFile(path);
 		}
+	}
+
+	public void writeAll() {
+		writeCriteriaFiles();
+		writeJavaDomains();
+		writeJavaMappers();
+		writeXmlFiles();
 	}
 
 }
