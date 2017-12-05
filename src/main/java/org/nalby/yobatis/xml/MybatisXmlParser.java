@@ -609,6 +609,9 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 		throw new InvalidMybatisGeneratorConfigException("Should not happen.");
 	}
 
+	/*
+	 * a.b.c + /user/test -> /user/test/a/b/c
+	 */
 	private String glueTargetPackageToTargetProject(Set<Node> generators, String name) {
 		Element element = findAcitveElement(generators, name);
 		String packageName = element.attributeValue("targetPackage");
@@ -623,12 +626,12 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 
 	@Override
 	public String getDomainDirPath() {
-		return glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
+		return glueTargetPackageToTargetProject(javaModelGenerators, MODEL_GENERATOR_TAG);
 	}
 
 	@Override
 	public String getCriteriaDirPath() {
-		String daoPath =  glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
+		String daoPath =  glueTargetPackageToTargetProject(javaModelGenerators, MODEL_GENERATOR_TAG);
 		return daoPath + "/criteria";
 	}
 
@@ -639,13 +642,13 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 
 	@Override
 	public String getPackageNameOfDomains() {
-		Element element = findAcitveElement(javaModelGenerators, "javaModelGenerator");
+		Element element = findAcitveElement(javaModelGenerators, MODEL_GENERATOR_TAG);
 		return element.attributeValue("targetPackage");
 	}
 
 	@Override
 	public String getMapperDirPath() {
-		return glueTargetPackageToTargetProject(sqlMapGenerators, "sqlMapGenerator");
+		return glueTargetPackageToTargetProject(sqlMapGenerators, SQLMAP_GENERATOR_TAG);
 	}
 
 	@Override

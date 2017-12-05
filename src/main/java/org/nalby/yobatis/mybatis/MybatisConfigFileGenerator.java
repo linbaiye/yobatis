@@ -162,6 +162,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 			Element table = context.addElement("table");
 			table.addAttribute("tableName", name);
 			table.addAttribute("schema", sql.getSchema());
+			table.addAttribute("modelType", "flat");
 			tables.add(table);
 		}
 	}
