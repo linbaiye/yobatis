@@ -1,13 +1,16 @@
 package org.nalby.yobatis.structure;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Stack;
 
+import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
 import org.nalby.yobatis.util.Expect;
 
 public abstract class Project {
@@ -38,7 +41,9 @@ public abstract class Project {
 
 	public String convertToSyspath(String path) {
 		Expect.notEmpty(path, "path must not be null.");
-		if (path.startsWith(root.path())) {
+		if (path.startsWith(this.syspath)) {
+			return path;
+		} else if (path.startsWith(root.path())) {
 			return syspath + path.replaceFirst(root.path(), "");
 		} else if (!path.startsWith("/")) {
 			return syspath + "/" + path;
@@ -119,6 +124,7 @@ public abstract class Project {
 			}
 		}
 	}
+	
 
 	/**
 	 * Get {@code InputStream} of the {@code filepath}, if {@code filepath} represents a filename,
@@ -130,13 +136,34 @@ public abstract class Project {
 	 */
 	public InputStream getInputStream(String filepath) throws FileNotFoundException {
 		Expect.notEmpty(filepath, "filepath must not be null.");
-		if (!filepath.startsWith(root.path())) {
-			filepath = root.path() + "/" + filepath;
-		}
-		if (filepath.indexOf(syspath) != -1) {
-			return new FileInputStream(filepath);
-		} else {
-			return new FileInputStream(convertToSyspath(filepath));
+		return new FileInputStream(convertToSyspath(filepath));
+	}
+
+
+	public String readFile(String filepath) {
+		Expect.notEmpty(filepath, "filepath must not be null.");
+		BufferedReader bufferedReader = null;
+		try {
+			InputStream inputStream = getInputStream(filepath);
+			InputStreamReader streamReader = new InputStreamReader(inputStream);
+			bufferedReader = new BufferedReader(streamReader);
+			StringBuffer sb = new StringBuffer();
+			String line;
+			while ((line = bufferedReader.readLine()) != null) {
+				sb.append(line);
+				sb.append("\n");
+			}
+			return sb.toString();
+		} catch (IOException e) {
+			throw new ResourceNotAvailableExeception(e);
+		} finally {
+			try {
+				if (bufferedReader != null) {
+					bufferedReader.close();
+				}
+			} catch (IOException e) {
+				//Ignore
+			}
 		}
 	}
 	
@@ -166,7 +193,7 @@ public abstract class Project {
 	}
 	
 	/**
-	 * Find folders that contains the filename.
+	 * Find folders that contain the filename.
 	 * @param path
 	 * @return the folders that contain the filename, empty list returned if not found.
 	 */
@@ -186,6 +213,8 @@ public abstract class Project {
 			}
 		});
 	}
+	
+
 	
 	public void writeFile(String path, String content) {
 		Expect.notEmpty(path, "path must not be null.");

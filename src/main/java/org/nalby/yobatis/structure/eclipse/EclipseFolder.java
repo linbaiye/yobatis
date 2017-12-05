@@ -12,6 +12,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.nalby.yobatis.exception.ProjectException;
+import org.nalby.yobatis.exception.ResourceNotFoundException;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.util.Expect;
 
@@ -130,15 +131,19 @@ public  class EclipseFolder implements Folder {
 			throw new ProjectException(e);
 		}
 	}
-	
-	private Folder findFolder(String name) throws CoreException {
-		listSubFolders();
-		for (Folder folder : subFolders) {
-			if (folder.name().equals(name)) {
-				return folder;
+
+	private Folder findFolder(String name) {
+		try {
+			listSubFolders();
+			for (Folder folder : subFolders) {
+				if (folder.name().equals(name)) {
+					return folder;
+				}
 			}
+		} catch (CoreException e) {
+			throw new ResourceNotFoundException(e);
 		}
-		throw new ProjectException("Failed to find subfolder : " + name);
+		throw new ResourceNotFoundException("Failed to find dir:" + name);
 	}
 
 	@Override

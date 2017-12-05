@@ -1,12 +1,17 @@
 package org.nalby.yobatis.xml;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
+import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
+import org.dom4j.io.XMLWriter;
 import org.nalby.yobatis.util.Expect;
 
 public abstract class BasicXmlParser {
@@ -33,5 +38,17 @@ public abstract class BasicXmlParser {
 	}
 	
 	void customSAXReader(SAXReader saxReader) {}
+	
+
+	public String toXmlString() throws IOException {
+		OutputFormat format = OutputFormat.createPrettyPrint();
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		PrintStream ps = new PrintStream(baos, true, "utf-8");
+	    XMLWriter writer = new XMLWriter(ps, format);
+	    writer.write(document);
+		String content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
+		ps.close();
+		return content;
+	}
 
 }

@@ -48,5 +48,4 @@ public interface Folder {
 	 * @return the folder created.
 	 */
 	public Folder createFolder(String folderName);
-
 }

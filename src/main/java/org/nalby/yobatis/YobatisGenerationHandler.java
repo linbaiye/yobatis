@@ -18,8 +18,6 @@ import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.handlers.HandlerUtil;
-import org.mybatis.generator.api.GeneratedJavaFile;
-import org.mybatis.generator.api.LibraryRunner;
 import org.nalby.yobatis.exception.ProjectNotFoundException;
 import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
 import org.nalby.yobatis.mybatis.MybatisConfigReader;
