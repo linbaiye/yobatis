@@ -618,7 +618,7 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 
 	@Override
 	public String getDaoDirPath() {
-		return glueTargetPackageToTargetProject(javaClientGenerators, "javaClientGenerator");
+		return glueTargetPackageToTargetProject(javaClientGenerators, CLIENT_GENERATOR_TAG);
 	}
 
 	@Override
@@ -646,5 +646,11 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 	@Override
 	public String getMapperDirPath() {
 		return glueTargetPackageToTargetProject(sqlMapGenerators, "sqlMapGenerator");
+	}
+
+	@Override
+	public String getPackageNameOfJavaMappers() {
+		Element element = findAcitveElement(javaClientGenerators, CLIENT_GENERATOR_TAG);
+		return element.attributeValue("targetPackage");
 	}
 }

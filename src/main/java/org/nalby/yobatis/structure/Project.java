@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Stack;
 
 import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
+import org.nalby.yobatis.exception.ResourceNotFoundException;
 import org.nalby.yobatis.util.Expect;
 
 public abstract class Project {
@@ -35,10 +36,6 @@ public abstract class Project {
 	
 	public abstract String concatMavenResitoryPath(String path);
 	
-	public boolean containsFile(String filename) {
-		return root.containsFile(filename);
-	}
-
 	public String convertToSyspath(String path) {
 		Expect.notEmpty(path, "path must not be null.");
 		if (path.startsWith(this.syspath)) {
@@ -214,13 +211,38 @@ public abstract class Project {
 		});
 	}
 	
+	
+	private String[] splitPath(String path) {
+		Expect.notEmpty(path, "path must not be null.");
+		path = convertToProjectPath(path);
+		return path.split("/");
+	}
+
+	public boolean containsFile(String path) {
+		String[] tokens = splitPath(path);
+		try {
+			Folder folder = root;
+			for (int i = 0; i < tokens.length; i++) {
+				// In case of paths like 'name1//name2'
+				if ("".equals(tokens[i])) {
+					continue;
+				}
+				if (i == tokens.length - 1) {
+					return folder.containsFile(tokens[i]);
+				} else {
+					folder = folder.findFolder(tokens[i]);
+				}
+			}
+		} catch (ResourceNotFoundException e) {
+			// ignore.
+		}
+		return false;
+	}
 
 	
 	public void writeFile(String path, String content) {
-		Expect.notEmpty(path, "path must not be null.");
 		Expect.notEmpty(content, "content must not be null.");
-		path = convertToProjectPath(path);
-		String[] tokens = path.split("/");
+		String[] tokens = splitPath(path);
 		Folder folder = root;
 		for (int i = 0; i < tokens.length; i++) {
 			//In case of paths like 'name1//name2'

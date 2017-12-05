@@ -36,6 +36,14 @@ public interface MybatisConfigReader {
 	 */
 	public String getPackageNameOfDomains();
 	
+	
+	/**
+	 * Get the targetPackage value of the javaClientGenerator.
+	 * @return the value
+	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
+	 */
+	public String getPackageNameOfJavaMappers();
+	
 	/**
 	 * The dir path where xml mapper files will be saved..
 	 * @return the dir path.

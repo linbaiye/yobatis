@@ -132,18 +132,20 @@ public  class EclipseFolder implements Folder {
 		}
 	}
 
-	private Folder findFolder(String name) {
+	@Override
+	public Folder findFolder(String folderName) {
+		Expect.asTrue(folderName != null && folderName.indexOf("/") == -1, "filename must not contain '/'.");
 		try {
 			listSubFolders();
 			for (Folder folder : subFolders) {
-				if (folder.name().equals(name)) {
+				if (folder.name().equals(folderName)) {
 					return folder;
 				}
 			}
 		} catch (CoreException e) {
 			throw new ResourceNotFoundException(e);
 		}
-		throw new ResourceNotFoundException("Failed to find dir:" + name);
+		throw new ResourceNotFoundException("Failed to find dir:" + folderName);
 	}
 
 	@Override
