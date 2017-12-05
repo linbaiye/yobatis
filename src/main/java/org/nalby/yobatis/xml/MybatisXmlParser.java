@@ -1,11 +1,8 @@
 package org.nalby.yobatis.xml;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintStream;
 import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -16,9 +13,7 @@ import org.dom4j.DocumentException;
 import org.dom4j.DocumentFactory;
 import org.dom4j.Element;
 import org.dom4j.Node;
-import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
-import org.dom4j.io.XMLWriter;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
@@ -450,16 +445,6 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 		return documentFactory.createComment(str);
 	}
 
-	private String toXmlString() throws IOException {
-		OutputFormat format = OutputFormat.createPrettyPrint();
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		PrintStream ps = new PrintStream(baos, true, "utf-8");
-	    XMLWriter writer = new XMLWriter(ps, format);
-	    writer.write(document);
-		String content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-		ps.close();
-		return content;
-	}
 	
 	private void appendGenerators(Set<Element> generatedElements, Set<Node> existentElements) {
 		boolean needComment = existentElements.isEmpty() ? false : true;

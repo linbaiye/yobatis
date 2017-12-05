@@ -48,20 +48,4 @@ public interface Folder {
 	 * @return the folder created.
 	 */
 	public Folder createFolder(String folderName);
-
-	/*
-	 * Get folder under this folder.
-	 * @param folderName the folder name, basename only.
-	 * @return the folder found.
-	 * @throws ResourceNotFoundException if not found.
-	public Folder findFolder(String folderName);
-
-	/**
-	 * Read the content of the file under this folder.
-	 * @param filName the file name.
-	 * @return the file content.
-	 * @throws ResourceNotFoundException if not found.
-	 * @throws ResourceNotAvailableExeception if an I/O error occurs.
-	public String readFile(String fileName);
-	 */
 }
