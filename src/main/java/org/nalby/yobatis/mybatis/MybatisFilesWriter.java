@@ -9,6 +9,8 @@ import java.util.regex.Pattern;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.GeneratedXmlFile;
 import org.mybatis.generator.api.LibraryRunner;
+import org.mybatis.generator.api.dom.java.CompilationUnit;
+import org.mybatis.generator.api.dom.java.FullyQualifiedJavaType;
 import org.mybatis.generator.exception.InvalidConfigurationException;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.exception.ProjectException;
@@ -100,6 +102,9 @@ public class MybatisFilesWriter {
 		return newContent.replaceFirst("updateByExample", "updateByCriteria");
 	}
 	
+	/*
+	 * import xxx.domain.XXXCriteria; -> import xxx.domain.criteria.XXXCriteria;
+	 */
 	private String correctMapper(String content, String domainPackageName) {
 		String patternStr = "import\\s+" + domainPackageName + "\\.(.+Criteria);";
 		Pattern pattern = Pattern.compile(patternStr);
@@ -111,10 +116,7 @@ public class MybatisFilesWriter {
 		String newContent = content.replaceFirst(patternStr , "import " + domainPackageName + ".criteria." + name + ";");
 		return replaceExamples(newContent);
 	}
-	
-	/*
-	 * import xxx.domain.XXXCriteria; -> import xxx.domain.criteria.XXXCriteria;
-	 */
+
 	private String correctXmlContent(String content, String domainPackageName) {
 		String patternStr = domainPackageName + "\\.(.+Criteria)";
 		Pattern pattern = Pattern.compile(patternStr);
@@ -135,9 +137,10 @@ public class MybatisFilesWriter {
 	private void writeJavaMappers() {
 		List<GeneratedJavaFile> files = getMapperFiles();
 		for (GeneratedJavaFile file : files) {
-			String domainPackage = reader.getPackageNameOfDomains();
 			String path = reader.getDaoDirPath() + "/" + file.getFileName();
-			project.writeFile(path, correctMapper(file.getFormattedContent(), domainPackage));
+			String content = extendManualJavaMapper(path, file);
+			String domainPackage = reader.getPackageNameOfDomains();
+			project.writeFile(path, correctMapper(content, domainPackage));
 		}
 	}
 	
@@ -157,8 +160,7 @@ public class MybatisFilesWriter {
 		}
 	}
 	
-
-	private String mergeManualMapper(String path, String content) {
+	private String mergeManualSqlMapper(String path, String content) {
 		String manualPath = path.replaceFirst("autogen/([^/]+\\.xml)$", "manual/$1");
 		InputStream inputStream = null;
 		try {
@@ -174,11 +176,26 @@ public class MybatisFilesWriter {
 		}
 	}
 	
+	private String extendManualJavaMapper(String path, GeneratedJavaFile javaFile) {
+		CompilationUnit unit = javaFile.getCompilationUnit();
+		String mapperName = unit.getType().getShortName();
+		String manualPath = path.replace(mapperName + ".java", "") + "manual/Manual" + mapperName + ".java";
+		if (!project.containsFile(manualPath)) {
+			return javaFile.getFormattedContent();
+		}
 
-	public static void main(String[] args) {
-		String tmp = "/autogen/asd/asd/autogen/asd.xml".replaceFirst("autogen/([^/]+\\.xml)$", "manual/$1");
-		System.out.println(tmp);
+		String importType = javaFile.getTargetPackage() + ".manual.Manual" + mapperName;
+		//The type will appear in a import clause.
+		unit.addImportedType(new FullyQualifiedJavaType(importType));
+
+		String content = javaFile.getFormattedContent();
+
+		content = content.replaceFirst(
+				"public\\s+interface\\s+" + mapperName +"\\s+\\{", 
+				"public interface " + mapperName + " extends Manual" + mapperName + " {");
+		return content;
 	}
+
 	
 	private void writeXmlFiles() {
 		List<GeneratedXmlFile> xmlFiles = getXmlFiles();
@@ -186,7 +203,7 @@ public class MybatisFilesWriter {
 			String domainPackage = reader.getPackageNameOfDomains();
 			String path = reader.getMapperDirPath() + "/" + file.getFileName();
 			String content = correctXmlContent(file.getFormattedContent(), domainPackage);
-			project.writeFile(path, mergeManualMapper(path, content));
+			project.writeFile(path, mergeManualSqlMapper(path, content));
 		}
 	}
 

@@ -348,5 +348,11 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	public String getMapperDirPath() {
 		return glueTargetPackageToTargetProject(sqlMapGenerators, "sqlMapGenerator");
 	}
+
+	@Override
+	public String getPackageNameOfJavaMappers() {
+		Element element = findActiveElement(javaClientGenerators, "javaClientGenerator");
+		return element.attributeValue("targetPackage");
+	}
 	
 }

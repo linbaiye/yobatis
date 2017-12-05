@@ -48,4 +48,12 @@ public interface Folder {
 	 * @return the folder created.
 	 */
 	public Folder createFolder(String folderName);
+
+	/**
+	 * Find folder under this folder.
+	 * @param folderName the folder name.
+	 * @return the folder found.
+	 * @throws ResourceNotFoundException if not found.
+	 */
+	public Folder findFolder(String folderName);
 }
