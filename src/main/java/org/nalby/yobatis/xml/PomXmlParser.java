@@ -12,7 +12,7 @@ import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 
-public class PomXmlParser extends BasicXmlParser {
+public class PomXmlParser extends AbstractXmlParser {
 
 	private static final String MYSQL_DRIVER_CLASS = "com.mysql.jdbc.Driver";
 	

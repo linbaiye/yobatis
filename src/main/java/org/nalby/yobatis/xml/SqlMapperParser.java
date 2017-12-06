@@ -19,7 +19,7 @@ import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-public class SqlMapperParser extends BasicXmlParser {
+public class SqlMapperParser extends AbstractXmlParser {
 	private final static String DTD = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n" + 
 			"<!--\n" + 
 			"\n" + 

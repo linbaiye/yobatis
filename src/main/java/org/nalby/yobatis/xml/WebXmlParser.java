@@ -12,7 +12,7 @@ import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.Project.FolderSelector;
 
-public class WebXmlParser extends BasicXmlParser {
+public class WebXmlParser extends AbstractXmlParser {
 
 	private static final String WEB_APP_TAG = "web-app";
 

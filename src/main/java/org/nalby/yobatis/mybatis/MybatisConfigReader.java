@@ -50,5 +50,11 @@ public interface MybatisConfigReader {
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
 	public String getMapperDirPath();
+	
+	/**
+	 * Turn this config into a text string.
+	 * @return this content string.
+	 */
+	public String asXmlText();
 
 }

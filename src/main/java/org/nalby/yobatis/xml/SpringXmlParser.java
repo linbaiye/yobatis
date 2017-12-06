@@ -10,7 +10,7 @@ import org.dom4j.Element;
 import org.dom4j.Namespace;
 import org.dom4j.QName;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
-public class SpringXmlParser extends BasicXmlParser {
+public class SpringXmlParser extends AbstractXmlParser {
 
 	private static final String BEANS_TAG = "beans";
 

@@ -1,9 +1,6 @@
 package org.nalby.yobatis.mybatis;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -15,12 +12,10 @@ import org.dom4j.Document;
 import org.dom4j.DocumentFactory;
 import org.dom4j.DocumentType;
 import org.dom4j.Element;
-import org.dom4j.io.OutputFormat;
-import org.dom4j.io.XMLWriter;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
-import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.structure.Project;
+import org.nalby.yobatis.xml.AbstractXmlParser;
 import org.nalby.yobatis.xml.MybatisXmlParser;
 
 /**
@@ -142,17 +137,6 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		property.addAttribute("value", "false");
 	}
 	
-	private String convertToString() throws IOException {
-	    OutputFormat format = OutputFormat.createPrettyPrint();
-	    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-	    PrintStream ps = new PrintStream(baos, true, "utf-8");
-        XMLWriter writer = new XMLWriter(ps, format);
-        writer.write(document);
-	    String content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-	    ps.close();
-	    return content;
-	}
-	
 	private void appendTables(Element context)  {
 		List<String> names = sql.getTableNames();
 		if (names.isEmpty()) {
@@ -230,8 +214,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	private final static Pattern PATTERN = Pattern.compile("^.+" + Project.MAVEN_SOURCE_CODE_PATH + "/(.+)$");
-	
-	private  String getPackageName(String path) {
+	private String getPackageName(String path) {
 		if (path == null || !path.contains(Project.MAVEN_SOURCE_CODE_PATH)) {
 			return null;
 		}
@@ -285,14 +268,14 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		document.setDocType(type);
 	}
 	
-	public String getXmlConfig() {
+	@Override
+	public String asXmlText() {
 		try {
-			return convertToString();
+			return AbstractXmlParser.toXmlString(document);
 		} catch (IOException e) {
-			throw new ProjectException(e);
+			throw new InvalidMybatisGeneratorConfigException(e);
 		}
 	}
-	
 	
 	private Element findActiveElement(Set<Element> generators, String name) {
 		if (generators == null || generators.isEmpty()) {

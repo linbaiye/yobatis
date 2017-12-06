@@ -14,13 +14,13 @@ import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
 import org.nalby.yobatis.util.Expect;
 
-public abstract class BasicXmlParser {
+public abstract class AbstractXmlParser {
 	
 	private static final int MAX_STREAM_SIZE = 5 * 1024 * 1024;
 
 	Document document;
 
-	public BasicXmlParser(InputStream inputStream, String rootElmentTag) throws DocumentException, IOException {
+	public AbstractXmlParser(InputStream inputStream, String rootElmentTag) throws DocumentException, IOException {
 		Expect.asTrue(inputStream != null
 				&& inputStream.available() <= MAX_STREAM_SIZE
 				&& inputStream.available() > 0,
@@ -39,8 +39,7 @@ public abstract class BasicXmlParser {
 	
 	void customSAXReader(SAXReader saxReader) {}
 	
-
-	public String toXmlString() throws IOException {
+	public static String toXmlString(Document document) throws IOException {
 		OutputFormat format = OutputFormat.createPrettyPrint();
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		PrintStream ps = new PrintStream(baos, true, "utf-8");
@@ -50,5 +49,8 @@ public abstract class BasicXmlParser {
 		ps.close();
 		return content;
 	}
-
+	
+	public String toXmlString() throws IOException {
+		return AbstractXmlParser.toXmlString(document);
+	}
 }

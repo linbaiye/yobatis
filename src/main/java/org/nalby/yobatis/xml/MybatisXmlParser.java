@@ -22,7 +22,7 @@ import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigReader {
+public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfigReader {
 	private static final String DTD = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
 			"<!--\n" + 
 			"\n" + 
@@ -523,7 +523,7 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 	
 	private void appendRenamePlugin(MybatisConfigFileGenerator configFileGenerator) {
 		if (pluginElement == null) {
-			context.add(configFileGenerator.getJdbConnectionElement().createCopy());
+			context.add(configFileGenerator.getPluginElement().createCopy());
 		} else {
 			context.add(pluginElement);
 		}
@@ -543,24 +543,18 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 	 * to merge generated elements. If this existed config file does not have the element in the new one,
 	 * a copy is issued.
 	 * @param configFileGenerator
-	 * @return the merged config file in string.
 	 */
-	public String mergeGeneratedConfigAndGetXmlString(MybatisConfigFileGenerator configFileGenerator) {
-		try {
-			appendClasspathEntry(configFileGenerator);
-			if (appendContextAndTestIfContinueAppending(configFileGenerator)) {
-				appendRenamePlugin(configFileGenerator);
-				appendPagingAndLockPlugin(configFileGenerator);
-				appendJdbcConnection(configFileGenerator);
-				appendJavaTypeResolver(configFileGenerator);
-				appendJavaModelGenerators(configFileGenerator);
-				appendSqlMapGenerators(configFileGenerator);
-				appendJavaClientGenerators(configFileGenerator);
-				appendTables(configFileGenerator);
-			}
-			return toXmlString();
-		} catch (IOException e) {
-			throw new ProjectException("Failed to merge generated xml into existent xml.");
+	public void mergeGeneratedConfigAndGetXmlString(MybatisConfigFileGenerator configFileGenerator) {
+		appendClasspathEntry(configFileGenerator);
+		if (appendContextAndTestIfContinueAppending(configFileGenerator)) {
+			appendRenamePlugin(configFileGenerator);
+			appendPagingAndLockPlugin(configFileGenerator);
+			appendJdbcConnection(configFileGenerator);
+			appendJavaTypeResolver(configFileGenerator);
+			appendJavaModelGenerators(configFileGenerator);
+			appendSqlMapGenerators(configFileGenerator);
+			appendJavaClientGenerators(configFileGenerator);
+			appendTables(configFileGenerator);
 		}
 	}
 
@@ -655,5 +649,14 @@ public class MybatisXmlParser extends BasicXmlParser implements MybatisConfigRea
 	public String getPackageNameOfJavaMappers() {
 		Element element = findAcitveElement(javaClientGenerators, CLIENT_GENERATOR_TAG);
 		return element.attributeValue("targetPackage");
+	}
+
+	@Override
+	public String asXmlText() {
+		try {
+			return toXmlString(document);
+		} catch (IOException e){
+			throw new InvalidMybatisGeneratorConfigException(e);
+		}
 	}
 }
