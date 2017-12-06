@@ -24,5 +24,12 @@
             commandId="org.nalby.yobatis.command.generation">
       </handler>
    </extension>
+   <extension
+         point="org.eclipse.ui.console.consoleFactories">
+      <consoleFactory
+            class="yobatis.ConsoleFactory1"
+            label="label">
+      </consoleFactory>
+   </extension>
 
 </plugin>
