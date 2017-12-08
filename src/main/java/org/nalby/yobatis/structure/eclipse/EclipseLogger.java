@@ -59,7 +59,7 @@ public class EclipseLogger implements Logger {
 			MessageConsole myConsole = findConsole("yobatis");
 			openConsole(myConsole);
 			MessageConsoleStream out = myConsole.newMessageStream();
-			out.write("[ " + className + ".java:" + stackTraceElement.getMethodName() + ":" + stackTraceElement.getLineNumber() + " ] " + result);
+			out.write("[ " + className + ".java:" + stackTraceElement.getMethodName() + ":" + stackTraceElement.getLineNumber() + " ] " + result + "\n");
 		} catch (Exception e) {
 			//Ignore.
 		}

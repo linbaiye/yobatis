@@ -15,7 +15,6 @@ import org.dom4j.Element;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
-import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
 import org.nalby.yobatis.mybatis.MybatisConfigReader;
 import org.xml.sax.EntityResolver;

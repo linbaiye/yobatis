@@ -77,7 +77,9 @@ public abstract class Project {
 			@Override
 			public boolean isSelected(Folder folder) {
 				return folder.path().contains(MAVEN_SOURCE_CODE_PATH) &&
-						("dao".equals(folder.name()) || "repository".equals(folder.name()));
+				("dao".equals(folder.name()) ||
+				"repository".equals(folder.name()) ||
+				"mapper".equals(folder.name()));
 			}
 		});
 	}
@@ -91,7 +93,7 @@ public abstract class Project {
 			@Override
 			public boolean isSelected(Folder folder) {
 				return folder.path().contains(MAVEN_SOURCE_CODE_PATH) && 
-						("model".equals(folder.name()) || "domain".equals(folder.name()));
+				("entity".equals(folder.name()) || "model".equals(folder.name()) || "domain".equals(folder.name()));
 			}
 		});
 	}
@@ -206,7 +208,7 @@ public abstract class Project {
 				//file path.
 				String folderPath  = path.replaceFirst("/.*$", "");
 				String filename = path.replaceFirst(folderPath + "/", "");
-				return folder.path().indexOf(folderPath) != -1 && folder.containsFile(filename);
+				return folder.path().endsWith(folderPath) && folder.containsFile(filename);
 			}
 		});
 	}
