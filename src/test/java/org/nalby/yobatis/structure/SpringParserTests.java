@@ -23,6 +23,14 @@ public class SpringParserTests {
 	@Mock
 	private Project project;
 	
+	/**
+	 * Mock folder
+	 * @param name the folder name.
+	 * @param path the folder path.
+	 * @param containsFile the filename, with which when the containsFile is invoked 
+	 * 	will return true.
+	 * @return
+	 */
 	private Folder mockFolder(String name, String path, String containsFile) {
 		Folder folder = mock(Folder.class);
 		when(folder.containsFile(containsFile)).thenReturn(true);
@@ -244,22 +252,163 @@ public class SpringParserTests {
 				"</beans>\n" + 
 				"";
 		ByteArrayInputStream inputStream = new ByteArrayInputStream(entryConfig.getBytes());
-		when(project.getInputStream("/test/spring.xml")).thenReturn(inputStream);
-		Folder mockedFolder = mockFolder("test", "/test", "spring.xml");
-		when(project.findFoldersContainingFile("spring.xml")).thenReturn(Arrays.asList(mockedFolder));
+		when(project.getInputStream("/test" + Project.WEBAPP_PATH_SUFFIX + "/spring.xml")).thenReturn(inputStream);
+		Folder mockedFolder = mockFolder("test", "/test" + Project.WEBAPP_PATH_SUFFIX, "spring.xml");
+		when(project.findFoldersContainingFile(Project.WEBAPP_PATH_SUFFIX + "/spring.xml")).thenReturn(Arrays.asList(mockedFolder));
 
-		mockedFolder = mockFolder("node1", "/test/node1", "config1.xml");
-		when(project.getInputStream("/test/node1/config1.xml")).thenReturn(new ByteArrayInputStream(config1.getBytes()));
+		mockedFolder = mockFolder("node1", "/test" + Project.WEBAPP_PATH_SUFFIX + "/node1", "config1.xml");
+		when(project.getInputStream("/test/node1" + Project.WEBAPP_PATH_SUFFIX + "/config1.xml")).thenReturn(new ByteArrayInputStream(config1.getBytes()));
 		when(project.findFoldersContainingFile("config1.xml")).thenReturn(new LinkedList<Folder>(Arrays.asList(mockedFolder)));
 
 		mockedFolder = mockFolder("resources", "/src/main/resources", "s3.properties");
 		when(project.findFoldersContainingFile("s3.properties")).thenReturn(new LinkedList<Folder>(Arrays.asList(mockedFolder)));
 
-		List<String> entryList = Arrays.asList("classpath:spring.xml");
+		List<String> entryList = Arrays.asList("WEB-INF/spring.xml");
 		SpringParser parser = new SpringParser(project, entryList);
 		assertTrue(parser.getDatabasePassword().equals("mybatis"));
 		assertTrue(parser.getPropertiesFilePath().equals("/src/main/resources/s3.properties"));
 	}
+	
+	@Test(expected = UnsupportedProjectException.class)
+	public void invalidInitParam() {
+		String value = "      test\n" + 
+				"      path\n" + 
+				"      classpath :" + 
+				"";
+		List<String> list = Arrays.asList(value);
+		new SpringParser(project, list);
+	}
+	
+	@Test
+	public void singleClasspathParam() throws FileNotFoundException {
+		String config = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"<beans xmlns=\"http://www.springframework.org/schema/beans\"\n" + 
+				"	xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n" + 
+				"	xmlns:context=\"http://www.springframework.org/schema/context\"\n" + 
+				"	xmlns:aop=\"http://www.springframework.org/schema/aop\"\n" + 
+				"	xmlns:mvc=\"http://www.springframework.org/schema/mvc\"\n" + 
+				"	xmlns:mybatis=\"http://mybatis.org/schema/mybatis-spring\"\n" + 
+				"	xsi:schemaLocation=\"http://www.springframework.org/schema/beans \n" + 
+				"       		http://www.springframework.org/schema/beans/spring-beans.xsd \n" + 
+				"       		http://www.springframework.org/schema/context \n" + 
+				"       		http://www.springframework.org/schema/context/spring-context.xsd\n" + 
+				"       		http://www.springframework.org/schema/aop \n" + 
+				"       		http://www.springframework.org/schema/aop/spring-aop.xsd\n" + 
+				"       		http://www.springframework.org/schema/mvc\n" + 
+				"       		http://www.springframework.org/schema/mvc/spring-mvc.xsd\n" + 
+				"       		http://mybatis.org/schema/mybatis-spring\n" + 
+				"       		http://mybatis.org/schema/mybatis-spring.xsd\">\n" + 
+				"	<bean id=\"dataSource\" class=\"org.apache.commons.dbcp.BasicDataSource\" destroy-method=\"close\">\n" + 
+				"        <property name=\"driverClassName\" value=\"com.mysql.jdbc.Driver\"/>\n" + 
+				"        <property name=\"url\" value=\"jdbc:mysql://localhost:3306/mybatis?characterEncoding=utf-8\"/>\n" + 
+				"        <property name=\"username\" value=\"mybatis\"/>\n" + 
+				"        <property name=\"password\" value=\"mybatis\"/>\n" + 
+				"  </bean>\n" + 
+				"	<bean id=\"propertyConfigurer\"\n" + 
+				"		class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">\n" + 
+				"		<property name=\"locations\">\n" + 
+				"			<list>\n" + 
+				"				<value>classpath:s3.properties</value>\n" + 
+				"			</list>\n" + 
+				"		</property>\n" + 
+				"	</bean>\n" + 
+				"</beans>\n" + 
+				"";
+		String[] paths = new String[]{"classpath :  test.xml", 
+				"classpath:test.xml",
+				"classpath:xx/xx/test.xml"};
+		for (String path : paths) {
+			String[] tokens = path.split(":");
+			String filepath = tokens[1].trim();
+			String folderpath = "/test/" + Project.MAVEN_RESOURCES_PATH;
+			if (filepath.indexOf("/") != -1) {
+				folderpath = "/test/" + Project.MAVEN_RESOURCES_PATH 
+				+ "/" + filepath.replaceFirst("(^.*)/[^/]+$", "$1");
+			}
 
+			List<String> list = Arrays.asList(path);
+			project = mock(Project.class);
+
+			Folder mockedFolder = mockFolder("resources", folderpath, "test.xml");
+			when(project.findFoldersContainingFile(Project.MAVEN_RESOURCES_PATH + "/" + filepath))
+			.thenReturn(Arrays.asList(mockedFolder));
+
+			ByteArrayInputStream inputStream = new ByteArrayInputStream(config.getBytes());
+			when(project.getInputStream(folderpath + "/test.xml"))
+			.thenReturn(inputStream);
+
+			SpringParser parser = new SpringParser(project, list);
+
+			mockedFolder = mockFolder("resources", "/test/"+ Project.MAVEN_RESOURCES_PATH, "s3.properties");
+			when(project.findFoldersContainingFile(Project.MAVEN_RESOURCES_PATH+ "/s3.properties"))
+			.thenReturn(Arrays.asList(mockedFolder));
+			assertTrue(("/test/" + Project.MAVEN_RESOURCES_PATH + "/s3.properties")
+			.equals(parser.getPropertiesFilePath()));
+		}
+	}
+	
+	@Test
+	public void singleWebinfPathParam() throws FileNotFoundException {
+		String config = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"<beans xmlns=\"http://www.springframework.org/schema/beans\"\n" + 
+				"	xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n" + 
+				"	xmlns:context=\"http://www.springframework.org/schema/context\"\n" + 
+				"	xmlns:aop=\"http://www.springframework.org/schema/aop\"\n" + 
+				"	xmlns:mvc=\"http://www.springframework.org/schema/mvc\"\n" + 
+				"	xmlns:mybatis=\"http://mybatis.org/schema/mybatis-spring\"\n" + 
+				"	xsi:schemaLocation=\"http://www.springframework.org/schema/beans \n" + 
+				"       		http://www.springframework.org/schema/beans/spring-beans.xsd \n" + 
+				"       		http://www.springframework.org/schema/context \n" + 
+				"       		http://www.springframework.org/schema/context/spring-context.xsd\n" + 
+				"       		http://www.springframework.org/schema/aop \n" + 
+				"       		http://www.springframework.org/schema/aop/spring-aop.xsd\n" + 
+				"       		http://www.springframework.org/schema/mvc\n" + 
+				"       		http://www.springframework.org/schema/mvc/spring-mvc.xsd\n" + 
+				"       		http://mybatis.org/schema/mybatis-spring\n" + 
+				"       		http://mybatis.org/schema/mybatis-spring.xsd\">\n" + 
+				"	<bean id=\"dataSource\" class=\"org.apache.commons.dbcp.BasicDataSource\" destroy-method=\"close\">\n" + 
+				"        <property name=\"driverClassName\" value=\"com.mysql.jdbc.Driver\"/>\n" + 
+				"        <property name=\"url\" value=\"jdbc:mysql://localhost:3306/mybatis?characterEncoding=utf-8\"/>\n" + 
+				"        <property name=\"username\" value=\"mybatis\"/>\n" + 
+				"        <property name=\"password\" value=\"mybatis\"/>\n" + 
+				"  </bean>\n" + 
+				"	<bean id=\"propertyConfigurer\"\n" + 
+				"		class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">\n" + 
+				"		<property name=\"locations\">\n" + 
+				"			<list>\n" + 
+				"				<value>classpath:s3.properties</value>\n" + 
+				"			</list>\n" + 
+				"		</property>\n" + 
+				"	</bean>\n" + 
+				"</beans>\n" + 
+				"";
+		String[] paths = new String[]{"test.xml", 
+				"WEB-INF/test.xml",
+				"WEB-INF/test/test.xml"};
+		for (String path : paths) {
+			List<String> list = Arrays.asList(path);
+			project = mock(Project.class);
+			String folderpath = "/test/" + Project.WEBAPP_PATH_SUFFIX;
+
+			if (path.indexOf("/") != -1) {
+				folderpath = "/test/" + Project.WEBAPP_PATH_SUFFIX
+				+ "/" + path.replaceFirst("(^.*)/[^/]+$", "$1");
+			}
+
+			Folder mockedFolder = mockFolder("webapp", folderpath, "test.xml");
+			when(project.findFoldersContainingFile(Project.WEBAPP_PATH_SUFFIX + "/" + path))
+			.thenReturn(Arrays.asList(mockedFolder));
+			ByteArrayInputStream inputStream = new ByteArrayInputStream(config.getBytes());
+			when(project.getInputStream("/test/" + Project.WEBAPP_PATH_SUFFIX + "/" + path))
+			.thenReturn(inputStream);
+			SpringParser parser = new SpringParser(project, list);
+			mockedFolder = mockFolder("resources", "/test/"+ Project.MAVEN_RESOURCES_PATH, "s3.properties");
+			when(project.findFoldersContainingFile(Project.MAVEN_RESOURCES_PATH+ "/s3.properties"))
+			.thenReturn(Arrays.asList(mockedFolder));
+			assertTrue(("/test/" + Project.MAVEN_RESOURCES_PATH+ "/s3.properties")
+					.equals(parser.getPropertiesFilePath()));
+		}
+	}
+	
 
 }

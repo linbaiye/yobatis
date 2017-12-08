@@ -9,8 +9,6 @@ import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.structure.Folder;
-import org.nalby.yobatis.structure.LogFactory;
-import org.nalby.yobatis.structure.Logger;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.Project.FolderSelector;
 
@@ -138,7 +136,6 @@ public class WebXmlParser extends AbstractXmlParser {
 		return result;
 	}
 	
-	private Logger logger = LogFactory.getLogger(this.getClass());
 	
 	public static WebXmlParser build(Project project) {
 		List<Folder> folders = project.findFolders(new FolderSelector() {

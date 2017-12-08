@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
 import org.dom4j.DocumentException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.util.Expect;
@@ -24,6 +23,13 @@ public class SpringParser {
 
 	private List<SpringXmlParser> springXmlParsers;
 
+	/**
+	 * Parse spring configuration according to the init-params configured
+	 * in web.xml.
+	 * @param project
+	 * @param springConfigEntryPaths the values of init-params.
+	 * @throws UnsupportedProjectException if the spring misconfigured.
+	 */
 	public SpringParser(Project project, List<String> springConfigEntryPaths) {
 		Expect.notNull(project, "project must not be null.");
 		Expect.asTrue(springConfigEntryPaths != null && !springConfigEntryPaths.isEmpty(),
@@ -32,17 +38,44 @@ public class SpringParser {
 		springXmlParsers = new LinkedList<SpringXmlParser>();
 		Set<String> tracker = new HashSet<String>();
 		try {
-			loadSpringConfigFiles(springConfigEntryPaths, tracker);
+			List<String> springPaths = parseLocationsInWebXml(springConfigEntryPaths) ;
+			loadSpringConfigFiles(springPaths, tracker);
 		} catch (Exception e) {
 			throw new UnsupportedProjectException(e);
 		}
+	}
+	
+	private List<String> parseLocationsInWebXml(List<String> valueInWebXml) {
+		List<String> result = new LinkedList<String>();
+		for (String value: valueInWebXml) {
+			String[] tokens = value.split("[,\\s]+");
+			for (int i = 0; i < tokens.length; i++) {
+				if ("".equals(tokens[i])) {
+					continue;
+				}
+				if ("classpath".equals(tokens[i])) {
+					if (i + 2 > tokens.length-1
+						|| !":".equals(tokens[i+1])
+						|| "".equals(tokens[2])) {
+						throw new UnsupportedProjectException("Invalid spring config:" + value);
+					}
+					result.add(tokens[i] + tokens[++i] + tokens[++i]);
+				} else {
+					result.add(tokens[i]);
+				}
+			}
+		}
+		return result;
 	}
 	
 	public String getPropertiesFilePath() {
 		for (SpringXmlParser parser : springXmlParsers) {
 			String val = parser.getPropertiesFile();
 			if (val != null) {
-				return convertClassPathToProjectPath(val);
+				if (!val.trim().startsWith("classpath")) {
+					throw new UnsupportedProjectException("imported file must start with classpath.");
+				}
+				return configPathToProjectPath(val);
 			}
 		}
 		return  null;
@@ -83,14 +116,21 @@ public class SpringParser {
 		}
 		throw new UnsupportedProjectException("Failed to find database driver class name.");
 	}
-
-
-	private String convertClassPathToProjectPath(String path) {
+	
+	private String configPathToProjectPath(String path) {
 		String[] tokens = path.split(":");
-		if (tokens.length != 2)  {
-			throw new UnsupportedProjectException("invalid spring config file path: " + path + "', format should be classpath:filename" );
+		String filePath = null;
+		String prefix = Project.WEBAPP_PATH_SUFFIX;
+		String name = tokens[0].trim();
+		if (tokens.length == 2) {
+			prefix = Project.MAVEN_RESOURCES_PATH;
+			name = tokens[1].trim();
 		}
-		List<Folder> folders = project.findFoldersContainingFile(tokens[1]);
+		if (name.startsWith("/")) {
+			throw new UnsupportedProjectException("File name must not start with '/': " + path);
+		}
+		filePath = prefix + "/" + name;
+		List<Folder> folders = project.findFoldersContainingFile(filePath);
 		if (folders.isEmpty()) {
 			throw new UnsupportedProjectException("Could not find config file: " + path);
 		}
@@ -98,12 +138,7 @@ public class SpringParser {
 			throw new UnsupportedProjectException("More than one file found: " + path);
 		}
 		Folder folder = folders.get(0);
-		String filename = tokens[1];
-		if (filename.indexOf("/") != -1) {
-			//remove duplicated paths.
-			String folderPath  = tokens[1].replaceFirst("/.*$", "");
-			filename = tokens[1].replace(folderPath + "/", "");
-		}
+		String filename = filePath.replaceFirst("^.*/([^/]+)$", "$1");
 		return folder.path() + "/" + filename;
 	}
 
@@ -115,7 +150,7 @@ public class SpringParser {
 				continue;
 			}
 			tracker.add(path);
-			String fspath = convertClassPathToProjectPath(path);
+			String fspath = configPathToProjectPath(path);
 			InputStream inputStream = project.getInputStream(fspath);
 			try {
 				SpringXmlParser xmlParser = new SpringXmlParser(inputStream);

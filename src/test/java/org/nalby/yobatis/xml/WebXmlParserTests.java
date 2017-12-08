@@ -119,5 +119,27 @@ public class WebXmlParserTests {
 		List<String> result = parser.getSpringConfigLocations();
 		assertTrue(result.size() == 2 && "test".equals(result.get(0)) && "loc1".equals(result.get(1)));
 	}
+	
+	@Test
+	public void locationsWithSeperator () throws IOException, DocumentException {
+		String xml = "<web-app>\n" + 
+				"  <context-param>\n" + 
+				"    <param-name>contextConfigLocation</param-name>\n" + 
+				"    <param-value>\n" + 
+				"      test\n" + 
+				"      path\n" + 
+				"      test1\n" + 
+				"    </param-value>\n" + 
+				"    </context-param>\n" + 
+				"</web-app>\n" + 
+				"";
+		WebXmlParser parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		List<String> result = parser.getSpringConfigLocations();
+		assertTrue(result.size() == 1);
+		String tmp = result.get(0);
+		assertTrue(tmp.contains("test"));
+		assertTrue(tmp.contains("test1"));
+		assertTrue(tmp.contains("path"));
+	}
 
 }

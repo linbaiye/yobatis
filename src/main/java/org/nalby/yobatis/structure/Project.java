@@ -24,9 +24,12 @@ public abstract class Project {
 	
 	public final static String MAVEN_SOURCE_CODE_PATH = "src/main/java";
 
-	protected final static String MAVEN_RESOURCES_PATH = "src/main/resources";
+	public final static String MAVEN_RESOURCES_PATH = "src/main/resources";
 
-	protected final static String WEB_XML_PATH = "src/main/webapp/WEB-INF/web.xml";
+	public final static String WEBAPP_PATH_SUFFIX = "src/main/webapp";
+
+	public final static String WEB_XML_PATH = "src/main/webapp/WEB-INF/web.xml";
+
 	
 	protected final static String CLASSPATH_PREFIX = "classpath:";
 	
