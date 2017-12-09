@@ -342,7 +342,7 @@ public class SpringParserTests {
 			mockedFolder = mockFolder("resources", "/test/"+ Project.MAVEN_RESOURCES_PATH, "s3.properties");
 			when(project.findFoldersContainingFile(Project.MAVEN_RESOURCES_PATH+ "/s3.properties"))
 			.thenReturn(Arrays.asList(mockedFolder));
-			assertTrue(("/test/" + Project.MAVEN_RESOURCES_PATH + "/s3.properties")
+			assertTrue(("classpath:s3.properties")
 			.equals(parser.getPropertiesFilePath()));
 		}
 	}
@@ -405,7 +405,7 @@ public class SpringParserTests {
 			mockedFolder = mockFolder("resources", "/test/"+ Project.MAVEN_RESOURCES_PATH, "s3.properties");
 			when(project.findFoldersContainingFile(Project.MAVEN_RESOURCES_PATH+ "/s3.properties"))
 			.thenReturn(Arrays.asList(mockedFolder));
-			assertTrue(("/test/" + Project.MAVEN_RESOURCES_PATH+ "/s3.properties")
+			assertTrue(("classpath:s3.properties")
 					.equals(parser.getPropertiesFilePath()));
 		}
 	}

@@ -17,7 +17,6 @@ public class LogFactory {
 			Constructor<?>[] constructors = loggerClass.getConstructors();
 			for (Constructor<?> constructor: constructors) {
 				Class<?>[] parameters = constructor.getParameterTypes();
-				System.out.println(parameters[0].getName());
 				if (parameters.length != 1 || 
 					!"String".equals(parameters[0].getSimpleName())) {
 					continue;

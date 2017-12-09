@@ -13,6 +13,7 @@ import java.util.Stack;
 import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
 import org.nalby.yobatis.exception.ResourceNotFoundException;
 import org.nalby.yobatis.util.Expect;
+import org.nalby.yobatis.util.FolderUtil;
 
 public abstract class Project {
 	
@@ -201,6 +202,8 @@ public abstract class Project {
 	 */
 	public List<Folder> findFoldersContainingFile(final String path) {
 		Expect.notEmpty(path, "path must not be empty.");
+		final String folderpath = FolderUtil.folderPath(path);
+		final String filename = FolderUtil.filename(path);
 		return findFolders(new FolderSelector() {
 			@Override
 			public boolean isSelected(Folder folder) {
@@ -209,9 +212,7 @@ public abstract class Project {
 					return folder.containsFile(path);
 				}
 				//file path.
-				String folderPath  = path.replaceFirst("/.*$", "");
-				String filename = path.replaceFirst(folderPath + "/", "");
-				return folder.path().endsWith(folderPath) && folder.containsFile(filename);
+				return folder.path().endsWith(folderpath) && folder.containsFile(filename);
 			}
 		});
 	}

@@ -102,6 +102,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			filesWriter.writeAll();
 			logger.info("Generated files.");
 		} catch (Exception e) {
+			e.printStackTrace();
 			logger.info("Caught exception:{}.", e.getMessage());
 		}
 	}
