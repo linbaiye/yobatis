@@ -1,6 +1,8 @@
 package org.nalby.yobatis;
 
 import java.io.InputStream;
+import java.util.Set;
+
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -109,7 +111,22 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
-		fun2();
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		IProject project = workspace.getRoot().getProject("diaowen");
+		if (!project.exists()) {
+				throw new ProjectNotFoundException();
+		}
+		EclipseProject eclipseProject = new EclipseProject(project);
+		WebXmlParser webXmlParser = WebXmlParser.build(eclipseProject);
+		SpringParser springParser  = new SpringParser(eclipseProject, webXmlParser.getSpringConfigLocations());
+		Set<String> files = springParser.getPropertiesFilePaths();
+		for (String file: files) {
+			System.out.println(file);
+		}
+
+		//PomParser pomParser = new PomParser(eclipseProject);
+
+		//fun2();
 		return null;
 	}
 

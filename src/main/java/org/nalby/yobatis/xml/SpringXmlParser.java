@@ -21,7 +21,7 @@ public class SpringXmlParser extends AbstractXmlParser {
 			"org.apache.commons.dbcp.BasicDataSource" };
 
 	private static final String P_NAMESPACE = "http://www.springframework.org/schema/p";
-	private static final String CONTEXT_NAMESPACE = "http://www.springframework.org/schema/p";
+	private static final String CONTEXT_NAMESPACE = "http://www.springframework.org/schema/context";
 	
 	private Set<String> propertiesFileLocations = null;
 
@@ -32,20 +32,20 @@ public class SpringXmlParser extends AbstractXmlParser {
 		loadPropertieLocationsInPropertHolder();
 	}
 	
-	private final static String VALID_LOCATION_PATTERN = "classpath\\*?\\s*:\\s*[a-zA-Z_].*\\.properties";
+	private final static String VALID_LOCATION_PATTERN = "classpath\\*?\\s*:\\s*/?[a-zA-Z_].*\\.properties";
 	private void loadPropertieLocationsInContextProperties() {
 		Element root = document.getRootElement();
 		QName qName = new QName("property-placeholder", new Namespace("context", CONTEXT_NAMESPACE));
 		List<Element> elements = root.elements(qName);
 		for (Element element : elements) {
-			String text = element.attributeValue("locations");
+			String text = element.attributeValue("location");
 			if (text == null || text.trim().equals("")) {
 				continue;
 			}
 			String vals[] = text.split(",");
 			for (String tmp: vals) {
-				if (Pattern.matches(VALID_LOCATION_PATTERN, tmp)) {
-					propertiesFileLocations.add(tmp);
+				if (Pattern.matches(VALID_LOCATION_PATTERN, tmp.trim())) {
+					propertiesFileLocations.add(tmp.trim());
 				}
 			}
 		}
@@ -63,19 +63,19 @@ public class SpringXmlParser extends AbstractXmlParser {
 				}
 				Element listElement = property.element("list");
 				if (listElement == null) {
-					return ;
+					break;
 				}
 				List<Element> valueElements = listElement.elements("value");
 				for (Element valueElement: valueElements) {
-					if (valueElement.getTextTrim() != null && !"".equals(valueElement.getTextTrim())) {
-						propertiesFileLocations.add(valueElement.getTextTrim());
+					String tmp = valueElement.getTextTrim();
+					if (tmp != null && Pattern.matches(VALID_LOCATION_PATTERN, tmp)) {
+						propertiesFileLocations.add(tmp);
 					}
 				}
 			}
 		}
 	}
 	
-
 	private boolean isDatasourceBean(Element element) {
 		String clazz = element.attributeValue("class");
 		if (null == clazz) {

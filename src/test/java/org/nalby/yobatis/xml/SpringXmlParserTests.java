@@ -9,7 +9,6 @@ import java.util.Set;
 
 import org.dom4j.DocumentException;
 import org.junit.Test;
-import org.nalby.yobatis.exception.UnsupportedProjectException;
 
 public class SpringXmlParserTests {
 	private final static String[] DATASOURCE_CLASSES = {"org.apache.commons.dbcp.BasicDataSource", "com.alibaba.druid.pool.DruidDataSource"};
@@ -118,4 +117,69 @@ public class SpringXmlParserTests {
 					|| location.equals("classpath:conf/test.properties"));
 		}
 	}
+
+	@Test
+	public void testContextPlaceholderTag() throws DocumentException, IOException {
+		String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"<beans xmlns=\"http://www.springframework.org/schema/beans\"\n" + 
+				"	xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n" + 
+				"	xmlns:context=\"http://www.springframework.org/schema/context\"\n" + 
+				"	xmlns:aop=\"http://www.springframework.org/schema/aop\"\n" + 
+				"	xmlns:mvc=\"http://www.springframework.org/schema/mvc\"\n" + 
+				"	xmlns:mybatis=\"http://mybatis.org/schema/mybatis-spring\"\n" + 
+				"	xsi:schemaLocation=\"http://www.springframework.org/schema/beans \n" + 
+				"       		http://www.springframework.org/schema/beans/spring-beans.xsd \n" + 
+				"       		http://www.springframework.org/schema/context \n" + 
+				"       		http://www.springframework.org/schema/context/spring-context.xsd\n" + 
+				"       		http://www.springframework.org/schema/aop \n" + 
+				"       		http://www.springframework.org/schema/aop/spring-aop.xsd\n" + 
+				"       		http://www.springframework.org/schema/mvc\n" + 
+				"       		http://www.springframework.org/schema/mvc/spring-mvc.xsd\n" + 
+				"       		http://mybatis.org/schema/mybatis-spring\n" + 
+				"       		http://mybatis.org/schema/mybatis-spring.xsd\">\n" + 
+				"<context:property-placeholder location=\"classpath:conf/test.properties, classpath:conf/important.properties\"/>" +
+				"</beans>\n";
+		SpringXmlParser parser = new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		Set<String> locations = parser.getPropertiesFileLocations();
+		assertTrue(locations.size() == 2);
+		for (String location : locations) {
+			assertTrue(location.equals("classpath:conf/important.properties")
+					|| location.equals("classpath:conf/test.properties"));
+		}
+	}
+	
+	@Test
+	public void testMixedProperties() throws DocumentException, IOException {
+		String xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"<beans xmlns=\"http://www.springframework.org/schema/beans\"\n" + 
+				"	xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n" + 
+				"	xmlns:context=\"http://www.springframework.org/schema/context\"\n" + 
+				"	xmlns:aop=\"http://www.springframework.org/schema/aop\"\n" + 
+				"	xmlns:mvc=\"http://www.springframework.org/schema/mvc\"\n" + 
+				"	xmlns:mybatis=\"http://mybatis.org/schema/mybatis-spring\"\n" + 
+				"	xsi:schemaLocation=\"http://www.springframework.org/schema/beans \n" + 
+				"       		http://www.springframework.org/schema/beans/spring-beans.xsd \n" + 
+				"       		http://www.springframework.org/schema/context \n" + 
+				"       		http://www.springframework.org/schema/context/spring-context.xsd\n" + 
+				"       		http://www.springframework.org/schema/aop \n" + 
+				"       		http://www.springframework.org/schema/aop/spring-aop.xsd\n" + 
+				"       		http://www.springframework.org/schema/mvc\n" + 
+				"       		http://www.springframework.org/schema/mvc/spring-mvc.xsd\n" + 
+				"       		http://mybatis.org/schema/mybatis-spring\n" + 
+				"       		http://mybatis.org/schema/mybatis-spring.xsd\">\n" + 
+				"<context:property-placeholder location=\"classpath:conf/test.properties, classpath:conf/important.properties\"/>" +
+				"<bean id=\"propertyConfigurer\" class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
+				   	"<property name=\"systemPropertiesModeName\" value=\"SYSTEM_PROPERTIES_MODE_OVERRIDE\" />" + 
+				    "<property name=\"ignoreResourceNotFound\" value=\"true\" />" +
+				    "<property name=\"locations\"><list><value>classpath:conf/important.properties</value></list></property></bean> "+
+				"</beans>\n";
+		SpringXmlParser parser = new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		Set<String> locations = parser.getPropertiesFileLocations();
+		assertTrue(locations.size() == 2);
+		for (String location : locations) {
+			assertTrue(location.equals("classpath:conf/important.properties")
+					|| location.equals("classpath:conf/test.properties"));
+		}
+	}
+	
 }

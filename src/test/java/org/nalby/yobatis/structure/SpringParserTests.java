@@ -2,13 +2,16 @@ package org.nalby.yobatis.structure;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -216,7 +219,7 @@ public class SpringParserTests {
 				"       		http://www.springframework.org/schema/mvc/spring-mvc.xsd\n" + 
 				"       		http://mybatis.org/schema/mybatis-spring\n" + 
 				"       		http://mybatis.org/schema/mybatis-spring.xsd\">\n" + 
-				"  <import resource=\"classpath:config1.xml\"/>\n" + 
+				"  <import resource=\"classpath:node1/config1.xml\"/>\n" + 
 				"</beans>";
 		String config1 = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
 				"<beans xmlns=\"http://www.springframework.org/schema/beans\"\n" + 
@@ -245,26 +248,24 @@ public class SpringParserTests {
 				"		class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">\n" + 
 				"		<property name=\"locations\">\n" + 
 				"			<list>\n" + 
-				"				<value>classpath:s3.properties</value>\n" + 
 				"			</list>\n" + 
 				"		</property>\n" + 
 				"	</bean>\n" + 
 				"</beans>\n" + 
 				"";
-		ByteArrayInputStream inputStream = new ByteArrayInputStream(entryConfig.getBytes());
-		when(project.getInputStream("/test" + Project.WEBAPP_PATH_SUFFIX + "/spring.xml")).thenReturn(inputStream);
-		Folder mockedFolder = mockFolder("test", "/test" + Project.WEBAPP_PATH_SUFFIX, "spring.xml");
+		project = mock(Project.class);
+		Folder mockedFolder = mockFolder("webapp", "/test/" + Project.WEBAPP_PATH_SUFFIX, "spring.xml");
 		when(project.findFoldersContainingFile(Project.WEBAPP_PATH_SUFFIX + "/spring.xml")).thenReturn(Arrays.asList(mockedFolder));
+		ByteArrayInputStream inputStream = new ByteArrayInputStream(entryConfig.getBytes());
+		when(project.getInputStream("/test/" + Project.WEBAPP_PATH_SUFFIX + "/spring.xml")).thenReturn(inputStream);
 
-		mockedFolder = mockFolder("node1", "/test" + Project.WEBAPP_PATH_SUFFIX + "/node1", "config1.xml");
-		when(project.getInputStream("/test/node1" + Project.WEBAPP_PATH_SUFFIX + "/config1.xml")).thenReturn(new ByteArrayInputStream(config1.getBytes()));
-		when(project.findFoldersContainingFile("config1.xml")).thenReturn(new LinkedList<Folder>(Arrays.asList(mockedFolder)));
-
-		mockedFolder = mockFolder("resources", "/src/main/resources", "s3.properties");
-		when(project.findFoldersContainingFile("s3.properties")).thenReturn(new LinkedList<Folder>(Arrays.asList(mockedFolder)));
-
-		List<String> entryList = Arrays.asList("WEB-INF/spring.xml");
-		SpringParser parser = new SpringParser(project, entryList);
+		//For the import element.
+		mockedFolder = mockFolder("node1", "/test/" + Project.MAVEN_RESOURCES_PATH + "/node1", "config1.xml");
+		when(project.findFoldersContainingFile(Project.MAVEN_RESOURCES_PATH + "/node1/config1.xml")).thenReturn(Arrays.asList(mockedFolder));
+		when(project.getInputStream("/test/" + Project.MAVEN_RESOURCES_PATH + "/node1/config1.xml")).thenReturn(new ByteArrayInputStream(config1.getBytes()));
+		List<String> paths = Arrays.asList("spring.xml");
+		Mockito.doNothing().when(project).closeInputStream(any(InputStream.class));
+		SpringParser parser = new SpringParser(project, paths);
 		assertTrue(parser.getDatabasePassword().equals("mybatis"));
 	}
 	
@@ -336,12 +337,16 @@ public class SpringParserTests {
 			when(project.getInputStream(folderpath + "/test.xml"))
 			.thenReturn(inputStream);
 
-			SpringParser parser = new SpringParser(project, list);
 
 			mockedFolder = mockFolder("resources", "/test/"+ Project.MAVEN_RESOURCES_PATH, "s3.properties");
 			when(project.findFoldersContainingFile(Project.MAVEN_RESOURCES_PATH+ "/s3.properties"))
 			.thenReturn(Arrays.asList(mockedFolder));
+			SpringParser parser = new SpringParser(project, list);
 			assertTrue("mybatis".equals(parser.getDatabasePassword()));
+			Set<String> filePaths = parser.getPropertiesFilePaths();
+			for (String filePath: filePaths) {
+				assertTrue("/test/src/main/resources/s3.properties".equals(filePath));
+			}
 		}
 	}
 	
