@@ -95,7 +95,8 @@ public class SpringXmlParser extends AbstractXmlParser {
 			if (nameAttr == null || !nameAttr.equals(propertyName)) {
 				continue;
 			}
-			return property.attributeValue("value");
+			String value = property.attributeValue("value");
+			return value == null ? value : value.trim();
 		}
 		return null;
 	}

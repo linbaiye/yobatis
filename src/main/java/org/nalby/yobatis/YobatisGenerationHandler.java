@@ -21,7 +21,7 @@ import org.nalby.yobatis.sql.mysql.Mysql.Builder;
 import org.nalby.yobatis.structure.LogFactory;
 import org.nalby.yobatis.structure.Logger;
 import org.nalby.yobatis.structure.PomParser;
-import org.nalby.yobatis.structure.DatabasePropertiesParser;
+import org.nalby.yobatis.structure.PropertiesParser;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.eclipse.EclipseLogger;
@@ -50,15 +50,15 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		PomParser pomParser = new PomParser(project);
 		SpringParser springParser  = new SpringParser(project, webXmlParser.getSpringConfigLocations());
 
-		DatabasePropertiesParser propertiesParser = 
-				new DatabasePropertiesParser(project, pomParser, springParser);
+		PropertiesParser propertiesParser = 
+				new PropertiesParser(project, springParser.getPropertiesFilePaths());
 
 		Builder builder = Mysql.builder();
-		builder.setConnectorJarPath(project.concatMavenResitoryPath(pomParser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver")))
+		/*builder.setConnectorJarPath(project.concatMavenResitoryPath(pomParser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver")))
 		.setDriverClassName(propertiesParser.getDatabaseDriverClassName())
 		.setUsername(propertiesParser.getDatabaseUsername())
 		.setPassword(propertiesParser.getDatabasePassword())
-		.setUrl(propertiesParser.getDatabaseUrl());
+		.setUrl(propertiesParser.getDatabaseUrl());*/
 
 		return new MybatisConfigFileGenerator(project, builder.build());
 	}
@@ -119,13 +119,10 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		EclipseProject eclipseProject = new EclipseProject(project);
 		WebXmlParser webXmlParser = WebXmlParser.build(eclipseProject);
 		SpringParser springParser  = new SpringParser(eclipseProject, webXmlParser.getSpringConfigLocations());
+		PropertiesParser propertiesParser = new PropertiesParser(eclipseProject, springParser.getPropertiesFilePaths());
+		System.out.println(propertiesParser.getProperty("jdbc.username"));
 		Set<String> files = springParser.getPropertiesFilePaths();
-		for (String file: files) {
-			System.out.println(file);
-		}
-
 		//PomParser pomParser = new PomParser(eclipseProject);
-
 		//fun2();
 		return null;
 	}

@@ -35,11 +35,11 @@ public class PomXmlParser extends AbstractXmlParser {
 		loadProperties();
 		Element root = document.getRootElement();
 		if (root.element("artifactId") == null ) {
-			throw new UnsupportedProjectException("pom has no artifactId.");
+			throw new UnsupportedProjectException("pom has no artifactId element.");
 		}
 		artificatId = root.element("artifactId").getTextTrim();
 		if (artificatId == null || "".equals(artificatId)) {
-			throw new UnsupportedProjectException("pom has no artifactId.");
+			throw new UnsupportedProjectException("artifactId element has no value.");
 		}
 	}
 	
