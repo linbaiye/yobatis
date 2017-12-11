@@ -2,14 +2,16 @@ package org.nalby.yobatis.xml;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.Namespace;
 import org.dom4j.QName;
-import org.nalby.yobatis.exception.UnsupportedProjectException;
 public class SpringXmlParser extends AbstractXmlParser {
 
 	private static final String BEANS_TAG = "beans";
@@ -19,12 +21,60 @@ public class SpringXmlParser extends AbstractXmlParser {
 			"org.apache.commons.dbcp.BasicDataSource" };
 
 	private static final String P_NAMESPACE = "http://www.springframework.org/schema/p";
+	private static final String CONTEXT_NAMESPACE = "http://www.springframework.org/schema/p";
 	
-	private static final String PROPERTY_CLASS = "org.springframework.beans.factory.config.PropertyPlaceholderConfigurer";
+	private Set<String> propertiesFileLocations = null;
 
 	public SpringXmlParser(InputStream inputStream) throws DocumentException, IOException {
 		super(inputStream, BEANS_TAG);
+		propertiesFileLocations = new HashSet<String>();
+		loadPropertieLocationsInContextProperties();
+		loadPropertieLocationsInPropertHolder();
 	}
+	
+	private final static String VALID_LOCATION_PATTERN = "classpath\\*?\\s*:\\s*[a-zA-Z_].*\\.properties";
+	private void loadPropertieLocationsInContextProperties() {
+		Element root = document.getRootElement();
+		QName qName = new QName("property-placeholder", new Namespace("context", CONTEXT_NAMESPACE));
+		List<Element> elements = root.elements(qName);
+		for (Element element : elements) {
+			String text = element.attributeValue("locations");
+			if (text == null || text.trim().equals("")) {
+				continue;
+			}
+			String vals[] = text.split(",");
+			for (String tmp: vals) {
+				if (Pattern.matches(VALID_LOCATION_PATTERN, tmp)) {
+					propertiesFileLocations.add(tmp);
+				}
+			}
+		}
+	}
+	
+	private void loadPropertieLocationsInPropertHolder() {
+		Element root = document.getRootElement();
+		List<Element> elements = root.elements("bean");
+		for (Element bean: elements) {
+			List<Element> properties = bean.elements("property");
+			for (Element property: properties) {
+				String name = property.attributeValue("name");
+				if (name == null || !"locations".equals(name.trim())) {
+					continue;
+				}
+				Element listElement = property.element("list");
+				if (listElement == null) {
+					return ;
+				}
+				List<Element> valueElements = listElement.elements("value");
+				for (Element valueElement: valueElements) {
+					if (valueElement.getTextTrim() != null && !"".equals(valueElement.getTextTrim())) {
+						propertiesFileLocations.add(valueElement.getTextTrim());
+					}
+				}
+			}
+		}
+	}
+	
 
 	private boolean isDatasourceBean(Element element) {
 		String clazz = element.attributeValue("class");
@@ -123,38 +173,11 @@ public class SpringXmlParser extends AbstractXmlParser {
 	}
 	
 	/**
-	 * Get properties file path contained by PropertyPlaceholderConfigurer bean.
-	 * @return file name.
+	 * Get properties file paths.
+	 * @return file paths starting with 'classpath'.
 	 */
-	public String getPropertiesFile() {
-		List<Element> beanElements = document.getRootElement().elements("bean");
-		for (Element beanElement: beanElements)  {
-			String clazz = beanElement.attributeValue("class");
-			if (!PROPERTY_CLASS.equals(clazz)) {
-				continue;
-			}
-			List<Element> propertyList = beanElement.elements("property");
-			for (Element property: propertyList) {
-				String value = property.attributeValue("name");
-				if (!"locations".equals(value)) {
-					continue;
-				}
-				Element listElement = property.element("list");
-				if (listElement == null) {
-					return null;
-				}
-				List<Element> valueElements = listElement.elements("value");
-				if (valueElements.size() != 1)  {
-					throw new UnsupportedProjectException("Can't cope with multiple properties files for now.");
-				}
-				for (Element valueElement: valueElements) {
-					if (valueElement.getTextTrim() != null && !"".equals(valueElement.getTextTrim())) {
-						return valueElement.getTextTrim();
-					}
-				}
-			}
-		}
-		return null;
+	public Set<String> getPropertiesFileLocations() {
+		return propertiesFileLocations;
 	}
 
 }

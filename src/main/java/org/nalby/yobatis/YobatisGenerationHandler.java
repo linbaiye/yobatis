@@ -85,7 +85,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	private void fun2() {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		try {
-			IProject project = workspace.getRoot().getProject("diaowen");
+			IProject project = workspace.getRoot().getProject("learn");
 			if (!project.exists()) {
 				throw new ProjectNotFoundException();
 			}

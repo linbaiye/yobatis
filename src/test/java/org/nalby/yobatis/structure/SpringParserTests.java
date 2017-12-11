@@ -73,7 +73,7 @@ public class SpringParserTests {
 		List<Folder> list = Arrays.asList(mockedFolder);
 		when(project.findFolders(any(FolderSelector.class))).thenReturn(list);
 		List<String> tmp = Arrays.asList("classpath:test.conf");
-		new SpringParser(project, tmp).getPropertiesFilePath();
+		new SpringParser(project, tmp).getPropertiesFilePaths();
 	}
 
 	@Test(expected = UnsupportedProjectException.class)
@@ -125,7 +125,7 @@ public class SpringParserTests {
 		when(project.findFolders(any(FolderSelector.class))).thenReturn(list);
 		List<String> tmp = Arrays.asList("classpath:test.conf");
 		SpringParser springParser = new SpringParser(project, tmp);
-		assertTrue(springParser.getPropertiesFilePath().equals("/hello/test/s3.properties"));
+		assertTrue("mybatis".equals(springParser.getDatabasePassword()));
 		//Throws exception now;
 		springParser.getDatabaseUsername();
 	}
@@ -266,7 +266,6 @@ public class SpringParserTests {
 		List<String> entryList = Arrays.asList("WEB-INF/spring.xml");
 		SpringParser parser = new SpringParser(project, entryList);
 		assertTrue(parser.getDatabasePassword().equals("mybatis"));
-		assertTrue(parser.getPropertiesFilePath().equals("/src/main/resources/s3.properties"));
 	}
 	
 	@Test(expected = UnsupportedProjectException.class)
@@ -342,8 +341,7 @@ public class SpringParserTests {
 			mockedFolder = mockFolder("resources", "/test/"+ Project.MAVEN_RESOURCES_PATH, "s3.properties");
 			when(project.findFoldersContainingFile(Project.MAVEN_RESOURCES_PATH+ "/s3.properties"))
 			.thenReturn(Arrays.asList(mockedFolder));
-			assertTrue(("classpath:s3.properties")
-			.equals(parser.getPropertiesFilePath()));
+			assertTrue("mybatis".equals(parser.getDatabasePassword()));
 		}
 	}
 	
@@ -405,8 +403,7 @@ public class SpringParserTests {
 			mockedFolder = mockFolder("resources", "/test/"+ Project.MAVEN_RESOURCES_PATH, "s3.properties");
 			when(project.findFoldersContainingFile(Project.MAVEN_RESOURCES_PATH+ "/s3.properties"))
 			.thenReturn(Arrays.asList(mockedFolder));
-			assertTrue(("classpath:s3.properties")
-					.equals(parser.getPropertiesFilePath()));
+			assertTrue("mybatis".equals(parser.getDatabasePassword()));
 		}
 	}
 	

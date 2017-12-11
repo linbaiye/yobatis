@@ -22,7 +22,8 @@ public class DatabasePropertiesParser {
 	private SpringParser springParser;
 
 	public DatabasePropertiesParser(Project project, PomParser pomParser, SpringParser springParser) {
-		String filepath = springParser.getPropertiesFilePath();
+		//String filepath = springParser.getPropertiesFilePath();
+		String filepath = null;
 		try {
 			this.pomParser = pomParser;
 			this.properties = new Properties();

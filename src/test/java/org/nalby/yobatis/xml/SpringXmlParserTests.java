@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.dom4j.DocumentException;
 import org.junit.Test;
@@ -68,8 +69,8 @@ public class SpringXmlParserTests {
         "<property name=\"systemPropertiesModeName\" value=\"SYSTEM_PROPERTIES_MODE_OVERRIDE\" />" + 
         "<property name=\"ignoreResourceNotFound\" value=\"true\" /></bean></beans>";
 		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		String file = parser.getPropertiesFile();
-		assertTrue(file == null);
+		Set<String> locations = parser.getPropertiesFileLocations();
+		assertTrue(locations.isEmpty());
 	}
 
 	@Test
@@ -80,11 +81,29 @@ public class SpringXmlParserTests {
         "<property name=\"ignoreResourceNotFound\" value=\"true\" />" +
         "<property name=\"locations\"><list><value>classpath:conf/important.properties</value></list></property></bean></beans>";
 		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		String file = parser.getPropertiesFile();
-		assertTrue(file.equals("classpath:conf/important.properties"));
+		Set<String> locations = parser.getPropertiesFileLocations();
+		assertTrue(locations.size() == 1);
+		for (String location: locations) {
+			assertTrue(location.equals("classpath:conf/important.properties"));
+		}
+	}
+	
+	@Test
+	public void trimPropertiesValue() throws DocumentException, IOException {
+		String xml = "<beans><bean id=\"propertyConfigurer\" " +
+        "class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
+        "<property name=\"systemPropertiesModeName\" value=\"SYSTEM_PROPERTIES_MODE_OVERRIDE\" />" + 
+        "<property name=\"ignoreResourceNotFound\" value=\"true\" />" +
+        "<property name=\"locations\"><list><value>  classpath:conf/important.properties   </value></list></property></bean></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		Set<String> locations = parser.getPropertiesFileLocations();
+		assertTrue(locations.size() == 1);
+		for (String location: locations) {
+			assertTrue(location.equals("classpath:conf/important.properties"));
+		}
 	}
 
-	@Test(expected = UnsupportedProjectException.class)
+	@Test
 	public void testMultipleProperties() throws DocumentException, IOException {
 		String xml = "<beans><bean id=\"propertyConfigurer\" " +
         "class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
@@ -92,6 +111,11 @@ public class SpringXmlParserTests {
         "<property name=\"ignoreResourceNotFound\" value=\"true\" />" +
         "<property name=\"locations\"><list><value>classpath:conf/important.properties</value><value>classpath:conf/test.properties</value></list></property></bean></beans>";
 		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		parser.getPropertiesFile();
+		Set<String> locations = parser.getPropertiesFileLocations();
+		assertTrue(locations.size() == 2);
+		for (String location: locations) {
+			assertTrue(location.equals("classpath:conf/important.properties")
+					|| location.equals("classpath:conf/test.properties"));
+		}
 	}
 }

@@ -70,8 +70,9 @@ public class SpringParser {
 		return result;
 	}
 	
-	public String getPropertiesFilePath() {
-		for (SpringXmlParser parser : springXmlParsers) {
+	public Set<String> getPropertiesFilePaths() {
+		return null;
+		/*for (SpringXmlParser parser : springXmlParsers) {
 			String val = parser.getPropertiesFile();
 			if (val != null) {
 				if (!val.trim().startsWith("classpath")) {
@@ -80,7 +81,7 @@ public class SpringParser {
 				return val;
 			}
 		}
-		return  null;
+		return  null;*/
 	}
 	
 	public String getDatabaseUrl() {
