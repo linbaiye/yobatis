@@ -42,24 +42,47 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		MessageDialog.openInformation(window.getShell(), "Yobatis", message);
 	}
 	
+	
+	private String searchProperty(PropertiesParser propertiesParser, 
+			PomParser pomParser, String property) {
+		if (!PropertiesParser.isPlaceholder(property)) {
+			return property;
+		}
+		String tmp = propertiesParser.getProperty(property);
+		return PropertiesParser.isPlaceholder(tmp) ? pomParser.getProfileProperty(tmp) : tmp;
+	}
+	
 	/**
-	 *  Build mybatis-generator's config file according to project config.
+	 *  Build the generator of mybatis-generator's config file according to project config.
 	 */
 	private MybatisConfigFileGenerator buildMybatisGeneratorConfigMaker(Project project) {
 		WebXmlParser webXmlParser = WebXmlParser.build(project);
 		PomParser pomParser = new PomParser(project);
-		SpringParser springParser  = new SpringParser(project, webXmlParser.getSpringConfigLocations());
-
+		SpringParser springParser = new SpringParser(project,
+				webXmlParser.getSpringConfigLocations());
 		PropertiesParser propertiesParser = 
 				new PropertiesParser(project, springParser.getPropertiesFilePaths());
+		
+		String username = searchProperty(propertiesParser, pomParser,
+				springParser.getDatabaseUsername());
+
+		String password = searchProperty(propertiesParser, pomParser,
+				springParser.getDatabasePassword());
+
+		String url = searchProperty(propertiesParser, pomParser,
+				springParser.getDatabaseUrl());
+
+		String driverClassName = searchProperty(propertiesParser, pomParser,
+				springParser.getDatabaseDriverClassName());
+
+		String dbJarPath = pomParser.getDatabaseJarPath(driverClassName);
 
 		Builder builder = Mysql.builder();
-		/*builder.setConnectorJarPath(project.concatMavenResitoryPath(pomParser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver")))
-		.setDriverClassName(propertiesParser.getDatabaseDriverClassName())
-		.setUsername(propertiesParser.getDatabaseUsername())
-		.setPassword(propertiesParser.getDatabasePassword())
-		.setUrl(propertiesParser.getDatabaseUrl());*/
-
+		builder.setConnectorJarPath(dbJarPath)
+		.setDriverClassName(driverClassName)
+		.setUsername(username)
+		.setPassword(password)
+		.setUrl(url);
 		return new MybatisConfigFileGenerator(project, builder.build());
 	}
 	
@@ -87,7 +110,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	private void fun2() {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		try {
-			IProject project = workspace.getRoot().getProject("learn");
+			IProject project = workspace.getRoot().getProject("diaowen");
 			if (!project.exists()) {
 				throw new ProjectNotFoundException();
 			}
@@ -108,9 +131,8 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			logger.info("Caught exception:{}.", e.getMessage());
 		}
 	}
-
-	@Override
-	public Object execute(ExecutionEvent event) throws ExecutionException {
+	
+	private void fun3() {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		IProject project = workspace.getRoot().getProject("diaowen");
 		if (!project.exists()) {
@@ -120,11 +142,16 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		WebXmlParser webXmlParser = WebXmlParser.build(eclipseProject);
 		SpringParser springParser  = new SpringParser(eclipseProject, webXmlParser.getSpringConfigLocations());
 		PropertiesParser propertiesParser = new PropertiesParser(eclipseProject, springParser.getPropertiesFilePaths());
-		System.out.println(propertiesParser.getProperty("jdbc.username"));
-		Set<String> files = springParser.getPropertiesFilePaths();
-		//PomParser pomParser = new PomParser(eclipseProject);
-		//fun2();
-		return null;
+		System.out.println(springParser.getDatabaseUsername());
+		System.out.println(propertiesParser.getProperty(springParser.getDatabaseUsername()));
+		System.out.println(springParser.getDatabasePassword());
+		System.out.println(springParser.getDatabaseUrl());
+		System.out.println(springParser.getDatabaseDriverClassName());
 	}
 
+	@Override
+	public Object execute(ExecutionEvent event) throws ExecutionException {
+		fun2();
+		return null;
+	}
 }

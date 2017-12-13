@@ -68,6 +68,7 @@ public class PropertiesParser {
 	 */
 	public String getProperty(String name) {
 		Expect.notNull(name, "name must not be null.");
-		return valuedProperties.get(name);
+		String key = valueOfPlaceholder(name);
+		return valuedProperties.get(key);
 	}
 }

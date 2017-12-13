@@ -6,8 +6,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 
 import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
@@ -107,9 +109,9 @@ public abstract class Project {
 	 * it means the ones that are contained by the same submodule containing 'dao'.
 	 * @return A list that contains path names.
 	 */
-	public List<String> getSyspathsOfResources() {
+	public Set<String> getSyspathsOfResources() {
 		List<String> paths = getSyspathsOfDao();
-		List<String> result = new LinkedList<String>();
+		Set<String> result = new HashSet<String>();
 		for (String path: paths) {
 			String tmp = path.replaceFirst(MAVEN_SOURCE_CODE_PATH + ".+$", MAVEN_RESOURCES_PATH);
 			result.add(tmp);

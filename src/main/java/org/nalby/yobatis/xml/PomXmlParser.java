@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
+import org.nalby.yobatis.util.Expect;
 
 public class PomXmlParser extends AbstractXmlParser {
 
@@ -185,6 +186,7 @@ public class PomXmlParser extends AbstractXmlParser {
 	 * @return the property if found, null else.
 	 */
 	public String getProfileProperty(String name) {
+		Expect.notEmpty(name, "name must not be empty.");
 		return profileProperties.get(name);
 	}
 }
