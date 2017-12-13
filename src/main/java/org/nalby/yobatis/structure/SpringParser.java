@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.dom4j.DocumentException;
+import org.nalby.yobatis.exception.ResourceNotFoundException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.FolderUtil;
@@ -24,6 +25,8 @@ public class SpringParser {
 	private Project project;
 
 	private List<SpringXmlParser> springXmlParsers;
+	
+	private Set<String> propertiesFileLocations;
 
 	/**
 	 * Parse spring configuration according to the init-params configured
@@ -42,8 +45,26 @@ public class SpringParser {
 		try {
 			List<String> springPaths = parseConfigLocations(springConfigEntryPaths) ;
 			loadSpringConfigFiles(springPaths, tracker);
+			loadPropertiesLocations();
 		} catch (Exception e) {
 			throw new UnsupportedProjectException(e);
+		}
+	}
+	
+	private void loadPropertiesLocations() {
+		propertiesFileLocations = new HashSet<String>();
+		for (SpringXmlParser parser : springXmlParsers) {
+			Set<String> locations = parser.getPropertiesFileLocations();
+			for (String tmp : locations) {
+				try {
+					String path = convertClasspath(tmp);
+					if (path != null) {
+						propertiesFileLocations.add(path);
+					}
+				} catch (ResourceNotFoundException e) {
+					//ignore.
+				}
+			}
 		}
 	}
 	
@@ -71,17 +92,7 @@ public class SpringParser {
 	}
 	
 	public Set<String> getPropertiesFilePaths() {
-		return null;
-		/*for (SpringXmlParser parser : springXmlParsers) {
-			String val = parser.getPropertiesFile();
-			if (val != null) {
-				if (!val.trim().startsWith("classpath")) {
-					throw new UnsupportedProjectException("imported file must start with classpath.");
-				}
-				return val;
-			}
-		}
-		return  null;*/
+		return propertiesFileLocations;
 	}
 	
 	public String getDatabaseUrl() {
@@ -124,7 +135,7 @@ public class SpringParser {
 	private Folder findUniqueFolderContainingFile(String filePath) {
 		List<Folder> folders = project.findFoldersContainingFile(filePath);
 		if (folders.isEmpty()) {
-			throw new UnsupportedProjectException("Could not find config file: " + filePath);
+			throw new ResourceNotFoundException("Could not find config file: " + filePath);
 		}
 		if (folders.size() != 1) {
 			throw new UnsupportedProjectException("More than one file found: " + filePath);
@@ -138,8 +149,19 @@ public class SpringParser {
 		if (tokens.length != 2) {
 			return null;
 		}
-		String prefix = Project.MAVEN_RESOURCES_PATH;
-		return prefix + "/" + tokens[1].trim();
+		String path = tokens[1].trim();
+		String filepath = Project.MAVEN_RESOURCES_PATH + "/" + path;
+		if (path.startsWith("/")) {
+			filepath = Project.MAVEN_RESOURCES_PATH + path;
+		}
+		return toProjectPath(filepath);
+	}
+	
+	
+	private String toProjectPath(String filepath) {
+		Folder folder = findUniqueFolderContainingFile(filepath);
+		String filename = filepath.replaceFirst("^.*/([^/]+)$", "$1");
+		return folder.path() + "/" + filename;
 	}
 	
 	private String webxmlConfigPathToProjectPath(String path) {
@@ -152,12 +174,10 @@ public class SpringParser {
 			name = tokens[1].trim();
 		}
 		if (name.startsWith("/")) {
-			throw new UnsupportedProjectException("File name must not start with '/': " + path);
+			filePath = prefix + name;
 		}
 		filePath = prefix + "/" + name;
-		Folder folder = findUniqueFolderContainingFile(filePath);
-		String filename = filePath.replaceFirst("^.*/([^/]+)$", "$1");
-		return folder.path() + "/" + filename;
+		return toProjectPath(filePath);
 	}
 	
 	private String springImportPathToProjectPath(String currentSpringConfigPath,
@@ -167,7 +187,7 @@ public class SpringParser {
 		}
 		importedPath = importedPath.trim();
 		if (importedPath.startsWith("classpath")) {
-			importedPath = convertClasspath(importedPath);
+			return convertClasspath(importedPath);
 		}
 		String currentFolderPath = FolderUtil.folderPath(currentSpringConfigPath);
 		logger.info("current path:{}, filepath:{}.", currentFolderPath, importedPath);

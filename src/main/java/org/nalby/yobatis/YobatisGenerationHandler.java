@@ -1,6 +1,8 @@
 package org.nalby.yobatis;
 
 import java.io.InputStream;
+import java.util.Set;
+
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -19,7 +21,7 @@ import org.nalby.yobatis.sql.mysql.Mysql.Builder;
 import org.nalby.yobatis.structure.LogFactory;
 import org.nalby.yobatis.structure.Logger;
 import org.nalby.yobatis.structure.PomParser;
-import org.nalby.yobatis.structure.DatabasePropertiesParser;
+import org.nalby.yobatis.structure.PropertiesParser;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.eclipse.EclipseLogger;
@@ -40,24 +42,47 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		MessageDialog.openInformation(window.getShell(), "Yobatis", message);
 	}
 	
+	
+	private String searchProperty(PropertiesParser propertiesParser, 
+			PomParser pomParser, String property) {
+		if (!PropertiesParser.isPlaceholder(property)) {
+			return property;
+		}
+		String tmp = propertiesParser.getProperty(property);
+		return PropertiesParser.isPlaceholder(tmp) ? pomParser.getProfileProperty(tmp) : tmp;
+	}
+	
 	/**
-	 *  Build mybatis-generator's config file according to project config.
+	 *  Build the generator of mybatis-generator's config file according to project config.
 	 */
 	private MybatisConfigFileGenerator buildMybatisGeneratorConfigMaker(Project project) {
 		WebXmlParser webXmlParser = WebXmlParser.build(project);
 		PomParser pomParser = new PomParser(project);
-		SpringParser springParser  = new SpringParser(project, webXmlParser.getSpringConfigLocations());
+		SpringParser springParser = new SpringParser(project,
+				webXmlParser.getSpringConfigLocations());
+		PropertiesParser propertiesParser = 
+				new PropertiesParser(project, springParser.getPropertiesFilePaths());
+		
+		String username = searchProperty(propertiesParser, pomParser,
+				springParser.getDatabaseUsername());
 
-		DatabasePropertiesParser propertiesParser = 
-				new DatabasePropertiesParser(project, pomParser, springParser);
+		String password = searchProperty(propertiesParser, pomParser,
+				springParser.getDatabasePassword());
+
+		String url = searchProperty(propertiesParser, pomParser,
+				springParser.getDatabaseUrl());
+
+		String driverClassName = searchProperty(propertiesParser, pomParser,
+				springParser.getDatabaseDriverClassName());
+
+		String dbJarPath = pomParser.getDatabaseJarPath(driverClassName);
 
 		Builder builder = Mysql.builder();
-		builder.setConnectorJarPath(project.concatMavenResitoryPath(pomParser.dbConnectorJarRelativePath("com.mysql.jdbc.Driver")))
-		.setDriverClassName(propertiesParser.getDatabaseDriverClassName())
-		.setUsername(propertiesParser.getDatabaseUsername())
-		.setPassword(propertiesParser.getDatabasePassword())
-		.setUrl(propertiesParser.getDatabaseUrl());
-
+		builder.setConnectorJarPath(dbJarPath)
+		.setDriverClassName(driverClassName)
+		.setUsername(username)
+		.setPassword(password)
+		.setUrl(url);
 		return new MybatisConfigFileGenerator(project, builder.build());
 	}
 	
@@ -85,7 +110,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	private void fun2() {
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
 		try {
-			IProject project = workspace.getRoot().getProject("learn");
+			IProject project = workspace.getRoot().getProject("diaowen");
 			if (!project.exists()) {
 				throw new ProjectNotFoundException();
 			}
@@ -106,11 +131,27 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			logger.info("Caught exception:{}.", e.getMessage());
 		}
 	}
+	
+	private void fun3() {
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		IProject project = workspace.getRoot().getProject("diaowen");
+		if (!project.exists()) {
+				throw new ProjectNotFoundException();
+		}
+		EclipseProject eclipseProject = new EclipseProject(project);
+		WebXmlParser webXmlParser = WebXmlParser.build(eclipseProject);
+		SpringParser springParser  = new SpringParser(eclipseProject, webXmlParser.getSpringConfigLocations());
+		PropertiesParser propertiesParser = new PropertiesParser(eclipseProject, springParser.getPropertiesFilePaths());
+		System.out.println(springParser.getDatabaseUsername());
+		System.out.println(propertiesParser.getProperty(springParser.getDatabaseUsername()));
+		System.out.println(springParser.getDatabasePassword());
+		System.out.println(springParser.getDatabaseUrl());
+		System.out.println(springParser.getDatabaseDriverClassName());
+	}
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		fun2();
 		return null;
 	}
-
 }

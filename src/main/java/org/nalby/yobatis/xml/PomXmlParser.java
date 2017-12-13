@@ -11,6 +11,7 @@ import java.util.regex.Pattern;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
+import org.nalby.yobatis.util.Expect;
 
 public class PomXmlParser extends AbstractXmlParser {
 
@@ -35,11 +36,11 @@ public class PomXmlParser extends AbstractXmlParser {
 		loadProperties();
 		Element root = document.getRootElement();
 		if (root.element("artifactId") == null ) {
-			throw new UnsupportedProjectException("pom has no artifactId.");
+			throw new UnsupportedProjectException("pom has no artifactId element.");
 		}
 		artificatId = root.element("artifactId").getTextTrim();
 		if (artificatId == null || "".equals(artificatId)) {
-			throw new UnsupportedProjectException("pom has no artifactId.");
+			throw new UnsupportedProjectException("artifactId element has no value.");
 		}
 	}
 	
@@ -185,6 +186,7 @@ public class PomXmlParser extends AbstractXmlParser {
 	 * @return the property if found, null else.
 	 */
 	public String getProfileProperty(String name) {
+		Expect.notEmpty(name, "name must not be empty.");
 		return profileProperties.get(name);
 	}
 }

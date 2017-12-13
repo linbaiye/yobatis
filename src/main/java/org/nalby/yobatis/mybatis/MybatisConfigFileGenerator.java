@@ -199,7 +199,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	private void appendSqlMapGenerator(Element context) {
-		List<String> paths = project.getSyspathsOfResources();
+		Set<String> paths = project.getSyspathsOfResources();
 		if (paths.isEmpty()) {
 			errorCode = ErrorCode.NO_RESOURCES_PATH;
 		} else if (paths.size() > 1) {

@@ -9,6 +9,7 @@ import java.util.List;
 import org.dom4j.DocumentException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.structure.Project.FolderSelector;
+import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.xml.PomXmlParser;
 
 /**
@@ -22,7 +23,7 @@ public class PomParser {
 
 	private Project project;
 	
-	private List<PomXmlParser>  pomXmlParsers;
+	private List<PomXmlParser> pomXmlParsers;
 
 	public PomParser(Project project) {
 		try {
@@ -65,13 +66,15 @@ public class PomParser {
 	}
 	
 	/**
-	 * Get property of active profile.
+	 * Get property of the active profile.
 	 * @param name property name
 	 * @return the property value if found, null else.
 	 */
 	public String getProfileProperty(String name) {
+		Expect.notEmpty(name, "name must not be empty.");
+		String key = PropertiesParser.valueOfPlaceholder(name);
 		for (PomXmlParser parser : pomXmlParsers) {
-			String tmp = parser.getProfileProperty(name);
+			String tmp = parser.getProfileProperty(key);
 			if (tmp != null) {
 				return tmp;
 			}
@@ -83,16 +86,15 @@ public class PomParser {
 	 * Get sql connector's jar path based on the {@code driverClassName},
 	 * the first <dependency> will be used if multiple found.
 	 * @param driverClassName the sql's driver class name.
-	 * @return the relative path of the connector, null if not found.
+	 * @return the system path of the connector, null if not found.
 	 */
-	public String dbConnectorJarRelativePath(String driverClassName) {
-		String tmp = null;
+	public String getDatabaseJarPath(String driverClassName) {
 		for (PomXmlParser parser : pomXmlParsers) {
-			tmp = parser.dbConnectorJarRelativePath(driverClassName);
+			String tmp = parser.dbConnectorJarRelativePath(driverClassName);
 			if (tmp != null) {
-				break;
+				return project.concatMavenResitoryPath(tmp);
 			}
 		}
-		return tmp;
+		return null;
 	}
 }
