@@ -3,6 +3,7 @@ package org.nalby.yobatis;
 import org.eclipse.core.commands.Command;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.commands.IExecutionListener;
 import org.eclipse.core.commands.NotEnabledException;
 import org.eclipse.core.commands.NotHandledException;
 import org.eclipse.core.commands.common.NotDefinedException;
@@ -21,8 +22,15 @@ import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.handlers.IHandlerService;
+import org.nalby.yobatis.structure.LogFactory;
+import org.nalby.yobatis.structure.eclipse.EclipseLogger;
 
 public class MenuAppender extends ContributionItem {
+
+	
+	static {
+		LogFactory.setLogger(EclipseLogger.class);
+	}
 
 	public MenuAppender() {
 	}
@@ -60,14 +68,8 @@ public class MenuAppender extends ContributionItem {
 						.createExecutionEvent(command, new Event());
 				try {
 					command.executeWithChecks(executionEvent);
-				} catch (ExecutionException e1) {
-					e1.printStackTrace();
-				} catch (NotDefinedException e1) {
-					e1.printStackTrace();
-				} catch (NotEnabledException e1) {
-					e1.printStackTrace();
-				} catch (NotHandledException e1) {
-					e1.printStackTrace();
+				} catch (Exception e1) {
+
 				}
 			}
 		});
