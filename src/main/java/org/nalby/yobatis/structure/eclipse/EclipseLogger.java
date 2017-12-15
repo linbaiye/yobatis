@@ -51,15 +51,13 @@ public class EclipseLogger implements Logger {
 		if (format == null) {
 			return;
 		}
-		StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-		StackTraceElement stackTraceElement = stackTraceElements[stackTraceElements.length - 1];
 		String fmt = format.replaceAll("\\{\\}", "%s");
 		String result = String.format(fmt, args);
 		try {
 			MessageConsole myConsole = findConsole("yobatis");
 			openConsole(myConsole);
 			MessageConsoleStream out = myConsole.newMessageStream();
-			out.write("[ " + className + ".java:" + stackTraceElement.getMethodName() + " ] " + result + "\n");
+			out.write("[ " + className + ".java ] " + result + "\n");
 		} catch (Exception e) {
 			//Ignore.
 		}

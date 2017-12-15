@@ -1,23 +1,16 @@
 package org.nalby.yobatis;
 
 import java.io.InputStream;
-import java.util.Set;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IWorkspace;
-import org.eclipse.core.resources.ResourcesPlugin;
-import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.ISelectionService;
-import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.handlers.HandlerUtil;
-import org.nalby.yobatis.exception.ProjectNotFoundException;
 import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
 import org.nalby.yobatis.mybatis.MybatisConfigReader;
 import org.nalby.yobatis.mybatis.MybatisFilesWriter;
@@ -29,7 +22,6 @@ import org.nalby.yobatis.structure.PomParser;
 import org.nalby.yobatis.structure.PropertiesParser;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SpringParser;
-import org.nalby.yobatis.structure.eclipse.EclipseLogger;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
 import org.nalby.yobatis.xml.MybatisXmlParser;
 import org.nalby.yobatis.xml.WebXmlParser;
@@ -37,13 +29,6 @@ import org.nalby.yobatis.xml.WebXmlParser;
 public class YobatisGenerationHandler extends AbstractHandler {
 	
 	private Logger logger = LogFactory.getLogger(this.getClass());
-
-
-	private void displayMessage(ExecutionEvent event, String message) throws ExecutionException {
-		IWorkbenchWindow window = HandlerUtil.getActiveWorkbenchWindowChecked(event);
-		MessageDialog.openInformation(window.getShell(), "Yobatis", message);
-	}
-	
 	
 	private String searchProperty(PropertiesParser propertiesParser, 
 			PomParser pomParser, String property) {
@@ -88,7 +73,6 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		return new MybatisConfigFileGenerator(project, builder.build());
 	}
 	
-	
 	/*
 	 * Merge the new file generator into the existent one if exists.
 	 */
@@ -107,9 +91,28 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		}
 		return reader;
 	}
+	
+	
+	private void generateFromExistentFile(IFile iFile) {
+		IProject iProject = iFile.getProject();
+		InputStream inputStream = null;
+		EclipseProject project = new EclipseProject(iProject);
+		try {
+			logger.info("Trying to generate files from existent config file.");
+			inputStream = project.getInputStream(MybatisConfigFileGenerator.CONFIG_FILENAME);
+			MybatisConfigReader configReader = new MybatisXmlParser(inputStream);
+			MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, configReader);
+			filesWriter.writeAll();
+			logger.info("Generated files.");
+		} catch (Exception e) {
+			logger.info("No existent configuration found, will generate a new one.");
+		} finally {
+			project.closeInputStream(inputStream);
+		}
+	}
+	
 
-
-	private void fun2(IProject project) {
+	private void generateFromProject(IProject project) {
 		try {
 			logger.info("Scaning project:{}.", project.getName());
 			EclipseProject eclipseProject = new EclipseProject(project);
@@ -129,23 +132,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			logger.info("Caught exception:{}.", e.getMessage());
 		}
 	}
-	
-	private void fun3() {
-		IWorkspace workspace = ResourcesPlugin.getWorkspace();
-		IProject project = workspace.getRoot().getProject("diaowen");
-		if (!project.exists()) {
-				throw new ProjectNotFoundException();
-		}
-		EclipseProject eclipseProject = new EclipseProject(project);
-		WebXmlParser webXmlParser = WebXmlParser.build(eclipseProject);
-		SpringParser springParser  = new SpringParser(eclipseProject, webXmlParser.getSpringConfigLocations());
-		PropertiesParser propertiesParser = new PropertiesParser(eclipseProject, springParser.getPropertiesFilePaths());
-		System.out.println(springParser.getDatabaseUsername());
-		System.out.println(propertiesParser.getProperty(springParser.getDatabaseUsername()));
-		System.out.println(springParser.getDatabasePassword());
-		System.out.println(springParser.getDatabaseUrl());
-		System.out.println(springParser.getDatabaseDriverClassName());
-	}
+
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
@@ -156,16 +143,19 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			return null;
 		}
 		Object element = ((IStructuredSelection) selection).getFirstElement();
-		if (element == null) {
+		if (element == null ||
+			(!(element instanceof IProject) && !(element instanceof IFile))) {
 			return null;
 		}
-		/*if (!(element instanceof IProject) && !(element instanceof IFile)) {
-			return null;
-		}*/
-		if (!(element instanceof IProject)) {
-			return null;
+		if (element instanceof IFile) {
+			IFile iFile = (IFile)element;
+			if (!MybatisConfigFileGenerator.CONFIG_FILENAME.equals(iFile.getName())) {
+				return null;
+			}
+			generateFromExistentFile(iFile);
+		} else {
+			generateFromProject((IProject)element);
 		}
-		fun2((IProject)element);
 		return null;
 	}
 }

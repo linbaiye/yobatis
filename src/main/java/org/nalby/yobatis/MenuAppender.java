@@ -2,11 +2,6 @@ package org.nalby.yobatis;
 
 import org.eclipse.core.commands.Command;
 import org.eclipse.core.commands.ExecutionEvent;
-import org.eclipse.core.commands.ExecutionException;
-import org.eclipse.core.commands.IExecutionListener;
-import org.eclipse.core.commands.NotEnabledException;
-import org.eclipse.core.commands.NotHandledException;
-import org.eclipse.core.commands.common.NotDefinedException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.jface.action.ContributionItem;
@@ -22,11 +17,11 @@ import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.handlers.IHandlerService;
+import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
 import org.nalby.yobatis.structure.LogFactory;
 import org.nalby.yobatis.structure.eclipse.EclipseLogger;
 
 public class MenuAppender extends ContributionItem {
-
 	
 	static {
 		LogFactory.setLogger(EclipseLogger.class);
@@ -48,11 +43,15 @@ public class MenuAppender extends ContributionItem {
 			return;
 		}
 		Object element = ((IStructuredSelection) selection).getFirstElement();
-		if (element == null) {
+		if (element == null ||
+			(!(element instanceof IProject) && !(element instanceof IFile))) {
 			return;
 		}
-		if (!(element instanceof IProject) && !(element instanceof IFile)) {
-			return;
+		if (element instanceof IFile) {
+			IFile iFile = (IFile)element;
+			if (!MybatisConfigFileGenerator.CONFIG_FILENAME.equals(iFile.getName())) {
+				return;
+			}
 		}
 		MenuItem menuItem = new MenuItem(menu, SWT.CHECK, index);
 		menuItem.setText("Yobatis");
