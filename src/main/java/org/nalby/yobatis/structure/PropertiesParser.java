@@ -6,9 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.regex.Pattern;
-
 import org.nalby.yobatis.util.Expect;
+import org.nalby.yobatis.util.PropertyUtil;
 
 public class PropertiesParser {
 	private Map<String, String> valuedProperties;
@@ -20,22 +19,8 @@ public class PropertiesParser {
 	
 	private Logger logger = LogFactory.getLogger(this.getClass());
 	
-	private static final String PLACEHOLDER_PATTERN_STRING = "^\\s*\\$\\{([^\\}]*)\\}\\s*$";
 
-	public static boolean isPlaceholder(String str) {
-		if (str == null) {
-			return false;
-		}
-		return Pattern.matches(PLACEHOLDER_PATTERN_STRING, str);
-	}
-	
-	public static String valueOfPlaceholder(String str) {
-		if (!isPlaceholder(str)) {
-			return str;
-		}
-		String tmp = str.replaceFirst(PLACEHOLDER_PATTERN_STRING, "$1");
-		return tmp.trim();
-	}
+
 	
 	private void loadPropertiesFiles(Project project, Set<String> locations) {
 		for (String location: locations) {
@@ -68,7 +53,7 @@ public class PropertiesParser {
 	 */
 	public String getProperty(String name) {
 		Expect.notNull(name, "name must not be null.");
-		String key = valueOfPlaceholder(name);
+		String key = PropertyUtil.valueOfPlaceholder(name);
 		return valuedProperties.get(key);
 	}
 }

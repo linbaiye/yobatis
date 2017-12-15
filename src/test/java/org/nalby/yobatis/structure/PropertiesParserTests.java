@@ -8,37 +8,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.Test;
-
 import static org.mockito.Mockito.*;
 public class PropertiesParserTests {
-	
-	
-	@Test
-	public void isPlaceholder() {
-		assertFalse(PropertiesParser.isPlaceholder("test"));
-
-		assertFalse(PropertiesParser.isPlaceholder("${test"));
-
-		assertFalse(PropertiesParser.isPlaceholder("${}}"));
-
-		assertTrue(PropertiesParser.isPlaceholder("${}"));
-
-		assertTrue(PropertiesParser.isPlaceholder("${t}"));
-
-		assertTrue(PropertiesParser.isPlaceholder(" ${t}   "));
-
-		assertTrue(PropertiesParser.isPlaceholder(" ${t   }   "));
-	}
-	
-	
-	@Test
-	public void valueOfPlaceholder() {
-		assertTrue("t".equals(PropertiesParser.valueOfPlaceholder(" ${t   }   ")));
-		assertTrue("".equals(PropertiesParser.valueOfPlaceholder(" ${   }   ")));
-		assertTrue("".equals(PropertiesParser.valueOfPlaceholder(" ${}")));
-	}
-	
-	
 	@Test
 	public void loadPropertiesFiles() throws FileNotFoundException {
 		String testProperties = "hello= ${world}\n" + 
@@ -58,5 +29,4 @@ public class PropertiesParserTests {
 		assertTrue("v2".equals(parser.getProperty("k1")));
 		assertTrue("${world}".equals(parser.getProperty("hello")));
 	}
-
 }

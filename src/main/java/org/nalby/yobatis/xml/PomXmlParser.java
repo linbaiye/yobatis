@@ -3,15 +3,17 @@ package org.nalby.yobatis.xml;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Set;
 
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.util.Expect;
+import org.nalby.yobatis.util.PropertyUtil;
+import org.nalby.yobatis.util.TextUtil;
 
 public class PomXmlParser extends AbstractXmlParser {
 
@@ -23,25 +25,22 @@ public class PomXmlParser extends AbstractXmlParser {
 	
 	private static final String VERSION_TAG = "version";
 	
-	//The values in <profile></profile>
-	private Map<String, String> profileProperties;
-	//The values in <properties></properties>.
+	//The values in <properties></properties> and in <profile></profile>.
 	private Map<String, String> properties;
+
 	private String artificatId;
+
+	private String packaging;
+
+	private Set<String> resourceDirs;
+
 	public PomXmlParser(InputStream inputStream)
 			throws DocumentException, IOException {
 		super(inputStream, "project");
-		this.profileProperties = new HashMap<String, String>();
-		loadProfileProperties();
+		loadArtificatId();
 		loadProperties();
-		Element root = document.getRootElement();
-		if (root.element("artifactId") == null ) {
-			throw new UnsupportedProjectException("pom has no artifactId element.");
-		}
-		artificatId = root.element("artifactId").getTextTrim();
-		if (artificatId == null || "".equals(artificatId)) {
-			throw new UnsupportedProjectException("artifactId element has no value.");
-		}
+		loadPackaging();
+		loadResourceDirs();
 	}
 	
 	public String getArtifactId() {
@@ -51,21 +50,85 @@ public class PomXmlParser extends AbstractXmlParser {
 	public boolean artifactIdEquals(String str) {
 		return artificatId.equals(str);
 	}
+	
+	private void loadArtificatId() {
+		Element root = document.getRootElement();
+		if (root.element("artifactId") == null ) {
+			throw new UnsupportedProjectException("pom has no artifactId element.");
+		}
+		artificatId = root.element("artifactId").getTextTrim();
+		if (TextUtil.isEmpty(artificatId)) {
+			throw new UnsupportedProjectException("artifactId element has no value.");
+		}	
+	}
+
+	private void loadPackaging() {
+		Element e = document.getRootElement().element("packaging");
+		if (e != null) {
+			packaging = e.getTextTrim();
+			if ("".equals(packaging)) {
+				throw new UnsupportedProjectException("packaging element has no value.");
+			}
+		}
+	}
+
+	private String filterDirectoryValue(Element directoryElement) {
+		if (directoryElement == null) {
+			return null;
+		}
+		String directoryText = directoryElement.getTextTrim();
+		if (TextUtil.isEmpty(directoryText)) {
+			return null;
+		}
+		List<String> placeholders = PropertyUtil.placeholdersFrom(directoryText);
+		for (String placeholder: placeholders) {
+			String value = properties.get(PropertyUtil.valueOfPlaceholder(placeholder));
+			if (value != null) {
+				directoryText = directoryText.replace(placeholder, value);
+			}
+		}
+		return directoryText;
+	}
+	
+	private void loadResourceDirs() {
+		resourceDirs = new HashSet<String>();
+		if (packaging == null) {
+			return;
+		}
+		resourceDirs.add("src/main/resources");
+		Element build = document.getRootElement().element("build");
+		if (build == null) {
+			return;
+		}
+		Element resources = build.element("resources");
+		if (resources == null) {
+			return;
+		}
+		List<Element> resourceList = resources.elements("resource");
+		for (Element resource: resourceList) {
+			Element directoryElement = resource.element("directory");
+			String directory = filterDirectoryValue(directoryElement);
+			if (directory != null) {
+				resourceDirs.add(directory);
+			}
+		}
+	}
+
 
 	private void loadProperties() {
 		properties = new HashMap<String, String>();
 		Element root = document.getRootElement();
 		Element propertiesElement = root.element("properties");
-		if (propertiesElement == null) {
-			return;
-		}
-		for (Element e: propertiesElement.elements()) {
-			if (e.getTextTrim() != null && !"".equals(e.getTextTrim())) {
-				properties.put(e.getName(), e.getTextTrim());
+		if (propertiesElement != null) {
+			for (Element e: propertiesElement.elements()) {
+				if (!TextUtil.isEmpty(e.getTextTrim())) {
+					properties.put(e.getName().trim(), e.getTextTrim());
+				}
 			}
 		}
+		loadProfileProperties();
 	}
-	
+
 	private boolean isProfileActive(Element profileElement) {
 		Element activation = profileElement.element("activation");
 		if (activation == null) {
@@ -75,9 +138,9 @@ public class PomXmlParser extends AbstractXmlParser {
 		if (activeByDefault == null || activeByDefault.getText() == null) {
 			return false;
 		}
-		return "true".equals(activeByDefault.getText().trim());
+		return "true".equals(activeByDefault.getTextTrim());
 	}
-	
+
 	private void loadProfileProperties() {
 		Element root = document.getRootElement();
 		Element profilesElement = root.element("profiles");
@@ -92,7 +155,7 @@ public class PomXmlParser extends AbstractXmlParser {
 			Element propertiesElement = profileElement.element("properties");
 			for (Element property: propertiesElement.elements()) {
 				if (property.getText() != null && !"".equals(property.getTextTrim())) {
-					profileProperties.put(property.getName(), property.getTextTrim());
+					properties.put(property.getName().trim(), property.getTextTrim());
 				}
 			}
 		}
@@ -114,24 +177,17 @@ public class PomXmlParser extends AbstractXmlParser {
 		}
 		return true;
 	}
-	
-	private String getDefinedVersion(String versionPlaceholder) {
-		Pattern pattern = Pattern.compile("\\$\\{([\\.a-zA-z1-9]+)\\}");
-		Matcher matcher = pattern.matcher(versionPlaceholder);
-		if (!matcher.find()) {
-			return null;
-		}
-		String version = matcher.group(1);
-		return properties.get(version);
-	}
 
 	private String glueVersion(Element dependencyElement) {
 		Element versionElement = dependencyElement.element(VERSION_TAG);
-		String version = versionElement.getTextTrim();
-		if (version.startsWith("${")) {
-			version = getDefinedVersion(version);
+		if (versionElement == null) {
+			return null;
 		}
-		if (version == null) {
+		String version = versionElement.getTextTrim();
+		if (PropertyUtil.isPlaceholder(version)) {
+			version = getProperty(PropertyUtil.valueOfPlaceholder(version));
+		}
+		if (TextUtil.isEmpty(version)) {
 			return null;
 		}
 		StringBuilder builder = new StringBuilder();
@@ -185,8 +241,12 @@ public class PomXmlParser extends AbstractXmlParser {
 	 * @param name property name
 	 * @return the property if found, null else.
 	 */
-	public String getProfileProperty(String name) {
+	public String getProperty(String name) {
 		Expect.notEmpty(name, "name must not be empty.");
-		return profileProperties.get(name);
+		return properties.get(name);
+	}
+	
+	public Set<String> getResourceDirs() {
+		return resourceDirs;
 	}
 }

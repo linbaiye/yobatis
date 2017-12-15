@@ -23,6 +23,7 @@ import org.nalby.yobatis.structure.PropertiesParser;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
+import org.nalby.yobatis.util.PropertyUtil;
 import org.nalby.yobatis.xml.MybatisXmlParser;
 import org.nalby.yobatis.xml.WebXmlParser;
 
@@ -32,11 +33,11 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	
 	private String searchProperty(PropertiesParser propertiesParser, 
 			PomParser pomParser, String property) {
-		if (!PropertiesParser.isPlaceholder(property)) {
+		if (!PropertyUtil.isPlaceholder(property)) {
 			return property;
 		}
 		String tmp = propertiesParser.getProperty(property);
-		return PropertiesParser.isPlaceholder(tmp) ? pomParser.getProfileProperty(tmp) : tmp;
+		return PropertyUtil.isPlaceholder(tmp) ? pomParser.getProperty(tmp) : tmp;
 	}
 	
 	/**

@@ -10,6 +10,7 @@ import org.dom4j.DocumentException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.util.Expect;
+import org.nalby.yobatis.util.PropertyUtil;
 import org.nalby.yobatis.xml.PomXmlParser;
 
 /**
@@ -24,6 +25,8 @@ public class PomParser {
 	private Project project;
 	
 	private List<PomXmlParser> pomXmlParsers;
+	
+	private static final String DEFAULT_CLASSPATH_SUBSTR = "src/main/resources";
 
 	public PomParser(Project project) {
 		try {
@@ -70,11 +73,11 @@ public class PomParser {
 	 * @param name property name
 	 * @return the property value if found, null else.
 	 */
-	public String getProfileProperty(String name) {
+	public String getProperty(String name) {
 		Expect.notEmpty(name, "name must not be empty.");
-		String key = PropertiesParser.valueOfPlaceholder(name);
+		String key = PropertyUtil.valueOfPlaceholder(name);
 		for (PomXmlParser parser : pomXmlParsers) {
-			String tmp = parser.getProfileProperty(key);
+			String tmp = parser.getProperty(key);
 			if (tmp != null) {
 				return tmp;
 			}
