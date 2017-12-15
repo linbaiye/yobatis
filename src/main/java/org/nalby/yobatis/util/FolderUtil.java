@@ -26,5 +26,15 @@ public final class FolderUtil {
 		Expect.notEmpty(filepath, "filepath must not be null.");
 		return filepath.replaceFirst("^.*/([^/]*)$", "$1");
 	}
+	
+	
+	public static String concatPath(String base, String appending) {
+		Expect.notEmpty(base, "base must not be null.");
+		Expect.notEmpty(base, "appending must not be null.");
+		if (appending.startsWith("/")) {
+			return base + appending;
+		}
+		return base + "/" + appending;
+	}
 
 }

@@ -1,10 +1,8 @@
 package org.nalby.yobatis.util;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,6 +29,11 @@ public final class PropertyUtil {
 		return tmp.trim();
 	}
 	
+	/**
+	 * Test if the str contains any placeholder.
+	 * @param str the string to test
+	 * @return true if so, false else.
+	 */
 	public static boolean containsPlaceholder(String str) {
 		if (TextUtil.isEmpty(str)) {
 			return false;

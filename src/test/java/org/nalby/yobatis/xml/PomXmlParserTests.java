@@ -110,25 +110,6 @@ public class PomXmlParserTests {
 			new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
 	}
 	
-	@Test(expected = UnsupportedProjectException.class)
-	public void testEmptyArtifactId() throws DocumentException, IOException {
-		String xml = "<project><artifactId></artifactId><profiles><profile><id>develop</id><activation><activeByDefault>true</activeByDefault>"
-				+ "</activation><properties><uplending.jdbc.datasource.type>test</uplending.jdbc.datasource.type>"
-				+ "<type>test</type>" + 
-		    "</properties></profile></profiles></project>";
-		new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
-	}
-	
-	@Test
-	public void testArtifactId() throws DocumentException, IOException {
-		String xml = "<project><artifactId>test</artifactId><profiles><profile><id>develop</id><activation><activeByDefault>true</activeByDefault>"
-				+ "</activation><properties><uplending.jdbc.datasource.type>test</uplending.jdbc.datasource.type>"
-				+ "<type>test</type>" + 
-		    "</properties></profile></profiles></project>";
-		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		assertTrue(parser.artifactIdEquals("test"));
-	}
-	
 	@Test
 	public void resourceDirsWithoutPackaging() throws DocumentException, IOException {
 		String xml = "<project>\n" + 
@@ -187,7 +168,7 @@ public class PomXmlParserTests {
 	}
 	
 	@Test
-	public void resourceDirsWithResolvablePlaceholder() throws DocumentException, IOException {
+	public void resourceDirsWithSolvablePlaceholder() throws DocumentException, IOException {
 		String xml = "<project>\n" + 
 				"    <modelVersion>4.0.0</modelVersion>\n" + 
 				"    <groupId>test</groupId>\n" + 
@@ -215,13 +196,16 @@ public class PomXmlParserTests {
 				"        <resource>\n" + 
 				"            <directory>src/main/${dir}${dir1}</directory>\n" + 
 				"        </resource>\n" + 
+				"        <resource>\n" + 
+				"            <directory>src/${dir}/${dir}</directory>\n" + 
+				"        </resource>\n" + 
 				"      </resources>\n" + 
 				"    </build>\n" + 
 				"</project>"; 
 		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
 		Set<String> dirs = parser.getResourceDirs();
 		assertStringsInSet(dirs, "src/main/dirx/xxx", "src/test", "src/main/test",
-				"src/main/resources", "src/main/testsrc/test");
+				"src/main/resources", "src/main/testsrc/test", "src/test/test");
 	}
 	
 	//Profile properties must take precedence over normal properties.
@@ -269,4 +253,121 @@ public class PomXmlParserTests {
 		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
 		assertTrue("dev".equals(parser.getProperty("test")));
 	}
+	
+	
+	//Drop unsolvable placehodler.
+	@Test
+	public void resourceDirsWithUnsolvablePlaceholder() throws DocumentException, IOException {
+		String xml = "<project>\n" + 
+				"    <modelVersion>4.0.0</modelVersion>\n" + 
+				"    <groupId>test</groupId>\n" + 
+				"    <artifactId>test</artifactId>\n" + 
+				"    <version>1.3.0</version>\n" + 
+				"    <packaging>war</packaging>\n" + 
+				"    <properties>\n" + 
+				"		<dir>test</dir>\n" + 
+				"		<dir1>src/test</dir1>\n" + 
+				"	 </properties>\n" +
+				"    <name>test</name>\n" + 
+				"    <url>test</url>\n" + 
+				"    <build>\n" + 
+				"      <resources>\n" + 
+				"        <resource>\n" + 
+				"            <directory>src/main/${dir}</directory>\n" + 
+				"        </resource>\n" + 
+				"        <resource>\n" + 
+				"            <directory>src/main/resources</directory>\n" + 
+				"        </resource>\n" + 
+				"        <resource>\n" + 
+				"            <directory>src/xxx/${dir2}/xxx</directory>\n" + 
+				"        </resource>\n" + 
+				"      </resources>\n" + 
+				"    </build>\n" + 
+				"</project>"; 
+		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		Set<String> dirs = parser.getResourceDirs();
+		assertTrue(dirs.size() == 2);
+		assertStringsInSet(dirs, "src/main/test", "src/main/resources");
+	}
+	
+	@Test
+	public void noModule() throws DocumentException, IOException {
+		String xml = "<project>\n" + 
+				"  <modelVersion>4.0.0</modelVersion>\n" + 
+				"  <groupId>test</groupId>\n" + 
+				"  <artifactId>test</artifactId>\n" + 
+				"  <packaging>war</packaging>\n" + 
+				"  <version>1.3.0</version>\n" + 
+				"  <name>test</name>\n" + 
+				"  <url>test</url>\n" + 
+				"  <modules>\n" + 
+				"  </modules>\n" + 
+				"</project>\n";
+		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertTrue(parser.getModuleNames().isEmpty());
+	}
+	
+	@Test
+	public void modules() throws DocumentException, IOException {
+		String xml = "<project>\n" + 
+				"  <modelVersion>4.0.0</modelVersion>\n" + 
+				"  <groupId>test</groupId>\n" + 
+				"  <artifactId>test</artifactId>\n" + 
+				"  <packaging>war</packaging>\n" + 
+				"  <version>1.3.0</version>\n" + 
+				"  <name>test</name>\n" + 
+				"  <url>test</url>\n" + 
+				"  <modules>\n" + 
+				"    <module>hello</module>\n" + 
+				"    <module>world</module>\n" + 
+				"  </modules>\n" + 
+				"</project>\n" + 
+				"";
+		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertStringsInSet(parser.getModuleNames(), "hello", "world");
+	}
+	
+	
+	@Test
+	public void isContainer() throws DocumentException, IOException {
+		String xml = "<project>\n" + 
+				"  <modelVersion>4.0.0</modelVersion>\n" + 
+				"  <groupId>test</groupId>\n" + 
+				"  <artifactId>test</artifactId>\n" + 
+				"  <version>1.3.0</version>\n" + 
+				"  <name>test</name>\n" + 
+				"  <url>test</url>\n" + 
+				"</project>\n";
+		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertTrue(parser.isContainer());
+
+		xml = "<project>\n" + 
+				"  <modelVersion>4.0.0</modelVersion>\n" + 
+				"  <groupId>test</groupId>\n" + 
+				"  <artifactId>test</artifactId>\n" + 
+				"  <packaging></packaging>\n" + 
+				"  <version>1.3.0</version>\n" + 
+				"  <name>test</name>\n" + 
+				"  <url>test</url>\n" + 
+				"</project>\n";
+		parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertTrue(parser.isContainer());
+	}
+	
+	@Test
+	public void isNotContainer() throws DocumentException, IOException {
+		String xml = "<project>\n" + 
+				"  <modelVersion>4.0.0</modelVersion>\n" + 
+				"  <groupId>test</groupId>\n" + 
+				"  <artifactId>test</artifactId>\n" + 
+				"  <packaging>war</packaging>\n" + 
+				"  <version>1.3.0</version>\n" + 
+				"  <name>test</name>\n" + 
+				"  <url>test</url>\n" + 
+				"</project>\n";
+		PomXmlParser parser = new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertFalse(parser.isContainer());
+	}
+	
+	
 }

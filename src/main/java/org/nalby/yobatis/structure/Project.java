@@ -17,7 +17,7 @@ import org.nalby.yobatis.exception.ResourceNotFoundException;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.FolderUtil;
 
-public abstract class Project {
+public abstract class Project implements Folder {
 	
 	protected Folder root;
 	
@@ -219,13 +219,13 @@ public abstract class Project {
 		});
 	}
 	
-	
 	private String[] splitPath(String path) {
 		Expect.notEmpty(path, "path must not be null.");
 		path = convertToProjectPath(path);
 		return path.split("/");
 	}
 
+	@Override
 	public boolean containsFile(String path) {
 		String[] tokens = splitPath(path);
 		try {
@@ -246,8 +246,13 @@ public abstract class Project {
 		}
 		return false;
 	}
-
 	
+	@Override
+	public List<Folder> getSubFolders() {
+		return this.root.getSubFolders();
+	}
+	
+	@Override
 	public void writeFile(String path, String content) {
 		Expect.notEmpty(content, "content must not be null.");
 		String[] tokens = splitPath(path);
@@ -263,5 +268,30 @@ public abstract class Project {
 				folder = folder.createFolder(tokens[i]);
 			}
 		}
+	}
+	
+	@Override
+	public String path() {
+		return root.path();
+	}
+
+	@Override
+	public boolean containsFolders() {
+		return root.containsFolders();
+	}
+
+	@Override
+	public String name() {
+		return root.name();
+	}
+
+	@Override
+	public Folder createFolder(String folderName) {
+		return root.createFolder(folderName);
+	}
+
+	@Override
+	public Folder findFolder(String folderName) {
+		return root.findFolder(folderName);
 	}
 }

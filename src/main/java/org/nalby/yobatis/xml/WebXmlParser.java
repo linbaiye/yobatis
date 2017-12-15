@@ -2,15 +2,14 @@ package org.nalby.yobatis.xml;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.LinkedList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
-import org.nalby.yobatis.structure.Folder;
-import org.nalby.yobatis.structure.Project;
-import org.nalby.yobatis.structure.Project.FolderSelector;
+import org.nalby.yobatis.util.TextUtil;
 
 public class WebXmlParser extends AbstractXmlParser {
 
@@ -71,7 +70,7 @@ public class WebXmlParser extends AbstractXmlParser {
 		String result = null;
 		for (Element it: selectElements(CONTEXT_PARAM_TAG)) {
 			String paramValue = getParamValue(it);
-			if (paramValue == null || "".equals(paramValue.trim())) {
+			if (TextUtil.isEmpty(paramValue)) {
 				continue;
 			}
 			if (result != null) {
@@ -102,7 +101,7 @@ public class WebXmlParser extends AbstractXmlParser {
 			}
 			for (Element initParam: initParamElements) {
 				String value = getParamValue(initParam);
-				if (value == null || "".equals(value.trim())) {
+				if (TextUtil.isEmpty(value)) {
 					continue;
 				}
 				if (result != null) {
@@ -117,11 +116,9 @@ public class WebXmlParser extends AbstractXmlParser {
 	/**
 	 * Get spring's configuration files.
 	 * @return configuration files if found.
-	 * @throws UnsupportedProjectException if this project is out of scope, for instance, no spring's configuration or more
-	 * that 2 configuration files found.
 	 */
-	public List<String> getSpringConfigLocations() {
-		List<String> result = new LinkedList<String>();
+	public Set<String> getSpringInitParamValues() {
+		Set<String> result = new HashSet<String>();
 		String tmp = getAppConfigLocation();
 		if (tmp != null) {
 			result.add(tmp);
@@ -130,38 +127,7 @@ public class WebXmlParser extends AbstractXmlParser {
 		if (tmp != null) {
 			result.add(tmp);
 		}
-		if (result.isEmpty()) {
-			throw new UnsupportedProjectException("Unable to find spring's config files.");
-		}
 		return result;
-	}
-	
-	
-	public static WebXmlParser build(Project project) {
-		List<Folder> folders = project.findFolders(new FolderSelector() {
-			@Override
-			public boolean isSelected(Folder folder) {
-				return  folder.path().contains("src/main/webapp/WEB-INF") && folder.containsFile("web.xml");
-			}
-		});
-		if (folders.isEmpty()) {
-			throw new UnsupportedProjectException("Unable to find web.xml");
-		}
-		if (folders.size() > 1) {
-			throw new UnsupportedProjectException(folders.size() + " web.xml found.");
-		}
-		Folder folder = folders.get(0);
-		InputStream inputStream = null;
-		try {
-			inputStream = project.getInputStream(folder.path() + "/web.xml");
-			return new WebXmlParser(inputStream);
-		} catch (IOException e) {
-			throw new UnsupportedProjectException(e);
-		} catch (DocumentException e) {
-			throw new UnsupportedProjectException(e);
-		} finally {
-			project.closeInputStream(inputStream);
-		}
 	}
 	
 }

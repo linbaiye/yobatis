@@ -19,24 +19,22 @@ import org.nalby.yobatis.sql.mysql.Mysql.Builder;
 import org.nalby.yobatis.structure.LogFactory;
 import org.nalby.yobatis.structure.Logger;
 import org.nalby.yobatis.structure.PomParser;
-import org.nalby.yobatis.structure.PropertiesParser;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SpringParser;
+import org.nalby.yobatis.structure.WebContainerParser;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
 import org.nalby.yobatis.util.PropertyUtil;
 import org.nalby.yobatis.xml.MybatisXmlParser;
-import org.nalby.yobatis.xml.WebXmlParser;
 
 public class YobatisGenerationHandler extends AbstractHandler {
 	
 	private Logger logger = LogFactory.getLogger(this.getClass());
 	
-	private String searchProperty(PropertiesParser propertiesParser, 
-			PomParser pomParser, String property) {
+	private String searchPomPropertyIfNecessary(PomParser pomParser, String property) {
 		if (!PropertyUtil.isPlaceholder(property)) {
 			return property;
 		}
-		String tmp = propertiesParser.getProperty(property);
+		String tmp = pomParser.getProperty(property);
 		return PropertyUtil.isPlaceholder(tmp) ? pomParser.getProperty(tmp) : tmp;
 	}
 	
@@ -44,23 +42,22 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	 *  Build the generator of mybatis-generator's config file according to project config.
 	 */
 	private MybatisConfigFileGenerator buildMybatisGeneratorConfigMaker(Project project) {
-		WebXmlParser webXmlParser = WebXmlParser.build(project);
 		PomParser pomParser = new PomParser(project);
-		SpringParser springParser = new SpringParser(project,
-				webXmlParser.getSpringConfigLocations());
-		PropertiesParser propertiesParser = 
-				new PropertiesParser(project, springParser.getPropertiesFilePaths());
+
+		WebContainerParser webContainerParser = new WebContainerParser(project, 
+				pomParser.getWebappPaths());
+
+		SpringParser springParser = new SpringParser(project, 
+				pomParser.getResourcePaths(), pomParser.getWebappPaths(), 
+				webContainerParser.getSpringInitParamValues());
 		
-		String username = searchProperty(propertiesParser, pomParser,
-				springParser.getDatabaseUsername());
+		String username = searchPomPropertyIfNecessary(pomParser, springParser.getDatabaseUsername());
 
-		String password = searchProperty(propertiesParser, pomParser,
-				springParser.getDatabasePassword());
+		String password = searchPomPropertyIfNecessary(pomParser, springParser.getDatabasePassword());
 
-		String url = searchProperty(propertiesParser, pomParser,
-				springParser.getDatabaseUrl());
+		String url = searchPomPropertyIfNecessary(pomParser, springParser.getDatabaseUrl());
 
-		String driverClassName = searchProperty(propertiesParser, pomParser,
+		String driverClassName = searchPomPropertyIfNecessary(pomParser,
 				springParser.getDatabaseDriverClassName());
 
 		String dbJarPath = pomParser.getDatabaseJarPath(driverClassName);

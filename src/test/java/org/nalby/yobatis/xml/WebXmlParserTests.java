@@ -5,11 +5,12 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.List;
+import java.util.Set;
 
 import org.dom4j.DocumentException;
 import org.junit.Test;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
+import org.nalby.yobatis.util.TestUtil;
 
 public class WebXmlParserTests {
 
@@ -32,43 +33,38 @@ public class WebXmlParserTests {
 	@Test(expected = UnsupportedProjectException.class)
 	public void testInvalidContextParam() throws IOException, DocumentException  {
 		WebXmlParser parser = new WebXmlParser(new ByteArrayInputStream("<web-app></web-app>".getBytes()));
-		try {
-			parser.getSpringConfigLocations();
-			fail();
-		}  catch (UnsupportedProjectException e) {
-			//expected.
-		}
+		assertTrue(parser.getSpringInitParamValues().isEmpty());
 		String xml = "<web-app>"
 				+ "<context-param><param-name>contextConfigLocation</param-name><param-value>test</param-value></context-param>"
 				+ "<context-param><param-name>contextConfigLocation</param-name><param-value>test</param-value></context-param>"
 				+ "</web-app>";
 		parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		parser.getSpringConfigLocations();
+		parser.getSpringInitParamValues();
 	}
 	
-	@Test(expected = UnsupportedProjectException.class)
-	public void testExpectedContextParam() throws IOException, DocumentException {
+	@Test
+	public void validContextParam() throws IOException, DocumentException {
 		String xml = "<web-app>"
 				+ "<context-param><param-name>contextConfigLocation</param-name><param-value>test</param-value></context-param>"
 				+ "</web-app>";
 		WebXmlParser parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		List<String> result = parser.getSpringConfigLocations();
-		assertTrue(result.size() == 1 && result.get(0).equals("test"));
+		Set<String> result = parser.getSpringInitParamValues();
+		TestUtil.assertCollectionSizeAndStringsIn(result, 1, "test");
 		
-		//It's ok not to configure contextConfigLocation.
-		xml = "<web-app><context-param></context-param></web-app>";
-		parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		//Let it throw.
-		parser.getSpringConfigLocations();
+
 	}
-	
-	@Test(expected = UnsupportedProjectException.class)
-	public void testEmptyValueInServletConfig() throws DocumentException, IOException {
+
+	@Test
+	public void emptyServletInitParam() throws DocumentException, IOException {
 		String xml = "<web-app>"
 				+ "<servlet><servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>"
 				+ "</servlet></web-app>";
 		WebXmlParser parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		parser.getSpringConfigLocations();
+		assertTrue(parser.getSpringInitParamValues().isEmpty());
+
+		xml = "<web-app><context-param></context-param></web-app>";
+		parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertTrue(parser.getSpringInitParamValues().isEmpty());
 	}
 
 	@Test(expected = UnsupportedProjectException.class)
@@ -79,12 +75,7 @@ public class WebXmlParserTests {
 				+ "<init-param><param-name>contextConfigLocation</param-name><param-value></param-value></init-param>"
 				+ "</servlet></web-app>";
 		WebXmlParser parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		try {
-			parser.getSpringConfigLocations();
-			fail();
-		} catch (UnsupportedProjectException e) {
-			//Expected.
-		}
+		assertTrue(parser.getSpringInitParamValues().isEmpty());
 		xml = "<web-app>"
 				+ "<servlet><servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>"
 				+ "<init-param><param-name>contextConfigLocation</param-name><param-value>path</param-value></init-param>"
@@ -94,7 +85,7 @@ public class WebXmlParserTests {
 				+ "</servlet>"
 				+ "</web-app>";
 		parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		parser.getSpringConfigLocations();
+		parser.getSpringInitParamValues();
 	}
 
 	@Test
@@ -104,8 +95,8 @@ public class WebXmlParserTests {
 				+ "<init-param><param-name>contextConfigLocation</param-name><param-value>loc1</param-value></init-param>"
 				+ "</servlet></web-app>";
 		WebXmlParser parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		List<String> result = parser.getSpringConfigLocations();
-		assertTrue(result.size() == 1 && "loc1".equals(result.get(0)));
+		Set<String> result = parser.getSpringInitParamValues();
+		TestUtil.assertCollectionSizeAndStringsIn(result, 1, "loc1");
 	}
 	
 	@Test
@@ -116,8 +107,8 @@ public class WebXmlParserTests {
 				+ "<init-param><param-name>contextConfigLocation</param-name><param-value>loc1</param-value></init-param>"
 				+ "</servlet></web-app>";
 		WebXmlParser parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		List<String> result = parser.getSpringConfigLocations();
-		assertTrue(result.size() == 2 && "test".equals(result.get(0)) && "loc1".equals(result.get(1)));
+		Set<String> result = parser.getSpringInitParamValues();
+		TestUtil.assertCollectionSizeAndStringsIn(result, 2, "test", "loc1");
 	}
 	
 	@Test
@@ -134,12 +125,13 @@ public class WebXmlParserTests {
 				"</web-app>\n" + 
 				"";
 		WebXmlParser parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		List<String> result = parser.getSpringConfigLocations();
+		Set<String> result = parser.getSpringInitParamValues();
 		assertTrue(result.size() == 1);
-		String tmp = result.get(0);
-		assertTrue(tmp.contains("test"));
-		assertTrue(tmp.contains("test1"));
-		assertTrue(tmp.contains("path"));
+		for (String tmp : result) {
+			assertTrue(tmp.contains("test"));
+			assertTrue(tmp.contains("test1"));
+			assertTrue(tmp.contains("path"));
+		}
 	}
 
 }
