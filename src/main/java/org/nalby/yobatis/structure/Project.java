@@ -294,4 +294,9 @@ public abstract class Project implements Folder {
 	public Folder findFolder(String folderName) {
 		return root.findFolder(folderName);
 	}
+
+	@Override
+	public Set<String> getFilenames() {
+		return root.getFilenames();
+	}
 }

@@ -1,6 +1,7 @@
 package org.nalby.yobatis.structure;
 
 import java.util.List;
+import java.util.Set;
 
 public interface Folder {
 	
@@ -56,4 +57,11 @@ public interface Folder {
 	 * @throws ResourceNotFoundException if not found.
 	 */
 	public Folder findFolder(String folderName);
+	
+
+	/**
+	 * Get the names of the files under this folder directly.
+	 * @return the file names.
+	 */
+	public Set<String> getFilenames();
 }

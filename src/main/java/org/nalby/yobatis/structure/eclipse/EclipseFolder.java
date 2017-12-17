@@ -3,8 +3,10 @@ package org.nalby.yobatis.structure.eclipse;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -15,6 +17,7 @@ import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.exception.ResourceNotFoundException;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.util.Expect;
+import org.nalby.yobatis.util.TextUtil;
 
 public  class EclipseFolder implements Folder {
 
@@ -23,6 +26,8 @@ public  class EclipseFolder implements Folder {
 	private String path;
 	
 	private List<Folder> subFolders;
+	
+	private Set<String> filenames;
 
 	public EclipseFolder(String parentPath, IResource wrapped) {
 		Expect.notNull(parentPath, "parent path not be null.");
@@ -73,7 +78,7 @@ public  class EclipseFolder implements Folder {
 
 	@Override
 	public boolean containsFile(String name) {
-		if (name == null || "".equals(name.trim())) {
+		if (TextUtil.isEmpty(name)) {
 			return false;
 		}
 		IFile file = null;
@@ -167,6 +172,30 @@ public  class EclipseFolder implements Folder {
 			}
 			return findFolder(folderName);
 		} catch (CoreException e) {
+			throw new ProjectException(e);
+		}
+	}
+
+	@Override
+	public Set<String> getFilenames() {
+		if (filenames != null) {
+			return filenames;
+		}
+		filenames = new HashSet<String>();
+		try {
+			IResource[] resources = null;
+			if (wrappedFolder instanceof IProject) {
+				resources = ((IProject) wrappedFolder).members();
+			} else {
+				resources = ((IFolder) wrappedFolder).members();
+			}
+			for (IResource resource: resources) {
+				if (resource.getType() == IResource.FILE) {
+					filenames.add(resource.getName());
+				}
+			}
+			return filenames;
+		} catch (Exception e) {
 			throw new ProjectException(e);
 		}
 	}
