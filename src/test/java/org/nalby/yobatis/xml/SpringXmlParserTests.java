@@ -4,11 +4,11 @@ import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 
 import org.dom4j.DocumentException;
 import org.junit.Test;
+import org.nalby.yobatis.util.TestUtil;
 
 public class SpringXmlParserTests {
 	private final static String[] DATASOURCE_CLASSES = {"org.apache.commons.dbcp.BasicDataSource", "com.alibaba.druid.pool.DruidDataSource"};
@@ -55,10 +55,11 @@ public class SpringXmlParserTests {
 	
 	@Test
 	public void testImported() throws DocumentException, IOException { 
-		String xml = "<beans><import resource=\"classpath:test.config\"/></beans>";
+		String xml = "<beans><import resource=\"classpath:test.config\"/><import resource=\"test.config\"/></beans>";
 		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
-		List<String> importedConfigFiles = parser.getImportedConfigFiles();
-		assertTrue(importedConfigFiles.size() == 1 && importedConfigFiles.get(0).equals("classpath:test.config"));
+		Set<String> importedConfigFiles = parser.getImportedLocations();
+		TestUtil.assertCollectionSizeAndStringsIn(importedConfigFiles, 2, "test.config",
+				"classpath:test.config");
 	}
 	
 	@Test
