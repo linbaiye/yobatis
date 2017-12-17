@@ -30,14 +30,6 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	
 	private Logger logger = LogFactory.getLogger(this.getClass());
 	
-	private String searchPomPropertyIfNecessary(PomParser pomParser, String property) {
-		if (!PropertyUtil.isPlaceholder(property)) {
-			return property;
-		}
-		String tmp = pomParser.getProperty(property);
-		return PropertyUtil.isPlaceholder(tmp) ? pomParser.getProperty(tmp) : tmp;
-	}
-	
 	/**
 	 *  Build the generator of mybatis-generator's config file according to project config.
 	 */
@@ -45,20 +37,18 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		PomParser pomParser = new PomParser(project);
 
 		WebContainerParser webContainerParser = new WebContainerParser(project, 
-				pomParser.getWebappPaths());
+				pomParser.getWebappFolder());
 
-		SpringParser springParser = new SpringParser(project, 
-				pomParser.getResourcePaths(), pomParser.getWebappPaths(), 
+		SpringParser springParser = new SpringParser(project, pomParser, 
 				webContainerParser.getSpringInitParamValues());
-		
-		String username = searchPomPropertyIfNecessary(pomParser, springParser.getDatabaseUsername());
 
-		String password = searchPomPropertyIfNecessary(pomParser, springParser.getDatabasePassword());
+		String username = springParser.getDatabaseUsername();
 
-		String url = searchPomPropertyIfNecessary(pomParser, springParser.getDatabaseUrl());
+		String password = springParser.getDatabasePassword();
 
-		String driverClassName = searchPomPropertyIfNecessary(pomParser,
-				springParser.getDatabaseDriverClassName());
+		String url = springParser.getDatabaseUrl();
+
+		String driverClassName = springParser.getDatabaseDriverClassName();
 
 		String dbJarPath = pomParser.getDatabaseJarPath(driverClassName);
 

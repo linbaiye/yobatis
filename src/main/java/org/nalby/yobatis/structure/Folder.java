@@ -24,7 +24,7 @@ public interface Folder {
 	public String name();
 	
 	/**
-	 * Get folders contained by this folder.
+	 * Get folders of depth one contained by this folder.
 	 * @return the folders if any, or an empty list if none.
 	 */
 	public  List<Folder> getSubFolders();
@@ -64,4 +64,18 @@ public interface Folder {
 	 * @return the file names.
 	 */
 	public Set<String> getFilenames();
+	
+	
+	/**
+	 * Get all folders contained by this folder of any depth.
+	 * @return folders if any, empty set else.
+	 */
+	public Set<Folder> getAllFolders();
+
+	/**
+	 * Get all files' paths under this folder.
+	 * @return files' paths if found, or empty set.
+	 */
+	public Set<String> getAllFilepaths();
+	
 }

@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -17,6 +18,7 @@ import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.exception.ResourceNotFoundException;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.util.Expect;
+import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.util.TextUtil;
 
 public  class EclipseFolder implements Folder {
@@ -26,8 +28,12 @@ public  class EclipseFolder implements Folder {
 	private String path;
 	
 	private List<Folder> subFolders;
+
+	private Set<Folder> allSubFolders;
 	
 	private Set<String> filenames;
+	
+	private Set<String> filepaths;
 
 	public EclipseFolder(String parentPath, IResource wrapped) {
 		Expect.notNull(parentPath, "parent path not be null.");
@@ -47,10 +53,6 @@ public  class EclipseFolder implements Folder {
 		}
 		for (IResource resource : resources) {
 			if (resource.getType() == IResource.FOLDER) {
-				if (("target".equals(resource.getName()) || "bin".equals(resource.getName()))
-					&& this.containsFile("pom.xml")) {
-					continue;
-				}
 				subFolders.add(new EclipseFolder(this.path, (IFolder) resource));
 			}
 		}
@@ -136,7 +138,7 @@ public  class EclipseFolder implements Folder {
 			throw new ProjectException(e);
 		}
 	}
-
+	
 	@Override
 	public Folder findFolder(String folderName) {
 		Expect.asTrue(folderName != null && folderName.indexOf("/") == -1, "filename must not contain '/'.");
@@ -199,4 +201,42 @@ public  class EclipseFolder implements Folder {
 			throw new ProjectException(e);
 		}
 	}
+	
+	@Override
+	public Set<Folder> getAllFolders() {
+		if (allSubFolders != null) {
+			return allSubFolders;
+		}
+		allSubFolders = new HashSet<Folder>();
+		Stack<Folder> stack = new Stack<Folder>();
+		stack.push(this);
+		while (!stack.isEmpty()) {
+			Folder folder = stack.pop();
+			List<Folder> folders = folder.getSubFolders();
+			for (Folder item: folders) {
+				allSubFolders.add(item);
+				stack.push(item);
+			}
+		}
+		return allSubFolders;
+	}
+
+	@Override
+	public Set<String> getAllFilepaths() {
+		if (filepaths != null) {
+			return filepaths;
+		}
+		filepaths = new HashSet<String>();
+		for (String name: getFilenames()) {
+			filepaths.add(FolderUtil.concatPath(this.path, name));
+		}
+		getAllFolders();
+		for (Folder item: allSubFolders) {
+			for (String name: item.getFilenames()) {
+				filepaths.add(FolderUtil.concatPath(item.path(), name));
+			}
+		}
+		return filepaths;
+	}
+
 }

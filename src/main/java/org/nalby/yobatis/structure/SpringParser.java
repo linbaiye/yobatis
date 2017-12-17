@@ -1,7 +1,6 @@
 package org.nalby.yobatis.structure;
 
 import java.io.InputStream;
-import java.util.AbstractMap.SimpleEntry;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -9,8 +8,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.nalby.yobatis.exception.UnsupportedProjectException;
+import org.nalby.yobatis.util.AntPathMatcher;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.util.PropertyUtil;
@@ -28,41 +29,53 @@ public class SpringParser {
 
 	private List<SpringXmlParser> springXmlParsers;
 	
-	private Set<String> propertiesFileLocations;
-	
-	private Set<String> webappPaths;
-
-	private Set<String> resourcePaths;
+	private Set<Folder> resourceFolders;
 
 	private Map<String, String> valuedProperties;
+	
+	private Folder webappFolder;
+	
+	private PomParser pomParser;
 
+	private AntPathMatcher antPathMatcher;
+	
+	private Set<String> resourceFilepaths;
+	
 	private Logger logger = LogFactory.getLogger(this.getClass());
 	
 	/**
 	 * Construct a {@code SpringParser} that analyzes the spring files.
 	 * @param project see {@link org.nalby.yobatis.structure.Project}
-	 * <p>
-	 * @param resourcePaths The paths that 'classpath' fits.
-	 * <p>
-	 * @param webappPaths The projects' webapp paths, should be only one currently.
-	 * <p>
+	 * @param pomParser 
 	 * @param initParamValues The param-value in web.xml, including servlet and application
 	 * context.
 	 */
-	public SpringParser(Project project, Set<String> resourcePaths, 
-			Set<String> webappPaths, Set<String> initParamValues) {
+	public SpringParser(Project project, PomParser pomParser, Set<String> initParamValues) {
 		Expect.notNull(project, "project must not be null.");
-		Expect.notNull(initParamValues,  "initParamValues must not be null.");
-		Expect.notNull(resourcePaths,  "resourcePaths must not be null.");
-		Expect.notNull(webappPaths,  "webappPaths must not be null.");
+		Expect.notNull(pomParser, "pomParser must not be null.");
+		Expect.notNull(initParamValues, "initParamValues must not be null.");
 		Set<String> locations = parseLocationsInInitParamValues(initParamValues);
 		if (locations.isEmpty()) {
 			throw new UnsupportedProjectException("Failed to find spring config files.");
 		}
+		this.pomParser = pomParser;
 		this.project = project;
-		this.webappPaths = webappPaths;
-		this.resourcePaths = resourcePaths;
+		this.webappFolder = pomParser.getWebappFolder();
+		this.resourceFolders = pomParser.getResourceFolders();
+		antPathMatcher = new AntPathMatcher();
+		buildResourcePathSet();
 		parseSpringXmlFiles(locations);
+	}
+	
+	/**
+	 * Iterate all resource files' paths.
+	 */
+	private void buildResourcePathSet() {
+		resourceFilepaths = new HashSet<String>();
+		resourceFilepaths.addAll(webappFolder.getAllFilepaths());
+		for (Folder folder : resourceFolders) {
+			resourceFilepaths.addAll(folder.getAllFilepaths());
+		}
 	}
 	
 	private Set<String> parseLocationsInInitParamValues(Set<String> initParamValues) {
@@ -77,7 +90,7 @@ public class SpringParser {
 				if ("classpath".equals(tokens[i])) {
 					if (i + 2 > tokens.length-1
 						|| !":".equals(tokens[i+1])
-						|| "".equals(tokens[2])) {
+						|| "".equals(tokens[i+2])) {
 						logger.info("Ignore location:{}.", paramValue);
 						break;
 					}
@@ -114,7 +127,8 @@ public class SpringParser {
 					logger.info("Discard property {}.", name);
 					continue;
 				}
-				valuedProperties.put(name, value.trim());
+				value = pomParser.filterPlaceholders(value.trim());
+				valuedProperties.put(name, value);
 			}
 		} catch (Exception e) {
 			logger.info("Failed to load properties file:{}.", path);
@@ -123,90 +137,121 @@ public class SpringParser {
 		}
 	}
 	
-	private void parserPropertiesFiles(String thisXmlPath, SpringXmlParser xmlParser) {
-		Set<String> locations = xmlParser.getPropertiesFileLocations();
-		for (String location: locations) {
-			if (location.startsWith("classpath")) {
-				String tokens[] = location.split(":");
-				for (String basepath : this.resourcePaths) {
-					String path = FolderUtil.concatPath(basepath, tokens[1]);
-					addProperties(path);
-				}
-			} else {
-				String basepath = FolderUtil.folderPath(thisXmlPath);
-				addProperties(FolderUtil.concatPath(basepath, location));
-			}
-		}
-	}
-	
-	private SimpleEntry<String, SpringXmlParser> 
-		buildSpringXmlParser(Set<String> basePaths, String location) {
-		for (String basePath : basePaths) {
-			String tmp = FolderUtil.concatPath(basePath, location);
-			SpringXmlParser xmlParser = buildSpringXmlParser(tmp);
-			if (xmlParser != null) {
-				return new SimpleEntry<String, SpringXmlParser>(tmp, xmlParser);
-			}
-		}
-		return new SimpleEntry<String, SpringXmlParser>(null, null);
-	}
-	
-	private void parseXmlFile(String thisXmlPath, SpringXmlParser parser, Set<String> parsedPaths) {
-		if (parsedPaths.contains(thisXmlPath)) {
-			//In case of loop.
-			return;
-		}
-		parsedPaths.add(thisXmlPath);
-		springXmlParsers.add(parser);
-		parserPropertiesFiles(thisXmlPath, parser);
-		for (String location: parser.getImportedLocations()) {
-			SpringXmlParser springXmlParser = null;
-			String nextPath = null;
-			if (location.startsWith("classpath")) {
-				String tokens[] = location.split(":");
-				SimpleEntry<String, SpringXmlParser> kv = 
-						buildSpringXmlParser(this.resourcePaths, tokens[1]);
-				springXmlParser = kv.getValue();
-				nextPath = kv.getKey();
-			} else {
-				String thisXmlDirPath = FolderUtil.folderPath(thisXmlPath);
-				nextPath = FolderUtil.concatPath(thisXmlDirPath, location);
-				springXmlParser = buildSpringXmlParser(nextPath);
-			}
-			if (springXmlParser != null) {
-				parseXmlFile(nextPath, springXmlParser, parsedPaths);
-			}
-		}
-	}
-	
+	private final static String CLASSPATH_PATTERN = "classpath\\*?:.*";
 	/**
-	 * Parse spring's config files according to the param-value(s) in web.xml,
+	 * Concatenate locations configured in &lt;import&gt; and placeholder beans, locations
+	 * start with 'file:' will just be ignored. The following rules apply:
+	 * <ol>
+	 * <li>
+	 * If a location starts with 'classpath:', paths of all resource folders will concatenate 
+	 * with it. (/xxx/src/main/resources, classpath:&#42;/test.xml -> /xxx/src/main/resources/&#42;/test.xml")
+	 * </li>
+	 * <li>
+	 * If a location starts with '/' and is configured in a placeholder bean, we concatenate it
+	 * with webapp folder's path. (/xx/src/main/webapp, /test.properties -> /xx/src/main/webapp/test.properties)
+	 * </li>
+	 * <li>
+	 * Otherwise we just concatenate it with {@code basepath}.
+	 * </li>
+	 * </ol>
+	 * @param basepath the folder path of the file that contains the locations.
+	 * @param locations locations to concatenate.
+	 * @return the concatenated paths.
 	 */
-	//might need to think about the scale.
+	private Set<String> locationsToAntPatterns(String basepath, Set<String> locations, 
+			boolean fromPlaceholderBean) {
+		Set<String> result = new HashSet<String>();
+		for (String val: locations) {
+			val = val.replaceAll("[\\s+]", "");
+			String location = this.pomParser.filterPlaceholders(val);
+			if (location.startsWith("file:")) {
+				logger.info("Could not process file:{}.", location);
+				continue;
+			}
+			if (Pattern.matches(CLASSPATH_PATTERN, location)) {
+				String tokens[] = location.split(":");
+				for (Folder folder : resourceFolders) {
+					String tmp = FolderUtil.concatPath(folder.path(), tokens[1]);
+					result.add(tmp);
+				}
+			} else if (location.startsWith("/") && fromPlaceholderBean) {
+				String tmp = FolderUtil.concatPath(webappFolder.path(), location);
+				result.add(tmp);
+			} else {
+				String tmp = FolderUtil.concatPath(basepath, location);
+				result.add(tmp);
+			}
+		}
+		return result;
+	}
+	
+	private Set<String> locationsToActualPaths(String basepath, Set<String> locations,
+			boolean fromPlaceholderBean) {
+		Set<String> antpaths = locationsToAntPatterns(basepath, locations, fromPlaceholderBean);
+		Set<String> result = new HashSet<String>();
+		for (String antpath: antpaths) {
+			if (!AntPathMatcher.isPattern(antpath)) {
+				result.add(antpath);
+				continue;
+			}
+			for (String path: resourceFilepaths) {
+				if (antPathMatcher.match(antpath, path)) {
+					result.add(path);
+				}
+			}
+		}
+		return result;
+	}
+
+	private void parserPropertiesFiles(String thisXmlPath, SpringXmlParser xmlParser,
+			Set<String> parsedPropertiesPaths) {
+		Set<String> locations = xmlParser.getPropertiesFileLocations();
+		String basepath = FolderUtil.folderPath(thisXmlPath);
+		Set<String> paths = locationsToActualPaths(basepath, locations, true);
+		for (String path: paths) {
+			if (!parsedPropertiesPaths.contains(path)) {
+				logger.info("Scanning properties file:{}.", path);
+				parsedPropertiesPaths.add(path);
+				addProperties(path);
+			}
+		}
+	}
+
+	private void parseXmlFile(Set<String> filepaths, Set<String> parsedSpringPaths, 
+			Set<String> parsedPropertiesPaths) {
+		for (String filepath: filepaths) {
+			if (parsedSpringPaths.contains(filepath)) {
+				continue;
+			}
+			parsedSpringPaths.add(filepath);
+			SpringXmlParser springXmlParser = buildSpringXmlParser(filepath);
+			if (springXmlParser == null) {
+				continue;
+			}
+			logger.info("Scanning spring file:{}.", filepath);
+			springXmlParsers.add(springXmlParser);
+			parserPropertiesFiles(filepath, springXmlParser, parsedPropertiesPaths);
+			String basepath = FolderUtil.folderPath(filepath);
+			Set<String> newPaths = locationsToActualPaths(basepath, 
+					springXmlParser.getImportedLocations(), false);
+			parseXmlFile(newPaths, parsedSpringPaths, parsedPropertiesPaths);
+		}
+	}
+
 	private void parseSpringXmlFiles(Set<String> locations) {
 		springXmlParsers = new LinkedList<SpringXmlParser>();
-		propertiesFileLocations = new HashSet<String>();
 		valuedProperties = new HashMap<String, String>();
-		Set<String> parsedPaths = new HashSet<String>();
-		for (String location: locations) {
-			SimpleEntry<String, SpringXmlParser> kv = null;
-			if (location.startsWith("classpath")) {
-				String tokens[] = location.split(":");
-				kv = buildSpringXmlParser(resourcePaths, tokens[1]);
-			} else {
-				kv = buildSpringXmlParser(webappPaths, location);
-			}
-			if (kv.getValue() != null) {
-				parseXmlFile(kv.getKey(), kv.getValue(), parsedPaths);
-			}
-		}
+		Set<String> parsedSrpingPaths = new HashSet<String>();
+		Set<String> parsedPropertiesPaths = new HashSet<String>();
+		Set<String> possiblePaths = locationsToActualPaths(webappFolder.path(), locations, false);
+		parseXmlFile(possiblePaths, parsedSrpingPaths, parsedPropertiesPaths);
 	}
 	
 	private interface PropertyGetter {
 		String getProperty(SpringXmlParser parser);
 	}
 	
-	private String getDbDriverProperty(PropertyGetter getter) {
+	private String getPropertyValue(PropertyGetter getter) {
 		String tmp = null;
 		for (SpringXmlParser parser : springXmlParsers) {
 			tmp = getter.getProperty(parser);
@@ -214,17 +259,17 @@ public class SpringParser {
 				break;
 			}
 		}
-		if (PropertyUtil.isPlaceholder(tmp)) {
-			String key = PropertyUtil.valueOfPlaceholder(tmp);
-			return valuedProperties.containsKey(key) ? valuedProperties.get(key) : tmp;
+		List<String> placeholders = PropertyUtil.placeholdersFrom(tmp);
+		for (String placeholder: placeholders) {
+			String key = PropertyUtil.valueOfPlaceholder(placeholder);
+			String val = valuedProperties.get(key);
+			if (val != null) {
+				tmp = tmp.replace(placeholder, val);
+			}
 		}
 		return tmp;
 	}
 
-	public Set<String> getPropertiesFilePaths() {
-		return propertiesFileLocations;
-	}
-	
 	/**
 	 * Get the database's url configured among spring config files. The returned
 	 * value would be a placeholder (for instance ${jdbc.url}) if the placeholder
@@ -232,7 +277,7 @@ public class SpringParser {
 	 * @return The value if configured, null otherwise.
 	 */
 	public String getDatabaseUrl() {
-		return getDbDriverProperty(new PropertyGetter() {
+		return getPropertyValue(new PropertyGetter() {
 			@Override
 			public String getProperty(SpringXmlParser parser) {
 				return parser.getDbUrl();
@@ -241,7 +286,7 @@ public class SpringParser {
 	}
 	
 	public String getDatabaseUsername() {
-		return getDbDriverProperty(new PropertyGetter() {
+		return getPropertyValue(new PropertyGetter() {
 			@Override
 			public String getProperty(SpringXmlParser parser) {
 				return parser.getDbUsername();
@@ -250,7 +295,7 @@ public class SpringParser {
 	}
 	
 	public String getDatabasePassword() {
-		return getDbDriverProperty(new PropertyGetter() {
+		return getPropertyValue(new PropertyGetter() {
 			@Override
 			public String getProperty(SpringXmlParser parser) {
 				return parser.getDbPassword();
@@ -259,7 +304,7 @@ public class SpringParser {
 	}
 	
 	public String getDatabaseDriverClassName() {
-		return getDbDriverProperty(new PropertyGetter() {
+		return getPropertyValue(new PropertyGetter() {
 			@Override
 			public String getProperty(SpringXmlParser parser) {
 				return parser.getDbDriverClass();

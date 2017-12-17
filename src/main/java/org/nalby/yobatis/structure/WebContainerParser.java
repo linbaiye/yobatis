@@ -18,16 +18,12 @@ public class WebContainerParser {
 	
 	private Set<String> springInitParamValues;
 	
-	public WebContainerParser(Project project, Set<String> webappPaths) {
+	public WebContainerParser(Project project, Folder webappFolder) {
 		Expect.notNull(project, "project must not be empty.");
-		Expect.asTrue(webappPaths != null && 
-				webappPaths.size() == 1, "Only single war project is supported for now.");
+		Expect.notNull(webappFolder, "webappFolder must not be null.");
 		InputStream inputStream = null;
 		try {
-			for (String path: webappPaths) {
-				inputStream = project.getInputStream(path + "/WEB-INF/web.xml");
-				break;
-			}
+			inputStream = project.getInputStream(webappFolder.path() + "/WEB-INF/web.xml");
 			springInitParamValues = new HashSet<String>();
 			parser = new WebXmlParser(inputStream);
 			Set<String> values = parser.getSpringInitParamValues();

@@ -45,11 +45,8 @@ public class PomXmlParser extends AbstractXmlParser {
 		loadSubModuleNames();
 	}
 	
-	public String getWebappDir() {
-		if (!"war".equals(packaging)) {
-			return null;
-		}
-		return "src/main/webapp";
+	public boolean isPackagingWar() {
+		return "war".equals(packaging);
 	}
 	
 	public boolean isContainer() {
@@ -209,12 +206,8 @@ public class PomXmlParser extends AbstractXmlParser {
 		return builder.toString();
 	}
 	
-	private String buildMysqlJarRelativePath() {
-		Element dependenciesElement = root.element("dependencies");
-		Element dependencyManagementElement = root.element("dependencyManagement");
-		if (dependencyManagementElement != null) {
-			dependenciesElement = dependencyManagementElement.element("dependencies");
-		}
+	
+	private String buildMysqlJarName(Element dependenciesElement) {
 		if (dependenciesElement == null) {
 			return null;
 		}
@@ -225,6 +218,20 @@ public class PomXmlParser extends AbstractXmlParser {
 			return glueVersion(dependencyElement);
 		}
 		return null;
+	}
+
+	
+	private String buildMysqlJarRelativePath() {
+		Element dependenciesElement = root.element("dependencies");
+		String result = buildMysqlJarName(dependenciesElement);
+		if (result != null) {
+			return result;
+		}
+		Element dependencyManagementElement = root.element("dependencyManagement");
+		if (dependencyManagementElement != null) {
+			dependenciesElement = dependencyManagementElement.element("dependencies");
+		}
+		return buildMysqlJarName(dependenciesElement);
 	}
 	
 	/**
@@ -249,6 +256,7 @@ public class PomXmlParser extends AbstractXmlParser {
 		Expect.notEmpty(name, "name must not be empty.");
 		return properties.get(name);
 	}
+
 	
 	public Set<String> getResourceDirs() {
 		return resourceDirs;
