@@ -36,10 +36,10 @@ public class TestUtil {
 		}
 	}
 	
-	public static Set<String> buildStringSet(String ... strings) {
-		Set<String> set = new HashSet<String>();
-		for (String string: strings) {
-			set.add(string);
+	public static <T> Set<T> buildSet(T ... args) {
+		Set<T> set = new HashSet<T>();
+		for (T t : args) {
+			set.add(t);
 		}
 		return set;
 	}

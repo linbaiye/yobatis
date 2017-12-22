@@ -30,7 +30,9 @@ public final class FolderUtil {
 	
 	public static String concatPath(String base, String appending) {
 		Expect.notEmpty(base, "base must not be null.");
-		Expect.notEmpty(base, "appending must not be null.");
+		Expect.notEmpty(appending, "appending must not be null.");
+		base = base.trim();
+		appending = appending.trim();
 		if (appending.startsWith("/")) {
 			return base + appending;
 		}

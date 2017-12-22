@@ -133,5 +133,17 @@ public class WebXmlParserTests {
 			assertTrue(tmp.contains("path"));
 		}
 	}
+	
+	@Test
+	public void locationsWithWildcard() throws IOException, DocumentException {
+		String xml = "<web-app>"
+				+ "<context-param><param-name>contextConfigLocation</param-name><param-value>test-*</param-value></context-param>"
+				+ "<servlet><servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>"
+				+ "<init-param><param-name>contextConfigLocation</param-name><param-value>*</param-value></init-param>"
+				+ "</servlet></web-app>";
+		WebXmlParser parser = new WebXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		Set<String> result = parser.getSpringInitParamValues();
+		TestUtil.assertCollectionSizeAndStringsIn(result, 2, "*", "test-*");
+	}
 
 }

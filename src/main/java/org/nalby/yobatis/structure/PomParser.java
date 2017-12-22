@@ -1,7 +1,5 @@
 package org.nalby.yobatis.structure;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -9,16 +7,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.dom4j.DocumentException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.util.Expect;
+import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.util.PropertyUtil;
 import org.nalby.yobatis.xml.PomXmlParser;
 
 /**
  * Treat all pom files as a whole.
  * @author Kyle Lin
- *
  */
 public class PomParser {
 	
@@ -26,11 +23,11 @@ public class PomParser {
 	
 	private Map<PomXmlParser, Folder> pomXmlParsers;
 	
-	private Set<String> resourcePaths;
-	
 	private Set<String> sourceCodePaths;
 	
-	private Set<String> webappPaths;
+	private Folder webappFolder;
+	
+	private Set<Folder> resourceFolders;
 
 	private Logger logger = LogFactory.getLogger(this.getClass());
 
@@ -41,16 +38,12 @@ public class PomParser {
 			}
 			this.project = project;
 			parsePomFiles();
-		} catch (FileNotFoundException e) {
-			throw new UnsupportedProjectException(e);
-		} catch (DocumentException e) {
-			throw new UnsupportedProjectException(e);
-		} catch (IOException e) {
+		} catch (Exception e) {
 			throw new UnsupportedProjectException(e);
 		}
 	}
 	
-	private PomXmlParser getPomXmlParser(String path) throws DocumentException, IOException {
+	private PomXmlParser getPomXmlParser(String path) throws Exception {
 		InputStream inputStream = null;
 		try {
 			inputStream = project.getInputStream(path);
@@ -60,34 +53,41 @@ public class PomParser {
 		}
 	}
 	
-	private void addResourcePaths(PomXmlParser parser, Folder folder) {
-		Set<String> dirs = parser.getResourceDirs();
-		for (String dir : dirs) {
-			if (dir.startsWith("/")) {
-				resourcePaths.add(folder.path() + dir);
-			} else {
-				resourcePaths.add(folder.path() + "/" + dir);
-			}
-		}
-	}
-	
 	private void addSourceCodePaths(PomXmlParser parser, Folder folder) {
 		if (!parser.isContainer()) {
 			sourceCodePaths.add(folder.path() + "/src/main/java");
 		}
 	}
 
-	private void addWebappPaths(PomXmlParser parser, Folder folder) {
-		String tmp = parser.getWebappDir();
-		if (tmp != null) {
-			webappPaths.add(folder.path() + "/" + tmp);
+	private void setWebappFolder(PomXmlParser parser, Folder folder) {
+		if (!parser.isPackagingWar()) {
+			return;
+		}
+		if (webappFolder == null) {
+			try {
+				webappFolder = project.findFolder(folder.path() + "/src/main/webapp");
+			} catch (Exception e) {
+				//ignore.
+			}
 		}
 	}
 	
-	private void parseSubPoms(PomXmlParser parent, Folder parentFolder) throws DocumentException, IOException {
-		addResourcePaths(parent, parentFolder);
+	private void addResourceFolders(PomXmlParser parser, Folder folder) {
+		Set<String> dirs = parser.getResourceDirs();
+		for (String dir : dirs) {
+			String path = FolderUtil.concatPath(folder.path(), dir);
+			try {
+				resourceFolders.add(project.findFolder(path));
+			} catch (Exception e) {
+				//ignore.
+			}
+		}
+	}
+	
+	private void parseSubPoms(PomXmlParser parent, Folder parentFolder) throws Exception {
+		addResourceFolders(parent, parentFolder);
 		addSourceCodePaths(parent, parentFolder);
-		addWebappPaths(parent, parentFolder);
+		setWebappFolder(parent, parentFolder);
 		pomXmlParsers.put(parent, parentFolder);
 
 		Set<String> submodules = parent.getModuleNames();
@@ -108,28 +108,26 @@ public class PomParser {
 		}
 	}
 	
-	/**
-	 * Get all resource paths, the paths might not exist.
-	 * @return the paths.
-	 */
-	public Set<String> getResourcePaths() {
-		return this.resourcePaths;
+	public Set<Folder> getResourceFolders() {
+		return this.resourceFolders;
 	}
 	
 	public Set<String> getSourceCodePaths() {
 		return this.sourceCodePaths;
 	}
 	
-	public Set<String> getWebappPaths() {
-		return this.webappPaths;
+	public Folder getWebappFolder() {
+		if (webappFolder == null) {
+			throw new UnsupportedProjectException("project does not have a webapp dir.");
+		}
+		return webappFolder;
 	}
 	
-	private void parsePomFiles() throws DocumentException, IOException {
+	private void parsePomFiles() throws Exception {
 		pomXmlParsers = new HashMap<PomXmlParser, Folder>();
 		PomXmlParser parser = getPomXmlParser("pom.xml");
-		resourcePaths = new HashSet<String>();
 		sourceCodePaths = new HashSet<String>();
-		webappPaths = new HashSet<String>();
+		resourceFolders = new HashSet<Folder>();
 		parseSubPoms(parser, project);
 	}
 	
@@ -148,6 +146,25 @@ public class PomParser {
 			}
 		}
 		return null;
+	}
+	
+	
+	/**
+	 * Filter placeholders in {@code string} if any of them is defined
+	 * in pom files.
+	 * @param string the string to filter.
+	 * @return the string filtered.
+	 */
+	public String filterPlaceholders(String string) {
+		Expect.notNull(string, "string must not be empty.");
+		List<String> placeholders = PropertyUtil.placeholdersFrom(string);
+		for (String placeholder: placeholders) {
+			String value = getProperty(placeholder);
+			if (value != null) {
+				string = string.replace(placeholder, value);
+			}
+		}
+		return string;
 	}
 	
 	/**

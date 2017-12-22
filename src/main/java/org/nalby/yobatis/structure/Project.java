@@ -16,6 +16,7 @@ import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
 import org.nalby.yobatis.exception.ResourceNotFoundException;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.FolderUtil;
+import org.nalby.yobatis.util.TextUtil;
 
 public abstract class Project implements Folder {
 	
@@ -33,7 +34,6 @@ public abstract class Project implements Folder {
 
 	public final static String WEB_XML_PATH = "src/main/webapp/WEB-INF/web.xml";
 
-	
 	protected final static String CLASSPATH_PREFIX = "classpath:";
 	
 	public static interface FolderSelector {
@@ -291,7 +291,34 @@ public abstract class Project implements Folder {
 	}
 
 	@Override
-	public Folder findFolder(String folderName) {
-		return root.findFolder(folderName);
+	public Folder findFolder(String folderpath) {
+		Expect.notEmpty(folderpath, "folderpath must not be null.");
+		if (folderpath.startsWith(root.path())) {
+			folderpath = folderpath.replaceFirst(root.path(), "");
+		}
+		String names[] = folderpath.split("/");
+		Folder result = root;
+		for (String name: names) {
+			if (TextUtil.isEmpty(name)) {
+				continue;
+			}
+			result = result.findFolder(name);
+		}
+		return result;
+	}
+
+	@Override
+	public Set<String> getFilenames() {
+		return root.getFilenames();
+	}
+	
+	@Override
+	public Set<Folder> getAllFolders() {
+		return root.getAllFolders();
+	}
+
+	@Override
+	public Set<String> getAllFilepaths() {
+		return root.getAllFilepaths();
 	}
 }

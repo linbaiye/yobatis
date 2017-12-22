@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.Test;
-import org.nalby.yobatis.util.TestUtil;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -53,18 +52,11 @@ public class PomParserTests {
 				"  <name>test</name>\n" + 
 				"  <url>test</url>\n" + 
 				"</project>\n";
-		PomParser pomParser = new PomParser(mockProject(xml));
-		Set<String> set = pomParser.getResourcePaths();
+		Project project = mockProject(xml);
+		when(project.findFolder(PROJECT_PATH + "/src/main/resources")).thenReturn(mock(Folder.class));
+		PomParser pomParser = new PomParser(project);
+		Set<Folder> set = pomParser.getResourceFolders();
 		assertTrue(set.size() == 1);
-		TestUtil.assertStringsInCollection(set, PROJECT_PATH + "/src/main/resources");
-
-		set = pomParser.getSourceCodePaths();
-		assertTrue(set.size() == 1);
-		TestUtil.assertStringsInCollection(set, PROJECT_PATH + "/src/main/java");
-
-		set = pomParser.getWebappPaths();
-		assertTrue(set.size() == 1);
-		TestUtil.assertStringsInCollection(set, PROJECT_PATH + "/src/main/webapp");
 	}
 	
 	@Test
@@ -107,17 +99,12 @@ public class PomParserTests {
 		when(project.getSubFolders()).thenReturn(folders);
 		when(project.getInputStream(projectPath("/hello/pom.xml")))
 			.thenReturn(new ByteArrayInputStream(helloXml.getBytes()));
+		when(project.findFolder("/yobatis/src/main/resources")).thenReturn(mock(Folder.class));
+		when(project.findFolder("/yobatis/hello/src/main/conf")).thenReturn(mock(Folder.class));
+		when(project.findFolder("/yobatis/hello/src/main/resources")).thenReturn(mock(Folder.class));
 		PomParser pomParser = new PomParser(project);
-		Set<String> set = pomParser.getResourcePaths();
+		Set<Folder> set = pomParser.getResourceFolders();
 		assertTrue(set.size() == 3);
-		TestUtil.assertStringsInCollection(set, "/yobatis/src/main/resources", 
-				"/yobatis/hello/src/main/resources", "/yobatis/hello/src/main/conf");
-		
-		
-		set = pomParser.getSourceCodePaths();
-		assertTrue(set.size() == 2);
-		TestUtil.assertStringsInCollection(set, "/yobatis/src/main/java", 
-				"/yobatis/hello/src/main/java");
 	}
 
 }
