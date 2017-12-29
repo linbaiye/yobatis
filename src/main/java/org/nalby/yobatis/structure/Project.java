@@ -1,23 +1,18 @@
 package org.nalby.yobatis.structure;
 
-import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
-import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
 import org.nalby.yobatis.exception.ResourceNotFoundException;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.FolderUtil;
-import org.nalby.yobatis.util.TextUtil;
-
 public abstract class Project implements Folder {
 	
 	protected Folder root;
@@ -142,34 +137,6 @@ public abstract class Project implements Folder {
 	public InputStream getInputStream(String filepath) throws FileNotFoundException {
 		Expect.notEmpty(filepath, "filepath must not be null.");
 		return new FileInputStream(convertToSyspath(filepath));
-	}
-	
-
-	public String readFile(String filepath) {
-		Expect.notEmpty(filepath, "filepath must not be null.");
-		BufferedReader bufferedReader = null;
-		try {
-			InputStream inputStream = getInputStream(filepath);
-			InputStreamReader streamReader = new InputStreamReader(inputStream);
-			bufferedReader = new BufferedReader(streamReader);
-			StringBuffer sb = new StringBuffer();
-			String line;
-			while ((line = bufferedReader.readLine()) != null) {
-				sb.append(line);
-				sb.append("\n");
-			}
-			return sb.toString();
-		} catch (IOException e) {
-			throw new ResourceNotAvailableExeception(e);
-		} finally {
-			try {
-				if (bufferedReader != null) {
-					bufferedReader.close();
-				}
-			} catch (IOException e) {
-				//Ignore
-			}
-		}
 	}
 	
 	/**

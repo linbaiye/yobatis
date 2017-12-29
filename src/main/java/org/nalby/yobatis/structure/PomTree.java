@@ -4,7 +4,6 @@ import java.io.InputStream;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
@@ -26,8 +25,6 @@ public class PomTree {
 
 	private Project project;
 
-	private Map<PomXmlParser, Folder> pomXmlParsers;
-
 	private Pom root;
 
 	private Pom webpom;
@@ -38,7 +35,7 @@ public class PomTree {
 		try {
 			this.project = project;
 			this.root = new PomNode(null, this.project);
-			selectAllPoms();
+			findAllPoms();
 		} catch (Exception e) {
 			throw new UnsupportedProjectException(e);
 		}
@@ -68,11 +65,19 @@ public class PomTree {
 			this.folder = folder;
 			children = new LinkedList<Pom>();
 			readPomFile();
-			constructSubNodes();
+			buildSubtree();
 			loadResourceAndWebappFolders();
 		}
+		
+		public PomXmlParser getParser() {
+			return pomXmlParser;
+		}
+		
+		public List<Pom> getChildren() {
+			return children;
+		}
 
-		private void constructSubNodes() {
+		private void buildSubtree() {
 			Set<String> moduleNames = pomXmlParser.getModuleNames();
 			for (String module : moduleNames) {
 				Folder subfolder = folder.findFolder(module);
@@ -107,16 +112,6 @@ public class PomTree {
 			} finally {
 				FolderUtil.closeStream(inputStream);
 			}
-		}
-
-		@Override
-		public Pom parent() {
-			return parent;
-		}
-
-		@Override
-		public List<Pom> children() {
-			return children;
 		}
 
 		@Override
@@ -173,17 +168,6 @@ public class PomTree {
 		return poms;
 	}
 	
-	public void dump() {
-		Stack<Pom> stack = new Stack<Pom>();
-		stack.push(root);
-		while (!stack.isEmpty()) {
-			Pom node = stack.pop();
-			for (Pom item : node.children()) {
-				stack.push(item);
-			}
-		}
-	}
-	
 	private interface PomSelector {
 		boolean selectPom(Pom node);
 	}
@@ -196,14 +180,14 @@ public class PomTree {
 			if (selector.selectPom(node)) {
 				return node;
 			}
-			for (Pom item : node.children()) {
+			for (Pom item : ((PomNode)node).getChildren()) {
 				stack.push(item);
 			}
 		}
 		return null;
 	}
 	
-	private void selectAllPoms() {
+	private void findAllPoms() {
 		poms = new HashSet<Pom>();
 		treeWalker(new PomSelector() {
 			@Override
@@ -234,7 +218,8 @@ public class PomTree {
 	 * @return the system path of the connector, null if not found.
 	 */
 	public String getDatabaseJarPath(String driverClassName) {
-		for (PomXmlParser parser : pomXmlParsers.keySet()) {
+		for (Pom node: poms) {
+			PomXmlParser parser = ((PomNode)node).getParser();
 			String tmp = parser.dbConnectorJarRelativePath(driverClassName);
 			if (tmp != null) {
 				return project.concatMavenResitoryPath(tmp);

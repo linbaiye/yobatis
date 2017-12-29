@@ -1,21 +1,8 @@
 package org.nalby.yobatis.structure;
 
-import java.util.List;
 import java.util.Set;
 
 public interface Pom {
-
-	/**
-	 * Get parent pom of this pom.
-	 * @return parent pom if any, null else.
-	 */
-	Pom parent();
-
-	/**
-	 * Get submodules of this pom.
-	 * @return sub-poms if any, empty list else.
-	 */
-	List<Pom> children();
 	
 	/**
 	 * If this pom's &lt;packaging&gt; is a war.
