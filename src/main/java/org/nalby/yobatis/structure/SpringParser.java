@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.regex.Pattern;
-
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.util.AntPathMatcher;
 import org.nalby.yobatis.util.Expect;
@@ -25,58 +23,35 @@ import org.nalby.yobatis.xml.SpringXmlParser;
  */
 public class SpringParser {
 
-	private Project project;
-
 	private List<SpringXmlParser> springXmlParsers;
 	
-	private Set<Folder> resourceFolders;
-
 	private Map<String, String> valuedProperties;
 	
-	private Folder webappFolder;
-	
-	private PomParser pomParser;
+	private PomTree pomTree;
 
 	private AntPathMatcher antPathMatcher;
-	
-	private Set<String> resourceFilepaths;
 	
 	private Logger logger = LogFactory.getLogger(this.getClass());
 	
 	/**
 	 * Construct a {@code SpringParser} that analyzes the spring files.
 	 * @param project see {@link org.nalby.yobatis.structure.Project}
-	 * @param pomParser 
+	 * @param pomTree 
 	 * @param initParamValues The param-value in web.xml, including servlet and application
 	 * context.
 	 */
-	public SpringParser(Project project, PomParser pomParser, Set<String> initParamValues) {
-		Expect.notNull(project, "project must not be null.");
-		Expect.notNull(pomParser, "pomParser must not be null.");
+	public SpringParser(PomTree pomTree, Set<String> initParamValues) {
+		Expect.notNull(pomTree, "pomParser must not be null.");
 		Expect.notNull(initParamValues, "initParamValues must not be null.");
 		Set<String> locations = parseLocationsInInitParamValues(initParamValues);
 		if (locations.isEmpty()) {
 			throw new UnsupportedProjectException("Failed to find spring config files.");
 		}
-		this.pomParser = pomParser;
-		this.project = project;
-		this.webappFolder = pomParser.getWebappFolder();
-		this.resourceFolders = pomParser.getResourceFolders();
+		this.pomTree = pomTree;
 		antPathMatcher = new AntPathMatcher();
-		buildResourcePathSet();
 		parseSpringXmlFiles(locations);
 	}
 	
-	/**
-	 * Iterate all resource files' paths.
-	 */
-	private void buildResourcePathSet() {
-		resourceFilepaths = new HashSet<String>();
-		resourceFilepaths.addAll(webappFolder.getAllFilepaths());
-		for (Folder folder : resourceFolders) {
-			resourceFilepaths.addAll(folder.getAllFilepaths());
-		}
-	}
 	
 	private Set<String> parseLocationsInInitParamValues(Set<String> initParamValues) {
 		Set<String> locations = new HashSet<String>();
@@ -87,7 +62,7 @@ public class SpringParser {
 					continue;
 				}
 				String tmp = tokens[i];
-				if ("classpath".equals(tokens[i])) {
+				if ("classpath".equals(tokens[i]) || "classpath*".equals(tokens[i])) {
 					if (i + 2 > tokens.length-1
 						|| !":".equals(tokens[i+1])
 						|| "".equals(tokens[i+2])) {
@@ -102,150 +77,195 @@ public class SpringParser {
 		return locations;
 	}
 	
-	private SpringXmlParser buildSpringXmlParser(String path) {
-		InputStream inputStream = null;
-		try {
-			inputStream = project.getInputStream(path);
-			return new SpringXmlParser(inputStream);
-		} catch (Exception e) {
-			return null;
-		} finally {
-			project.closeInputStream(inputStream);
+	private class FilepathMetadata {
+		/* The Pom that this filepath belongs to. */
+		private Pom pom;
+		/* The Folder that this filepath belongs to. */
+		private Folder folder;
+
+		private String filepath;
+		
+		public FilepathMetadata(Pom pom, Folder folder, String path) {
+			this.pom = pom;
+			this.folder = folder;
+			this.filepath = path;
+		}
+		
+		public Pom getPom() {
+			return pom;
+		}
+
+		public Folder getFolder() {
+			return folder;
+		}
+
+		public String getFilepath() {
+			return filepath;
+		}
+
+		private InputStream getInputStream() {
+			String name = FolderUtil.filename(filepath);
+			return folder.openInputStream(name);
+		}
+		
+		public SpringXmlParser getSpringXmlParser() {
+			InputStream inputStream = null;
+			try {
+				inputStream = getInputStream();
+				return new SpringXmlParser(inputStream);
+			} catch (Exception e) {
+				return null;
+			} finally {
+				FolderUtil.closeStream(inputStream);
+			}
+		}
+		
+		public void parseProperties() {
+			InputStream inputStream = null;
+			try {
+				inputStream = getInputStream();
+				Properties properties = new Properties();
+				properties.load(inputStream);
+				Set<String> keys = properties.stringPropertyNames();
+				for (String key: keys) {
+					String value = properties.getProperty(key);
+					if (value == null) {
+						logger.info("Discard property {}.", key);
+						continue;
+					}
+					value = pom.filterPlaceholders(value.trim());
+					valuedProperties.put(key, value);
+				}
+			} catch (Exception e) {
+				//Ignore.
+			} finally {
+				FolderUtil.closeStream(inputStream);
+			}
 		}
 	}
 	
-	private void addProperties(String path) {
-		InputStream inputStream = null;
-		try {
-			Properties properties = new Properties();
-			inputStream = project.getInputStream(path);
-			properties.load(inputStream);
-			Set<String> names = properties.stringPropertyNames();
-			for (String name: names) {
-				String value = properties.getProperty(name);
-				if (value == null) {
-					logger.info("Discard property {}.", name);
+	
+	/**
+	 * Find the folder that contains directly the file of the path.
+	 * @param folder the folder that contains the file directly or indirectly.
+	 * @param path the file path.
+	 */
+	private Folder findFolderContainingFile(Folder folder, String path) {
+		String filebase = FolderUtil.folderPath(path);
+		if (filebase.equals(folder.path())) {
+			return folder;
+		}
+		String diff = filebase.replace(folder.path() + "/", "");
+		return folder.findFolder(diff);
+	}
+	
+
+	private void findFilesOfAntPatternInFolder(Set<FilepathMetadata> result, Pom pom, Folder folder, String antPattern) {
+		String antpath = FolderUtil.concatPath(folder.path(), antPattern);
+		for (String filepath : folder.getAllFilepaths()) {
+			if (antpath.equals(filepath) || antPathMatcher.match(antpath, filepath)) {
+				Folder targetDir = findFolderContainingFile(folder, filepath);
+				if (targetDir != null) {
+					result.add(new FilepathMetadata(pom, targetDir, filepath));
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Find files that starts with the pattern of 'classpath:xxx'.
+	 * @param result
+	 * @param pom the module to search in.
+	 * @param antPattern the pattern of 'classpat:xxx'.
+	 */
+	private void findFilesOfClasspathPattern(Set<FilepathMetadata> result, Pom pom, String antPattern) {
+		for (Folder resourceItem : pom.getResourceFolders()) {
+			findFilesOfAntPatternInFolder(result, pom, resourceItem, antPattern);
+		}
+	}
+	
+	/**
+	 * Find files that starts with the pattern of 'classpath*:xxx'.
+	 * @param result
+	 * @param antPattern the pattern of 'classpat*:xxx'.
+	 */
+	private void findFilesOfWildcardClasspathPattern(Set<FilepathMetadata> result, String antPattern) {
+		for (Pom pom : pomTree.getPoms()) {
+			findFilesOfClasspathPattern(result, pom, antPattern);
+		}
+	}
+	
+	private Set<FilepathMetadata> findImportedFiles(Set<String> locations, Pom pom,
+			Folder folder, boolean propertiesLocation) {
+		Set<FilepathMetadata> result = new HashSet<FilepathMetadata>();
+		for (String val: locations) {
+			String location = pom.filterPlaceholders(val);
+			if (location.startsWith("classpath:")) {
+				String tokens[] = location.split(":");
+				findFilesOfClasspathPattern(result, pom, tokens[1]);
+			} else if (location.startsWith("classpath*:")) {
+				String tokens[] = location.split(":");
+				findFilesOfWildcardClasspathPattern(result, tokens[1]);
+			} else {
+				Pom tmpPom = pom;
+				Folder tmpFolder = folder;
+				if (location.startsWith("/") && propertiesLocation) {
+					tmpFolder = null;
+					tmpPom = pomTree.getWarPom();
+					if (tmpPom != null) {
+						tmpFolder = tmpPom.getWebappFolder();
+					}
+				}
+				if (tmpPom == null || tmpFolder == null) {
 					continue;
 				}
-				value = pomParser.filterPlaceholders(value.trim());
-				valuedProperties.put(name, value);
-			}
-		} catch (Exception e) {
-			logger.info("Failed to load properties file:{}.", path);
-		} finally {
-			project.closeInputStream(inputStream);
-		}
-	}
-	
-	private final static String CLASSPATH_PATTERN = "classpath\\*?:.*";
-	/**
-	 * Concatenate locations configured in &lt;import&gt; and placeholder beans, locations
-	 * start with 'file:' will just be ignored. The following rules apply:
-	 * <ol>
-	 * <li>
-	 * If a location starts with 'classpath:', paths of all resource folders will concatenate 
-	 * with it. (/xxx/src/main/resources, classpath:&#42;/test.xml -> /xxx/src/main/resources/&#42;/test.xml")
-	 * </li>
-	 * <li>
-	 * If a location starts with '/' and is configured in a placeholder bean, we concatenate it
-	 * with webapp folder's path. (/xx/src/main/webapp, /test.properties -> /xx/src/main/webapp/test.properties)
-	 * </li>
-	 * <li>
-	 * Otherwise we just concatenate it with {@code basepath}.
-	 * </li>
-	 * </ol>
-	 * @param basepath the folder path of the file that contains the locations.
-	 * @param locations locations to concatenate.
-	 * @return the concatenated paths.
-	 */
-	private Set<String> locationsToAntPatterns(String basepath, Set<String> locations, 
-			boolean fromPlaceholderBean) {
-		Set<String> result = new HashSet<String>();
-		for (String val: locations) {
-			val = val.replaceAll("[\\s+]", "");
-			String location = this.pomParser.filterPlaceholders(val);
-			if (location.startsWith("file:")) {
-				logger.info("Could not process file:{}.", location);
-				continue;
-			}
-			if (Pattern.matches(CLASSPATH_PATTERN, location)) {
-				String tokens[] = location.split(":");
-				for (Folder folder : resourceFolders) {
-					String tmp = FolderUtil.concatPath(folder.path(), tokens[1]);
-					result.add(tmp);
-				}
-			} else if (location.startsWith("/") && fromPlaceholderBean) {
-				String tmp = FolderUtil.concatPath(webappFolder.path(), location);
-				result.add(tmp);
-			} else {
-				String tmp = FolderUtil.concatPath(basepath, location);
-				result.add(tmp);
-			}
-		}
-		return result;
-	}
-	
-	private Set<String> locationsToActualPaths(String basepath, Set<String> locations,
-			boolean fromPlaceholderBean) {
-		Set<String> antpaths = locationsToAntPatterns(basepath, locations, fromPlaceholderBean);
-		Set<String> result = new HashSet<String>();
-		for (String antpath: antpaths) {
-			if (!AntPathMatcher.isPattern(antpath)) {
-				result.add(antpath);
-				continue;
-			}
-			for (String path: resourceFilepaths) {
-				if (antPathMatcher.match(antpath, path)) {
-					result.add(path);
-				}
+				findFilesOfAntPatternInFolder(result, tmpPom, tmpFolder, location);
 			}
 		}
 		return result;
 	}
 
-	private void parserPropertiesFiles(String thisXmlPath, SpringXmlParser xmlParser,
-			Set<String> parsedPropertiesPaths) {
-		Set<String> locations = xmlParser.getPropertiesFileLocations();
-		String basepath = FolderUtil.folderPath(thisXmlPath);
-		Set<String> paths = locationsToActualPaths(basepath, locations, true);
-		for (String path: paths) {
-			if (!parsedPropertiesPaths.contains(path)) {
-				logger.info("Scanning properties file:{}.", path);
-				parsedPropertiesPaths.add(path);
-				addProperties(path);
-			}
-		}
-	}
-
-	private void parseXmlFile(Set<String> filepaths, Set<String> parsedSpringPaths, 
-			Set<String> parsedPropertiesPaths) {
-		for (String filepath: filepaths) {
-			if (parsedSpringPaths.contains(filepath)) {
+	private void iterateSpringXmlFiles(Set<FilepathMetadata> filepathMetadatas, 
+			Set<String> parsedXmlFiles, Set<String> parsedPropertiesFiles) {
+		for (FilepathMetadata metadata: filepathMetadatas) {
+			if (parsedXmlFiles.contains(metadata.getFilepath())) {
 				continue;
 			}
-			parsedSpringPaths.add(filepath);
-			SpringXmlParser springXmlParser = buildSpringXmlParser(filepath);
-			if (springXmlParser == null) {
+			parsedXmlFiles.add(metadata.getFilepath());
+			SpringXmlParser parser = metadata.getSpringXmlParser();
+			if (parser == null) {
 				continue;
 			}
-			logger.info("Scanning spring file:{}.", filepath);
-			springXmlParsers.add(springXmlParser);
-			parserPropertiesFiles(filepath, springXmlParser, parsedPropertiesPaths);
-			String basepath = FolderUtil.folderPath(filepath);
-			Set<String> newPaths = locationsToActualPaths(basepath, 
-					springXmlParser.getImportedLocations(), false);
-			parseXmlFile(newPaths, parsedSpringPaths, parsedPropertiesPaths);
+			springXmlParsers.add(parser);
+			Set<FilepathMetadata> propertiesFiles = findImportedFiles(parser.getPropertiesFileLocations(),
+					metadata.getPom(), metadata.getFolder(), true);
+			for (FilepathMetadata propertiesFile: propertiesFiles) {
+				if (!parsedPropertiesFiles.contains(propertiesFile.getFilepath())) {
+					parsedPropertiesFiles.add(propertiesFile.getFilepath());
+					propertiesFile.parseProperties();
+				}
+			}
+			Set<FilepathMetadata> newSpringFiles = findImportedFiles(parser.getImportedLocations(), metadata.getPom(), 
+					metadata.getFolder(), false);
+			iterateSpringXmlFiles(newSpringFiles, parsedXmlFiles, parsedPropertiesFiles);
 		}
 	}
-
+	
+	
 	private void parseSpringXmlFiles(Set<String> locations) {
+		Pom warPom = pomTree.getWarPom();
+		if (null == warPom) {
+			throw new UnsupportedProjectException("No war module found.");
+		}
 		springXmlParsers = new LinkedList<SpringXmlParser>();
 		valuedProperties = new HashMap<String, String>();
 		Set<String> parsedSrpingPaths = new HashSet<String>();
 		Set<String> parsedPropertiesPaths = new HashSet<String>();
-		Set<String> possiblePaths = locationsToActualPaths(webappFolder.path(), locations, false);
-		parseXmlFile(possiblePaths, parsedSrpingPaths, parsedPropertiesPaths);
+		Set<FilepathMetadata> paths = findImportedFiles(locations, warPom, 
+				warPom.getWebappFolder(), false);
+		iterateSpringXmlFiles(paths, parsedSrpingPaths, parsedPropertiesPaths);
 	}
+
 	
 	private interface PropertyGetter {
 		String getProperty(SpringXmlParser parser);

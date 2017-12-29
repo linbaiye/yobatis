@@ -143,7 +143,7 @@ public abstract class Project implements Folder {
 		Expect.notEmpty(filepath, "filepath must not be null.");
 		return new FileInputStream(convertToSyspath(filepath));
 	}
-
+	
 
 	public String readFile(String filepath) {
 		Expect.notEmpty(filepath, "filepath must not be null.");
@@ -296,15 +296,7 @@ public abstract class Project implements Folder {
 		if (folderpath.startsWith(root.path())) {
 			folderpath = folderpath.replaceFirst(root.path(), "");
 		}
-		String names[] = folderpath.split("/");
-		Folder result = root;
-		for (String name: names) {
-			if (TextUtil.isEmpty(name)) {
-				continue;
-			}
-			result = result.findFolder(name);
-		}
-		return result;
+		return root.findFolder(folderpath);
 	}
 
 	@Override
@@ -320,5 +312,10 @@ public abstract class Project implements Folder {
 	@Override
 	public Set<String> getAllFilepaths() {
 		return root.getAllFilepaths();
+	}
+	
+	@Override
+	public InputStream openInputStream(String name) {
+		return root.openInputStream(name);
 	}
 }

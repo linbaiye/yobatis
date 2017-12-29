@@ -21,7 +21,7 @@ import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.util.TextUtil;
 
-public  class EclipseFolder implements Folder {
+public class EclipseFolder implements Folder {
 
 	private IResource wrappedFolder;
 
@@ -30,6 +30,8 @@ public  class EclipseFolder implements Folder {
 	private List<Folder> subFolders;
 
 	private Set<Folder> allSubFolders;
+	
+	private List<IFile> files;
 	
 	private Set<String> filenames;
 	
@@ -41,55 +43,46 @@ public  class EclipseFolder implements Folder {
 		Expect.asTrue((wrapped instanceof IFolder) || (wrapped instanceof IProject),  "Invalid type.");
 		wrappedFolder = wrapped;
 		path = "/".equals(parentPath) ? "/" + wrapped.getName() : parentPath + "/" + wrapped.getName();
+		listResources();
 	}
-
-	private void listSubFolders() throws CoreException {
+	
+	private void listResources()  {
+		filenames = new HashSet<String>();
+		files = new LinkedList<IFile>();
 		subFolders = new LinkedList<Folder>();
-		IResource[] resources = null;
-		if (wrappedFolder instanceof IProject) {
-			resources = ((IProject)wrappedFolder).members();
-		} else {
-			resources = ((IFolder)wrappedFolder).members();
-		}
-		for (IResource resource : resources) {
-			if (resource.getType() == IResource.FOLDER) {
-				subFolders.add(new EclipseFolder(this.path, (IFolder) resource));
+		try {
+			IResource[] resources = null;
+			if (wrappedFolder instanceof IProject) {
+				resources = ((IProject) wrappedFolder).members();
+			} else {
+				resources = ((IFolder) wrappedFolder).members();
 			}
+			for (IResource resource: resources) {
+				if (resource.getType() == IResource.FILE) {
+					files.add((IFile)resource);
+					filenames.add(resource.getName());
+				} else if (resource.getType() == IResource.FOLDER) {
+					subFolders.add(new EclipseFolder(this.path, (IFolder) resource));
+				}
+			}
+		} catch (Exception e) {
+			throw new ProjectException(e);
 		}
 	}
 
 	@Override
 	public boolean containsFolders() {
-		try {
-			listSubFolders();
-			return !subFolders.isEmpty();
-		} catch (CoreException e) {
-			return false;
-		}
+		return !subFolders.isEmpty();
 	}
 
 	@Override
 	public List<Folder> getSubFolders() {
-		try {
-			listSubFolders();
-		} catch (CoreException e) {
-			//Do nothing since the subFolders will be empty.
-		}
 		return subFolders;
 	}
 
 	@Override
 	public boolean containsFile(String name) {
-		if (TextUtil.isEmpty(name)) {
-			return false;
-		}
-		IFile file = null;
-		if (wrappedFolder instanceof IProject) {
-			file = ((IProject)wrappedFolder).getFile(name);
-		} else {
-			file = ((IFolder)wrappedFolder).getFile(name);
-		}
-		return file.exists();
+		return filenames.contains(name);
 	}
 
 	@Override
@@ -140,19 +133,24 @@ public  class EclipseFolder implements Folder {
 	}
 	
 	@Override
-	public Folder findFolder(String folderName) {
-		Expect.asTrue(folderName != null && folderName.indexOf("/") == -1, "filename must not contain '/'.");
-		try {
-			listSubFolders();
-			for (Folder folder : subFolders) {
-				if (folder.name().equals(folderName)) {
+	public Folder findFolder(String folderpath) {
+		Expect.notEmpty(folderpath, "folderpath must not be null.");
+		if (folderpath.startsWith("/")) {
+			return null;
+		}
+		String[] names = folderpath.split("/");
+		for (Folder folder : subFolders) {
+			if (TextUtil.isEmpty(names[0])) {
+				continue;
+			}
+			if (folder.name().equals(names[0])) {
+				if (names.length == 1) {
 					return folder;
 				}
+				return folder.findFolder(folderpath.replaceFirst(names[0] + "/", ""));
 			}
-		} catch (CoreException e) {
-			throw new ResourceNotFoundException(e);
 		}
-		throw new ResourceNotFoundException("Failed to find dir:" + folderName);
+		return null;
 	}
 
 	@Override
@@ -180,26 +178,7 @@ public  class EclipseFolder implements Folder {
 
 	@Override
 	public Set<String> getFilenames() {
-		if (filenames != null) {
-			return filenames;
-		}
-		filenames = new HashSet<String>();
-		try {
-			IResource[] resources = null;
-			if (wrappedFolder instanceof IProject) {
-				resources = ((IProject) wrappedFolder).members();
-			} else {
-				resources = ((IFolder) wrappedFolder).members();
-			}
-			for (IResource resource: resources) {
-				if (resource.getType() == IResource.FILE) {
-					filenames.add(resource.getName());
-				}
-			}
-			return filenames;
-		} catch (Exception e) {
-			throw new ProjectException(e);
-		}
+		return filenames;
 	}
 	
 	@Override
@@ -219,6 +198,31 @@ public  class EclipseFolder implements Folder {
 			}
 		}
 		return allSubFolders;
+	}
+	
+	@Override
+	public InputStream openInputStream(String relativeFilepath) {
+		Expect.notEmpty(relativeFilepath, "relativeFilepath must not be empty.");
+		if (relativeFilepath.startsWith("/")) {
+			throw new ResourceNotFoundException("Unable to read file: " + relativeFilepath == null? "null": relativeFilepath);
+		}
+		Folder targetFolder = this;
+		String filename = relativeFilepath;
+		if (relativeFilepath.contains("/")) {
+			String basepath = FolderUtil.folderPath(relativeFilepath);
+			targetFolder = findFolder(basepath);
+			filename = FolderUtil.filename(relativeFilepath);
+		}
+		try {
+			for (IFile file : ((EclipseFolder)targetFolder).files) {
+				if (file.getName().equals(filename)) {
+					return file.getContents();
+				}
+			}
+		} catch (Exception e) {
+			// Ignore.
+		}
+		throw new ResourceNotFoundException("Unable to read file: " + relativeFilepath == null? "null": relativeFilepath);
 	}
 
 	@Override
