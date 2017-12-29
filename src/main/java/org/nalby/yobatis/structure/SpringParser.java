@@ -228,12 +228,14 @@ public class SpringParser {
 	private void iterateSpringXmlFiles(Set<FilepathMetadata> filepathMetadatas, 
 			Set<String> parsedXmlFiles, Set<String> parsedPropertiesFiles) {
 		for (FilepathMetadata metadata: filepathMetadatas) {
+			logger.info("Scanning file:{}.", metadata.getFilepath());
 			if (parsedXmlFiles.contains(metadata.getFilepath())) {
 				continue;
 			}
 			parsedXmlFiles.add(metadata.getFilepath());
 			SpringXmlParser parser = metadata.getSpringXmlParser();
 			if (parser == null) {
+				logger.info("File:{} is not a spring config file.", metadata.getFilepath());
 				continue;
 			}
 			springXmlParsers.add(parser);
@@ -241,6 +243,7 @@ public class SpringParser {
 					metadata.getPom(), metadata.getFolder(), true);
 			for (FilepathMetadata propertiesFile: propertiesFiles) {
 				if (!parsedPropertiesFiles.contains(propertiesFile.getFilepath())) {
+					logger.info("Scanning properties file:{}.", propertiesFile.getFilepath());
 					parsedPropertiesFiles.add(propertiesFile.getFilepath());
 					propertiesFile.parseProperties();
 				}

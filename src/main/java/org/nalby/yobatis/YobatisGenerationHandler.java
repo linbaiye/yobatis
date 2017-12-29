@@ -152,7 +152,8 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
-		ISelectionService selectionService = PlatformUI.getWorkbench()
+		start();
+	/*	ISelectionService selectionService = PlatformUI.getWorkbench()
 				.getActiveWorkbenchWindow().getSelectionService();
 		ISelection selection = selectionService.getSelection();
 		if (!(selection instanceof IStructuredSelection)) {
@@ -172,7 +173,13 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			SpringParser springParser = new SpringParser(pomTree, 
 					webContainerParser.getSpringInitParamValues());
 			System.out.println(springParser.getDatabasePassword());
-		}
+
+			String driverClassName = springParser.getDatabaseDriverClassName();
+
+			String dbJarPath = pomTree.getDatabaseJarPath(driverClassName);
+
+			System.out.println(dbJarPath);
+		}*/
 		return null;
 	}
 }

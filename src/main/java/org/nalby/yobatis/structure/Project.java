@@ -12,7 +12,6 @@ import java.util.Stack;
 
 import org.nalby.yobatis.exception.ResourceNotFoundException;
 import org.nalby.yobatis.util.Expect;
-import org.nalby.yobatis.util.FolderUtil;
 public abstract class Project implements Folder {
 	
 	protected Folder root;
@@ -30,6 +29,9 @@ public abstract class Project implements Folder {
 	public final static String WEB_XML_PATH = "src/main/webapp/WEB-INF/web.xml";
 
 	protected final static String CLASSPATH_PREFIX = "classpath:";
+	
+	
+	private Logger logger = LogFactory.getLogger(getClass());
 	
 	public static interface FolderSelector {
 		public boolean isSelected(Folder folder);
@@ -164,28 +166,6 @@ public abstract class Project implements Folder {
 		return result;
 	}
 	
-	/**
-	 * Find folders that contain the filename.
-	 * @param path
-	 * @return the folders that contain the filename, empty list returned if not found.
-	 */
-	public List<Folder> findFoldersContainingFile(final String path) {
-		Expect.notEmpty(path, "path must not be empty.");
-		final String folderpath = FolderUtil.folderPath(path);
-		final String filename = FolderUtil.filename(path);
-		return findFolders(new FolderSelector() {
-			@Override
-			public boolean isSelected(Folder folder) {
-				if (path.indexOf("/") == -1) {
-					//only filename.
-					return folder.containsFile(path);
-				}
-				//file path.
-				return folder.path().endsWith(folderpath) && folder.containsFile(filename);
-			}
-		});
-	}
-	
 	private String[] splitPath(String path) {
 		Expect.notEmpty(path, "path must not be null.");
 		path = convertToProjectPath(path);
@@ -206,6 +186,9 @@ public abstract class Project implements Folder {
 					return folder.containsFile(tokens[i]);
 				} else {
 					folder = folder.findFolder(tokens[i]);
+					if (folder == null) {
+						return false;
+					}
 				}
 			}
 		} catch (ResourceNotFoundException e) {
