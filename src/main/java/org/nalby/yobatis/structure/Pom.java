@@ -23,12 +23,6 @@ public interface Pom {
 	Folder getFolder();
 	
 	/**
-	 * Get the name of this pom.
-	 * @return the name.
-	 */
-	String name();
-	
-	/**
 	 * Get resource folders defined in this pom.
 	 * @return resource folders or empty set if not found.
 	 */

@@ -130,11 +130,6 @@ public class PomTree {
 		}
 
 		@Override
-		public String name() {
-			return folder.name();
-		}
-
-		@Override
 		public Set<Folder> getResourceFolders() {
 			return resourceFolders;
 		}
