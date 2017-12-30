@@ -9,6 +9,7 @@ import java.util.Stack;
 
 import org.nalby.yobatis.exception.InvalidConfigurationException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
+import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.util.PropertyUtil;
@@ -49,6 +50,8 @@ public class PomTree {
 		private Pom parent;
 
 		private Folder folder;
+		
+		private Folder sourceCodeFolder;
 		
 		/**
 		 * The webapp folder if exists.
@@ -93,6 +96,7 @@ public class PomTree {
 			if (isContainer()) {
 				return;
 			}
+			sourceCodeFolder = this.folder.findFolder("src/main/java");
 			Set<String> paths = pomXmlParser.getResourceDirs();
 			for (String path: paths) {
 				Folder folder = this.folder.findFolder(path);
@@ -156,6 +160,11 @@ public class PomTree {
 				return parent.filterPlaceholders(text);
 			}
 			return text;
+		}
+
+		@Override
+		public Folder getSourceCodeFolder() {
+			return sourceCodeFolder;
 		}
 	}
 	
@@ -222,4 +231,68 @@ public class PomTree {
 		}
 		return null;
 	}
+	
+	private List<Folder> sourceCodeFolders = null;
+
+	private List<Folder> lookupSourceCodeFolders() {
+		if (sourceCodeFolders != null) {
+			return sourceCodeFolders;
+		}
+		sourceCodeFolders =  new LinkedList<Folder>();
+		for (Pom pom : getPoms()) {
+			Folder tmp = pom.getSourceCodeFolder();
+			if (tmp != null) {
+				sourceCodeFolders.add(tmp);
+			}
+		}
+		return sourceCodeFolders;
+	}
+	
+	private List<Folder> iterateSourceCodeFolders(FolderSelector selector) {
+		List<Folder> sourceCodeFolders = lookupSourceCodeFolders();
+		List<Folder> folders = new LinkedList<Folder>();
+		for (Folder sourceCodeFolder: sourceCodeFolders) {
+			for (Folder folder: sourceCodeFolder.getAllFolders()) {
+				if (selector.isSelected(folder)) {
+					folders.add(folder);
+				}
+			}
+		}
+		return folders;
+	}
+	
+	public List<Folder> lookupDaoFolders() {
+		return iterateSourceCodeFolders(new FolderSelector() {
+			@Override
+			public boolean isSelected(Folder folder) {
+				String path = folder.path();
+				if (path.endsWith("dao") || path.endsWith("mapper") || path.endsWith("repository")) {
+					return true;
+				}
+				return false;
+			}
+		});
+	}
+	
+	public List<Folder> lookupModelFolders() {
+		return iterateSourceCodeFolders(new FolderSelector() {
+			@Override
+			public boolean isSelected(Folder folder) {
+				String path = folder.path();
+				if (path.endsWith("domain") || path.endsWith("entity") || path.endsWith("model")) {
+					return true;
+				}
+				return false;
+			}
+		});
+	}
+	
+	public List<Folder> lookupResourceFolders() {
+		List<Folder> resourceFolders = new LinkedList<Folder>();
+		for (Pom pom: poms) {
+			resourceFolders.addAll(pom.getResourceFolders());
+		}
+		return resourceFolders;
+	}
+
 }

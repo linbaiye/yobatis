@@ -64,7 +64,6 @@ public interface Folder {
 	 */
 	Set<String> getFilenames();
 	
-	
 	/**
 	 * Get all folders contained by this folder of any depth.
 	 * @return folders if any, empty set else.

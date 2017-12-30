@@ -16,8 +16,8 @@ import org.nalby.yobatis.util.PropertyUtil;
 import org.nalby.yobatis.xml.SpringXmlParser;
 /**
  * Used to parse spring configuration files. The main purpose is to locate
- * database's properties by parsing imported spring xml files, and properties
- * files configured.
+ * database's properties by parsing imported spring xml files and properties
+ * files. At present, it's poorly designed and should be optimized in future.
  * 
  * @author Kyle Lin
  */
@@ -35,8 +35,7 @@ public class SpringParser {
 	
 	/**
 	 * Construct a {@code SpringParser} that analyzes the spring files.
-	 * @param project see {@link org.nalby.yobatis.structure.Project}
-	 * @param pomTree 
+	 * @param pomTree {@link PomTree}
 	 * @param initParamValues The param-value in web.xml, including servlet and application
 	 * context.
 	 */
@@ -77,6 +76,12 @@ public class SpringParser {
 		return locations;
 	}
 	
+	/**
+	 * A convenient class that helps analyze either spring xml file or properties file,
+	 * as the pom is used to solve placeholders, the folder is for searching files when importing
+	 * a file with relative path happens.
+	 * @author Kyle Lin
+	 */
 	private class FilepathMetadata {
 		/* The Pom that this filepath belongs to. */
 		private Pom pom;
@@ -160,6 +165,13 @@ public class SpringParser {
 	}
 	
 
+	/**
+	 * Find files that match the ant path pattern in the folder.
+	 * @param result
+	 * @param pom the pom module the found file belongs to.
+	 * @param folder the folder
+	 * @param antPattern the ant path pattern.
+	 */
 	private void findFilesOfAntPatternInFolder(Set<FilepathMetadata> result, Pom pom, Folder folder, String antPattern) {
 		String antpath = FolderUtil.concatPath(folder.path(), antPattern);
 		for (String filepath : folder.getAllFilepaths()) {
@@ -195,6 +207,18 @@ public class SpringParser {
 		}
 	}
 	
+	/**
+	 * Find files that are imported(by a spring xml file). Care needs to be taken when
+	 * searching files start with '/', if the locations are imported as spring xml files,
+	 * the '/' has no effect as the location will be treated as a relative path. However,
+	 * if the locations are imported as properties files, the '/' means the root path of
+	 * this project.
+	 * @param locations
+	 * @param pom
+	 * @param folder
+	 * @param propertiesLocation
+	 * @return
+	 */
 	private Set<FilepathMetadata> findImportedFiles(Set<String> locations, Pom pom,
 			Folder folder, boolean propertiesLocation) {
 		Set<FilepathMetadata> result = new HashSet<FilepathMetadata>();
@@ -228,10 +252,10 @@ public class SpringParser {
 	private void iterateSpringXmlFiles(Set<FilepathMetadata> filepathMetadatas, 
 			Set<String> parsedXmlFiles, Set<String> parsedPropertiesFiles) {
 		for (FilepathMetadata metadata: filepathMetadatas) {
-			logger.info("Scanning file:{}.", metadata.getFilepath());
 			if (parsedXmlFiles.contains(metadata.getFilepath())) {
 				continue;
 			}
+			logger.info("Scanning file:{}.", metadata.getFilepath());
 			parsedXmlFiles.add(metadata.getFilepath());
 			SpringXmlParser parser = metadata.getSpringXmlParser();
 			if (parser == null) {
@@ -296,7 +320,7 @@ public class SpringParser {
 	/**
 	 * Get the database's url configured among spring config files. The returned
 	 * value would be a placeholder (for instance ${jdbc.url}) if the placeholder
-	 * could not be parsed among properties files.
+	 * could not be found anywhere.
 	 * @return The value if configured, null otherwise.
 	 */
 	public String getDatabaseUrl() {
@@ -308,6 +332,12 @@ public class SpringParser {
 		});
 	}
 	
+	/**
+	 * Get the database's username configured among spring config files. The returned
+	 * value would be a placeholder (for instance ${jdbc.url}) if the placeholder
+	 * could not be found anywhere.
+	 * @return The value if configured, null otherwise.
+	 */
 	public String getDatabaseUsername() {
 		return getPropertyValue(new PropertyGetter() {
 			@Override
@@ -317,6 +347,12 @@ public class SpringParser {
 		});
 	}
 	
+	/**
+	 * Get the database's password configured among spring config files. The returned
+	 * value would be a placeholder (for instance ${jdbc.url}) if the placeholder
+	 * could not be found anywhere.
+	 * @return The value if configured, null otherwise.
+	 */
 	public String getDatabasePassword() {
 		return getPropertyValue(new PropertyGetter() {
 			@Override
@@ -326,6 +362,12 @@ public class SpringParser {
 		});
 	}
 	
+	/**
+	 * Get the database's driver class name configured among spring config files. The returned
+	 * value would be a placeholder (for instance ${jdbc.url}) if the placeholder
+	 * could not be found anywhere.
+	 * @return The value if configured, null otherwise.
+	 */
 	public String getDatabaseDriverClassName() {
 		return getPropertyValue(new PropertyGetter() {
 			@Override

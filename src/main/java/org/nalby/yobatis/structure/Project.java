@@ -70,7 +70,7 @@ public abstract class Project implements Folder {
 		}
 		return result;
 	}
-	
+
 	/**
 	 * List the full path of the possible 'DAO' layers.
 	 * @return possible paths if any, empty list else.

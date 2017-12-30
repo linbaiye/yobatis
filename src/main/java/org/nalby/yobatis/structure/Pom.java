@@ -35,6 +35,14 @@ public interface Pom {
 	Folder getWebappFolder();
 	
 	/**
+	 * Get source code folder in this pom, the folder that ends with "src/main/java" if the
+	 * pom is not a container.
+	 * @return the source code folder.
+	 */
+	Folder getSourceCodeFolder();
+	 
+	
+	/**
 	 * Filter all placeholders appearing in text.
 	 * @param text the text to filter.
 	 * @return filtered text.
