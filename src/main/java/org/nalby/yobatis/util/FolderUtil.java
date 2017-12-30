@@ -1,5 +1,7 @@
 package org.nalby.yobatis.util;
 
+import java.io.Closeable;
+
 public final class FolderUtil {
 
 	private FolderUtil() {}
@@ -18,7 +20,7 @@ public final class FolderUtil {
 	}
 	
 	/**
-	 * Get the folder path of the file path.
+	 * Get the file name of the file path.
 	 * aa/bb/xx/test -> test
 	 * @return the file name.
 	 */
@@ -38,5 +40,17 @@ public final class FolderUtil {
 		}
 		return base + "/" + appending;
 	}
+	
+	
+	public static void closeStream(Closeable closeable) {
+		try {
+			if (closeable != null) {
+				closeable.close();
+			}
+		} catch (Exception e) {
+			//Nothing we can do.
+		}
+	}
+	
 
 }

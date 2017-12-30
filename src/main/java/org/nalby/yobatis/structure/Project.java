@@ -1,23 +1,17 @@
 package org.nalby.yobatis.structure;
 
-import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
-import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
 import org.nalby.yobatis.exception.ResourceNotFoundException;
 import org.nalby.yobatis.util.Expect;
-import org.nalby.yobatis.util.FolderUtil;
-import org.nalby.yobatis.util.TextUtil;
-
 public abstract class Project implements Folder {
 	
 	protected Folder root;
@@ -35,6 +29,9 @@ public abstract class Project implements Folder {
 	public final static String WEB_XML_PATH = "src/main/webapp/WEB-INF/web.xml";
 
 	protected final static String CLASSPATH_PREFIX = "classpath:";
+	
+	
+	private Logger logger = LogFactory.getLogger(getClass());
 	
 	public static interface FolderSelector {
 		public boolean isSelected(Folder folder);
@@ -73,7 +70,7 @@ public abstract class Project implements Folder {
 		}
 		return result;
 	}
-	
+
 	/**
 	 * List the full path of the possible 'DAO' layers.
 	 * @return possible paths if any, empty list else.
@@ -143,34 +140,6 @@ public abstract class Project implements Folder {
 		Expect.notEmpty(filepath, "filepath must not be null.");
 		return new FileInputStream(convertToSyspath(filepath));
 	}
-
-
-	public String readFile(String filepath) {
-		Expect.notEmpty(filepath, "filepath must not be null.");
-		BufferedReader bufferedReader = null;
-		try {
-			InputStream inputStream = getInputStream(filepath);
-			InputStreamReader streamReader = new InputStreamReader(inputStream);
-			bufferedReader = new BufferedReader(streamReader);
-			StringBuffer sb = new StringBuffer();
-			String line;
-			while ((line = bufferedReader.readLine()) != null) {
-				sb.append(line);
-				sb.append("\n");
-			}
-			return sb.toString();
-		} catch (IOException e) {
-			throw new ResourceNotAvailableExeception(e);
-		} finally {
-			try {
-				if (bufferedReader != null) {
-					bufferedReader.close();
-				}
-			} catch (IOException e) {
-				//Ignore
-			}
-		}
-	}
 	
 	/**
 	 * Find folders that meet the criteria given by selector.
@@ -197,28 +166,6 @@ public abstract class Project implements Folder {
 		return result;
 	}
 	
-	/**
-	 * Find folders that contain the filename.
-	 * @param path
-	 * @return the folders that contain the filename, empty list returned if not found.
-	 */
-	public List<Folder> findFoldersContainingFile(final String path) {
-		Expect.notEmpty(path, "path must not be empty.");
-		final String folderpath = FolderUtil.folderPath(path);
-		final String filename = FolderUtil.filename(path);
-		return findFolders(new FolderSelector() {
-			@Override
-			public boolean isSelected(Folder folder) {
-				if (path.indexOf("/") == -1) {
-					//only filename.
-					return folder.containsFile(path);
-				}
-				//file path.
-				return folder.path().endsWith(folderpath) && folder.containsFile(filename);
-			}
-		});
-	}
-	
 	private String[] splitPath(String path) {
 		Expect.notEmpty(path, "path must not be null.");
 		path = convertToProjectPath(path);
@@ -239,6 +186,9 @@ public abstract class Project implements Folder {
 					return folder.containsFile(tokens[i]);
 				} else {
 					folder = folder.findFolder(tokens[i]);
+					if (folder == null) {
+						return false;
+					}
 				}
 			}
 		} catch (ResourceNotFoundException e) {
@@ -296,15 +246,7 @@ public abstract class Project implements Folder {
 		if (folderpath.startsWith(root.path())) {
 			folderpath = folderpath.replaceFirst(root.path(), "");
 		}
-		String names[] = folderpath.split("/");
-		Folder result = root;
-		for (String name: names) {
-			if (TextUtil.isEmpty(name)) {
-				continue;
-			}
-			result = result.findFolder(name);
-		}
-		return result;
+		return root.findFolder(folderpath);
 	}
 
 	@Override
@@ -320,5 +262,10 @@ public abstract class Project implements Folder {
 	@Override
 	public Set<String> getAllFilepaths() {
 		return root.getAllFilepaths();
+	}
+	
+	@Override
+	public InputStream openInputStream(String name) {
+		return root.openInputStream(name);
 	}
 }

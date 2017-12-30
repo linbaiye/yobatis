@@ -14,6 +14,8 @@ import org.dom4j.DocumentType;
 import org.dom4j.Element;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.sql.Sql;
+import org.nalby.yobatis.structure.Folder;
+import org.nalby.yobatis.structure.PomTree;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.xml.AbstractXmlParser;
 import org.nalby.yobatis.xml.MybatisXmlParser;
@@ -24,10 +26,11 @@ import org.nalby.yobatis.xml.MybatisXmlParser;
  * @author Kyle Lin
  */
 public class MybatisConfigFileGenerator implements MybatisConfigReader {
-	private Project project;
 	private Document document;
 	private Sql sql;
 	private ErrorCode errorCode;
+	
+	private PomTree pomTree;
 
 	private enum ErrorCode {
 		OK,
@@ -66,10 +69,9 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 
 	private Set<Element> tables = new HashSet<Element>();
 	
-	public MybatisConfigFileGenerator(Project project, Sql sql) {
-		this.project = project;
+	public MybatisConfigFileGenerator(PomTree pomTree, Sql sql) {
 		this.sql = sql;
-		errorCode = ErrorCode.OK;
+		this.pomTree = pomTree;
 		createDocument();
 		root = factory.createElement("generatorConfiguration");
 		document.setRootElement(root);
@@ -80,8 +82,8 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		appendJdbcConnection(context);
 		appendTypeResolver(context);
 		appendJavaModelGenerator(context);
-		appendSqlMapGenerator(context);
 		appendJavaClientGenerator(context);
+		appendSqlMapGenerator(context);
 		appendTables(context);
 	}
 	
@@ -158,20 +160,29 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		jdbConnection.addAttribute("userId", sql.getUsername());
 		jdbConnection.addAttribute("password", sql.getPassword());
 	}
-
+	
 	private void appendJavaModelGenerator(Element context) {
-		List<String> paths = project.getSyspathsOfModel();
-		if (paths.isEmpty()) {
-			errorCode = ErrorCode.NO_MODEL_PATH;
-		} else if (paths.size() > 1) {
-			errorCode = ErrorCode.MULTIPLE_MODEL_PATHS;
-		}
-		for (String path: paths) {
+		List<Folder> folders = pomTree.lookupModelFolders();
+		for (Folder folder: folders) {
+			String path = folder.path();
 			String packageName = getPackageName(path);
 			Element javaModelGenerator = context.addElement("javaModelGenerator");
 			javaModelGenerator.addAttribute("targetPackage", packageName == null? "": packageName);
 			javaModelGenerator.addAttribute("targetProject", eliminatePackagePath(path));
 			javaModelGenerators.add(javaModelGenerator);
+		}
+	}
+	
+	private void appendJavaClientGenerator(Element context) {
+		List<Folder> folders = pomTree.lookupDaoFolders();
+		for (Folder folder: folders) {
+			String path = folder.path();
+			String packageName = getPackageName(path);
+			Element generator = context.addElement("javaClientGenerator");
+			generator.addAttribute("type", "XMLMAPPER");
+			generator.addAttribute("targetPackage", packageName == null ? "" : packageName);
+			generator.addAttribute("targetProject", eliminatePackagePath(path));
+			javaClientGenerators.add(generator);
 		}
 	}
 
@@ -199,26 +210,22 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	private void appendSqlMapGenerator(Element context) {
-		Set<String> paths = project.getSyspathsOfResources();
-		if (paths.isEmpty()) {
-			errorCode = ErrorCode.NO_RESOURCES_PATH;
-		} else if (paths.size() > 1) {
-			errorCode = ErrorCode.MULTIPLE_RESOURCES_PATHS;
-		}
-		for (String path: paths) {
+		List<Folder> resourceFolders = pomTree.lookupResourceFolders();
+		for (Folder folder: resourceFolders) {
+			String path = folder.path();
 			Element generator = context.addElement("sqlMapGenerator");
-			generator.addAttribute("targetPackage", "mybatis-mappers/autogen");
+			generator.addAttribute("targetPackage", "mybatis-mappers");
 			generator.addAttribute("targetProject", path);
 			sqlMapGenerators.add(generator);
 		}
 	}
-	
-	private final static Pattern PATTERN = Pattern.compile("^.+" + Project.MAVEN_SOURCE_CODE_PATH + "/(.+)$");
+
+	private final static Pattern SOURCE_CODE_PATTERN = Pattern.compile("^.+" + Project.MAVEN_SOURCE_CODE_PATH + "/(.+)$");
 	private String getPackageName(String path) {
 		if (path == null || !path.contains(Project.MAVEN_SOURCE_CODE_PATH)) {
 			return null;
 		}
-		Matcher matcher = PATTERN.matcher(path);
+		Matcher matcher = SOURCE_CODE_PATTERN.matcher(path);
 		String ret = null;
 		if (matcher.find()) {
 			ret = matcher.group(1);
@@ -230,7 +237,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	private String eliminatePackagePath(String fullpath) {
-		Matcher matcher = PATTERN.matcher(fullpath);
+		Matcher matcher = SOURCE_CODE_PATTERN.matcher(fullpath);
 		String ret = null;
 		if (matcher.find()) {
 			ret = matcher.group(1);
@@ -238,25 +245,9 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		if (ret == null) {
 			return fullpath;
 		}
-		return fullpath.replace(ret, "");
+		return fullpath.replace("/" + ret, "");
 	}
 	
-	private void appendJavaClientGenerator(Element context) {
-		List<String> paths = project.getSyspathsOfDao();
-		if (paths.isEmpty()) {
-			errorCode = ErrorCode.NO_DAO_PATH;
-		} else if (paths.size() > 1) {
-			errorCode = ErrorCode.MULTIPLE_MODEL_PATHS;
-		}
-		for (String path: paths) {
-			String packageName = getPackageName(path);
-			Element generator = context.addElement("javaClientGenerator");
-			generator.addAttribute("type", "XMLMAPPER");
-			generator.addAttribute("targetPackage", packageName == null ? "" : packageName);
-			generator.addAttribute("targetProject", eliminatePackagePath(path));
-			javaClientGenerators.add(generator);
-		}
-	}
 	
 	public boolean hasError() {
 		return errorCode != ErrorCode.OK;

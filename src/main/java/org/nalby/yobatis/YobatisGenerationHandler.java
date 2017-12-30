@@ -18,12 +18,11 @@ import org.nalby.yobatis.sql.mysql.Mysql;
 import org.nalby.yobatis.sql.mysql.Mysql.Builder;
 import org.nalby.yobatis.structure.LogFactory;
 import org.nalby.yobatis.structure.Logger;
-import org.nalby.yobatis.structure.PomParser;
+import org.nalby.yobatis.structure.PomTree;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.WebContainerParser;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
-import org.nalby.yobatis.util.PropertyUtil;
 import org.nalby.yobatis.xml.MybatisXmlParser;
 
 public class YobatisGenerationHandler extends AbstractHandler {
@@ -34,13 +33,11 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	 *  Build the generator of mybatis-generator's config file according to project config.
 	 */
 	private MybatisConfigFileGenerator buildMybatisGeneratorConfigMaker(Project project) {
-		PomParser pomParser = new PomParser(project);
+		PomTree pomTree = new PomTree(project);
 
-		WebContainerParser webContainerParser = new WebContainerParser(project, 
-				pomParser.getWebappFolder());
+		WebContainerParser webContainerParser = new WebContainerParser(pomTree.getWarPom());
 
-		SpringParser springParser = new SpringParser(project, pomParser, 
-				webContainerParser.getSpringInitParamValues());
+		SpringParser springParser = new SpringParser(pomTree, webContainerParser.getSpringInitParamValues());
 
 		String username = springParser.getDatabaseUsername();
 
@@ -50,7 +47,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 		String driverClassName = springParser.getDatabaseDriverClassName();
 
-		String dbJarPath = pomParser.getDatabaseJarPath(driverClassName);
+		String dbJarPath = pomTree.getDatabaseJarPath(driverClassName);
 
 		Builder builder = Mysql.builder();
 		builder.setConnectorJarPath(dbJarPath)
@@ -58,7 +55,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		.setUsername(username)
 		.setPassword(password)
 		.setUrl(url);
-		return new MybatisConfigFileGenerator(project, builder.build());
+		return new MybatisConfigFileGenerator(pomTree, builder.build());
 	}
 	
 	/*
@@ -120,10 +117,9 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			logger.info("Caught exception:{}.", e.getMessage());
 		}
 	}
-
-
-	@Override
-	public Object execute(ExecutionEvent event) throws ExecutionException {
+	
+	
+	private Object start() {
 		ISelectionService selectionService = PlatformUI.getWorkbench()
 				.getActiveWorkbenchWindow().getSelectionService();
 		ISelection selection = selectionService.getSelection();
@@ -143,6 +139,72 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			generateFromExistentFile(iFile);
 		} else {
 			generateFromProject((IProject)element);
+		}
+		return null;
+	}
+
+
+	private void buildMybatisGeneratorConfigMaker1(Project project) {
+		PomTree pomTree = new PomTree(project);
+
+		WebContainerParser webContainerParser = new WebContainerParser(pomTree.getWarPom());
+
+		SpringParser springParser = new SpringParser(pomTree, webContainerParser.getSpringInitParamValues());
+
+		String username = springParser.getDatabaseUsername();
+
+		String password = springParser.getDatabasePassword();
+
+		String url = springParser.getDatabaseUrl();
+
+		String driverClassName = springParser.getDatabaseDriverClassName();
+
+		String dbJarPath = pomTree.getDatabaseJarPath(driverClassName);
+
+		Builder builder = Mysql.builder();
+		builder.setConnectorJarPath(dbJarPath)
+		.setDriverClassName(driverClassName)
+		.setUsername(username)
+		.setPassword(password)
+		.setUrl(url);
+		MybatisConfigFileGenerator generator = new MybatisConfigFileGenerator(pomTree, builder.build());
+		System.out.println(generator.asXmlText());
+	}
+
+	@Override
+	public Object execute(ExecutionEvent event) throws ExecutionException {
+		//start();
+		ISelectionService selectionService = PlatformUI.getWorkbench()
+				.getActiveWorkbenchWindow().getSelectionService();
+		ISelection selection = selectionService.getSelection();
+		if (!(selection instanceof IStructuredSelection)) {
+			return null;
+		}
+		Object element = ((IStructuredSelection) selection).getFirstElement();
+		if (element == null ||
+			(!(element instanceof IProject) && !(element instanceof IFile))) {
+			return null;
+		}
+		if (element instanceof IProject) {
+			IProject iProject = (IProject) element;
+			EclipseProject project = new EclipseProject(iProject);
+/*			PomTree pomTree = new PomTree(project);
+			Pom pom = pomTree.getWarPom();
+			WebContainerParser webContainerParser = new WebContainerParser(pom);
+			SpringParser springParser = new SpringParser(pomTree, 
+					webContainerParser.getSpringInitParamValues());
+			System.out.println(springParser.getDatabasePassword());
+
+			String driverClassName = springParser.getDatabaseDriverClassName();
+
+			String dbJarPath = pomTree.getDatabaseJarPath(driverClassName);*/
+
+			try {
+			buildMybatisGeneratorConfigMaker1(project);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			//System.out.println(dbJarPath);
 		}
 		return null;
 	}
