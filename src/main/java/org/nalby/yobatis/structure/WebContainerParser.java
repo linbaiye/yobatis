@@ -19,7 +19,7 @@ public class WebContainerParser {
 		Expect.notNull(webpom, "webappFolder must not be null.");
 		InputStream inputStream = null;
 		try {
-			inputStream = webpom.getWebappFolder().openInputStream("WEB-INF/web.xml");
+			inputStream = webpom.getWebappFolder().openFile("WEB-INF/web.xml");
 			springInitParamValues = new HashSet<String>();
 			parser = new WebXmlParser(inputStream);
 			Set<String> values = parser.getSpringInitParamValues();

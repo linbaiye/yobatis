@@ -82,8 +82,8 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		appendJdbcConnection(context);
 		appendTypeResolver(context);
 		appendJavaModelGenerator(context);
-		appendJavaClientGenerator(context);
 		appendSqlMapGenerator(context);
+		appendJavaClientGenerator(context);
 		appendTables(context);
 	}
 	

@@ -41,7 +41,7 @@ public class ProjectTests {
 	@Test
 	public void testFindFoldersWithEmptySub() {
 		Folder mockedRoot = mock(Folder.class);
-		when(mockedRoot.getSubFolders()).thenReturn(new ArrayList<Folder>());
+		when(mockedRoot.getSubfolders()).thenReturn(new ArrayList<Folder>());
 		Project project = new TestingProject(mockedRoot);
 		List<Folder> result = project.findFolders(new FolderSelector() {
 			@Override
@@ -56,7 +56,7 @@ public class ProjectTests {
 	public void testFindFolders() {
 		List<Folder> list = buildMockedSubFolders(10);
 		Folder mockedRoot = mock(Folder.class);
-		when(mockedRoot.getSubFolders()).thenReturn(list);
+		when(mockedRoot.getSubfolders()).thenReturn(list);
 		Project project = new TestingProject(mockedRoot);
 		List<Folder> result = project.findFolders(new FolderSelector() {
 			@Override

@@ -153,7 +153,7 @@ public abstract class Project implements Folder {
 		List<Folder> result = new LinkedList<Folder>();
 		do {
 			Folder node = stack.pop();
-			List<Folder> subFolders = node.getSubFolders();
+			List<Folder> subFolders = node.getSubfolders();
 			for (Folder child: subFolders) {
 				if (selector.isSelected(child)) {
 					result.add(child);
@@ -198,26 +198,22 @@ public abstract class Project implements Folder {
 	}
 	
 	@Override
-	public List<Folder> getSubFolders() {
-		return this.root.getSubFolders();
+	public List<Folder> getSubfolders() {
+		return this.root.getSubfolders();
+	}
+	
+	private String wipeRootFolderPath(String path) {
+		if (path.startsWith(root.path())) {
+			return path.replaceFirst(root.path() + "/", "");
+		}
+		return path;
 	}
 	
 	@Override
-	public void writeFile(String path, String content) {
-		Expect.notEmpty(content, "content must not be null.");
-		String[] tokens = splitPath(path);
-		Folder folder = root;
-		for (int i = 0; i < tokens.length; i++) {
-			//In case of paths like 'name1//name2'
-			if ("".equals(tokens[i])) {
-				continue;
-			}
-			if (i == tokens.length - 1) {
-				folder.writeFile(tokens[i], content);
-			} else {
-				folder = folder.createFolder(tokens[i]);
-			}
-		}
+	public void writeFile(String filepath, String content) {
+		Expect.notEmpty(filepath, "filepath must not be null.");
+		filepath = wipeRootFolderPath(filepath);
+		root.writeFile(filepath, content);
 	}
 	
 	@Override
@@ -236,16 +232,16 @@ public abstract class Project implements Folder {
 	}
 
 	@Override
-	public Folder createFolder(String folderName) {
-		return root.createFolder(folderName);
+	public Folder createFolder(String folderPath) {
+		Expect.notEmpty(folderPath, "folder path must not be empty.");
+		folderPath = wipeRootFolderPath(folderPath);
+		return root.createFolder(folderPath);
 	}
 
 	@Override
 	public Folder findFolder(String folderpath) {
 		Expect.notEmpty(folderpath, "folderpath must not be null.");
-		if (folderpath.startsWith(root.path())) {
-			folderpath = folderpath.replaceFirst(root.path(), "");
-		}
+		folderpath = wipeRootFolderPath(folderpath);
 		return root.findFolder(folderpath);
 	}
 
@@ -265,7 +261,9 @@ public abstract class Project implements Folder {
 	}
 	
 	@Override
-	public InputStream openInputStream(String name) {
-		return root.openInputStream(name);
+	public InputStream openFile(String filepath) {
+		Expect.notEmpty(filepath, "folderpath must not be null.");
+		filepath = wipeRootFolderPath(filepath);
+		return root.openFile(filepath);
 	}
 }

@@ -173,8 +173,8 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
-		//start();
-		ISelectionService selectionService = PlatformUI.getWorkbench()
+		start();
+	/*	ISelectionService selectionService = PlatformUI.getWorkbench()
 				.getActiveWorkbenchWindow().getSelectionService();
 		ISelection selection = selectionService.getSelection();
 		if (!(selection instanceof IStructuredSelection)) {
@@ -188,7 +188,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		if (element instanceof IProject) {
 			IProject iProject = (IProject) element;
 			EclipseProject project = new EclipseProject(iProject);
-/*			PomTree pomTree = new PomTree(project);
+			PomTree pomTree = new PomTree(project);
 			Pom pom = pomTree.getWarPom();
 			WebContainerParser webContainerParser = new WebContainerParser(pom);
 			SpringParser springParser = new SpringParser(pomTree, 
@@ -197,15 +197,15 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 			String driverClassName = springParser.getDatabaseDriverClassName();
 
-			String dbJarPath = pomTree.getDatabaseJarPath(driverClassName);*/
+			String dbJarPath = pomTree.getDatabaseJarPath(driverClassName);
 
 			try {
 			buildMybatisGeneratorConfigMaker1(project);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			//System.out.println(dbJarPath);
-		}
+			System.out.println(dbJarPath);
+		}*/
 		return null;
 	}
 }

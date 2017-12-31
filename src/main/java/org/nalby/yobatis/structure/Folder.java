@@ -28,7 +28,7 @@ public interface Folder {
 	 * Get folders contained by this folder directly.
 	 * @return the folders if any, or an empty list if none.
 	 */
-	List<Folder> getSubFolders();
+	List<Folder> getSubfolders();
 	
 	/**
 	 * Test if this folder contains the file.
@@ -38,18 +38,18 @@ public interface Folder {
 	boolean containsFile(String name);
 	
 	/**
-	 * Write {@code content} to file {@code filename} under this folder.
-	 * @param filename
+	 * Write {@code content} to file {@code filepath} under this folder.
+	 * @param filepath
 	 * @param content content to write.
 	 */
-	void writeFile(String filename, String content);
+	void writeFile(String filepath, String content);
 	
 	/**
-	 * Create folder under this folder.
-	 * @param folderName the folder name.
+	 * Create a folder (recursively if necessary) under this folder based on the path.
+	 * @param path the folder path.
 	 * @return the folder created.
 	 */
-	Folder createFolder(String folderName);
+	Folder createFolder(String path);
 
 	/**
 	 * Find folder under this folder.
@@ -77,11 +77,11 @@ public interface Folder {
 	Set<String> getAllFilepaths();
 	
 	/**
-	 * Open the InputStream linked to the file {@code relativePath}
-	 * @param name the filename.
+	 * Open the file {@code relativePath}.
+	 * @param filepath the file path.
 	 * @return the InputStream of the file.
 	 * @throws ResourceNotFoundException if the file can not be opened.
 	 */
-	InputStream openInputStream(String relativePath);
+	InputStream openFile(String filepath);
 	
 }
