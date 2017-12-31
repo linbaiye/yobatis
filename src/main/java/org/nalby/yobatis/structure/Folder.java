@@ -32,10 +32,10 @@ public interface Folder {
 	
 	/**
 	 * Test if this folder contains the file.
-	 * @param the file name to test.
+	 * @param the file path to test.
 	 * @return true if so, false if not.
 	 */
-	boolean containsFile(String name);
+	boolean containsFile(String filepath);
 	
 	/**
 	 * Write {@code content} to file {@code filepath} under this folder.

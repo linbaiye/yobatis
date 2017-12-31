@@ -63,16 +63,12 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	 */
 	private MybatisConfigReader mergeIntoExistentConfig(MybatisConfigFileGenerator configFileGenerator, Project project) {
 		MybatisConfigReader reader = configFileGenerator;
-		InputStream inputStream = null;
-		try {
-			inputStream = project.getInputStream(reader.getConfigeFilename());
+		try (InputStream inputStream = project.openFile(reader.getConfigeFilename())) {
 			MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(inputStream);
 			mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(configFileGenerator);
 			reader = mybatisXmlParser;
 		} catch (Exception e) {
 			logger.info("No existent configuration found, will generate a new one.");
-		} finally {
-			project.closeInputStream(inputStream);
 		}
 		return reader;
 	}
@@ -80,19 +76,15 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	
 	private void generateFromExistentFile(IFile iFile) {
 		IProject iProject = iFile.getProject();
-		InputStream inputStream = null;
 		EclipseProject project = new EclipseProject(iProject);
-		try {
+		try (InputStream inputStream = project.openFile(MybatisConfigFileGenerator.CONFIG_FILENAME)) {
 			logger.info("Trying to generate files from existent config file.");
-			inputStream = project.getInputStream(MybatisConfigFileGenerator.CONFIG_FILENAME);
 			MybatisConfigReader configReader = new MybatisXmlParser(inputStream);
 			MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, configReader);
 			filesWriter.writeAll();
 			logger.info("Generated files.");
 		} catch (Exception e) {
 			logger.info("No existent configuration found, will generate a new one.");
-		} finally {
-			project.closeInputStream(inputStream);
 		}
 	}
 	

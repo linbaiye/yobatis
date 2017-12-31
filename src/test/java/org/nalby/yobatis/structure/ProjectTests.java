@@ -30,49 +30,6 @@ public class ProjectTests {
 		
 	}
 	
-	private List<Folder> buildMockedSubFolders(int nr ) {
-		List<Folder> result = new LinkedList<Folder>();
-		for (int i = 0; i < nr; i++) {
-			result.add(mock(Folder.class));
-		}
-		return result;
-	}
-	
-	@Test
-	public void testFindFoldersWithEmptySub() {
-		Folder mockedRoot = mock(Folder.class);
-		when(mockedRoot.getSubfolders()).thenReturn(new ArrayList<Folder>());
-		Project project = new TestingProject(mockedRoot);
-		List<Folder> result = project.findFolders(new FolderSelector() {
-			@Override
-			public boolean isSelected(Folder folder) {
-				return true;
-			}
-		});
-		assertTrue(result.isEmpty());
-	}
-
-	@Test
-	public void testFindFolders() {
-		List<Folder> list = buildMockedSubFolders(10);
-		Folder mockedRoot = mock(Folder.class);
-		when(mockedRoot.getSubfolders()).thenReturn(list);
-		Project project = new TestingProject(mockedRoot);
-		List<Folder> result = project.findFolders(new FolderSelector() {
-			@Override
-			public boolean isSelected(Folder folder) {
-				return true;
-			}
-		});
-		assertTrue(result.size() == 10);
-		result = project.findFolders(new FolderSelector() {
-			@Override
-			public boolean isSelected(Folder folder) {
-				return false;
-			}
-		});
-		assertTrue(result.isEmpty());
-	}
 	
 	@Test
 	public void converToSyspathWithRelativePath() {

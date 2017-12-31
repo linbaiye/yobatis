@@ -93,8 +93,18 @@ public class EclipseFolder implements Folder {
 	}
 
 	@Override
-	public boolean containsFile(String name) {
-		return filenames.contains(name);
+	public boolean containsFile(String filepath) {
+		validatePath(filepath);
+		if (!filepath.contains("/")) {
+			return filenames.contains(filepath);
+		} else {
+			Folder folder = findFolder(FolderUtil.folderPath(filepath));
+			if (folder != null) {
+				String name = FolderUtil.filename(filepath);
+				return folder.containsFile(name);
+			}
+			return false;
+		}
 	}
 
 	@Override
@@ -137,10 +147,14 @@ public class EclipseFolder implements Folder {
 			throw new ProjectException(e);
 		}
 	}
+	
+	private void validatePath(String path) {
+		Expect.asTrue(!TextUtil.isEmpty(path) && !path.startsWith("/"), "A relative path is expected, but got:" + path);
+	}
 
 	@Override
 	public void writeFile(String filepath, String content) {
-		Expect.asTrue(!TextUtil.isEmpty(filepath) && !filepath.startsWith("/"), "A relative path is expected.");
+		validatePath(filepath);
 		if (!filepath.contains("/")) {
 			doWriteFile(filepath, content);
 		} else {
@@ -151,7 +165,7 @@ public class EclipseFolder implements Folder {
 
 	@Override
 	public Folder findFolder(String folderpath) {
-		Expect.asTrue(!TextUtil.isEmpty(folderpath) && !folderpath.startsWith("/"), "A relative path is expected.");
+		validatePath(folderpath);
 		String[] names = folderpath.split("/");
 		for (Folder folder : subfolders) {
 			if (folder.name().equals(names[0])) {
@@ -186,9 +200,9 @@ public class EclipseFolder implements Folder {
 	}
 
 	@Override
-	public Folder createFolder(String path) {
-		Expect.asTrue(!TextUtil.isEmpty(path) && !path.startsWith("/"), "A relative path is expected.");
-		String tokens[] = path.split("/");
+	public Folder createFolder(String folderpath) {
+		validatePath(folderpath);
+		String tokens[] = folderpath.split("/");
 		String thisName = tokens[0];
 		Folder targetFolder = null;
 		for (Folder folder : subfolders) {
@@ -203,7 +217,7 @@ public class EclipseFolder implements Folder {
 		if (tokens.length == 1) {
 			return targetFolder;
 		}
-		return targetFolder.createFolder(path.replace(thisName + "/", ""));
+		return targetFolder.createFolder(folderpath.replace(thisName + "/", ""));
 	}
 
 	@Override
@@ -232,7 +246,7 @@ public class EclipseFolder implements Folder {
 	
 	@Override
 	public InputStream openFile(String filepath) {
-		Expect.asTrue(!TextUtil.isEmpty(filepath) && !filepath.startsWith("/"), "A relative path is expected.");
+		validatePath(filepath);
 		Folder targetFolder = this;
 		String filename = filepath;
 		if (filepath.contains("/")) {
