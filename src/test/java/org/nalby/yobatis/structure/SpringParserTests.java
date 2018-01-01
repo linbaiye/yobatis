@@ -88,7 +88,7 @@ public class SpringParserTests {
 		}
 	}
 	
-	private void addFilesToDir(Folder folder, SimpleEntry<String, String> ... files) {
+	private void addFilesToDir(Folder folder, @SuppressWarnings("unchecked") SimpleEntry<String, String> ... files) {
 		Set<String> paths = new HashSet<String>();
 		for (SimpleEntry<String, String> entry: files) {
 			String filepath = getFilepath(folder, entry.getKey());

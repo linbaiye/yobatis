@@ -29,12 +29,12 @@ public class MybatisFilesWriter {
 	private Project project;
 
 	public MybatisFilesWriter(Project project, MybatisConfigReader configReader) {
-		Expect.notNull(project, "runnber must not be null.");
+		Expect.notNull(project, "project must not be null.");
 		Expect.notNull(configReader, "configReader must not be null.");
 		this.project = project;
 		this.runner = new LibraryRunner();
 		try {
-			this.runner.parse(project.convertToSyspath(configReader.getConfigeFilename()));
+			this.runner.parse(project.openFile(configReader.getConfigeFilename()));
 		} catch (InvalidConfigurationException e) {
 			throw new InvalidMybatisGeneratorConfigException(e);
 		}
