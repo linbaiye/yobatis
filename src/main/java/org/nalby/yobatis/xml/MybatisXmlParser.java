@@ -640,7 +640,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	}
 
 	@Override
-	public String getMapperDirPath() {
+	public String getXmlMapperDirPath() {
 		return glueTargetPackageToTargetProject(sqlMapGenerators, SQLMAP_GENERATOR_TAG);
 	}
 

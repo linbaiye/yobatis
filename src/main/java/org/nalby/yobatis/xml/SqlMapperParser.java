@@ -344,23 +344,13 @@ public class SqlMapperParser extends AbstractXmlParser {
 	
 	public static SqlMapperParser fromString(String content) {
 		Expect.notNull(content, "content must not be null.");
-		ByteArrayInputStream inputStream = null;
-		try {
-			inputStream = new ByteArrayInputStream(content.getBytes());
+		try (ByteArrayInputStream inputStream = new ByteArrayInputStream(content.getBytes())) {
 			return new SqlMapperParser(inputStream);
-		} catch (DocumentException e) {
+		} catch (Exception e) {
 			throw new InvalidMapperException(e);
-		} catch (IOException e) {
-			throw new InvalidMapperException(e);
-		} finally {
-			try {
-				if (inputStream != null) {
-					inputStream.close();
-				}
-			} catch (IOException e) {
-			}
 		}
 	}
+
 	@Override
 	void  customSAXReader(SAXReader saxReader ) {
 		saxReader.setEntityResolver(new EntityResolver() {

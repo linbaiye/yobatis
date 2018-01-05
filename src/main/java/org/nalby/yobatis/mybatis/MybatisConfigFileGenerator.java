@@ -320,7 +320,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 
 	@Override
-	public String getMapperDirPath() {
+	public String getXmlMapperDirPath() {
 		return glueTargetPackageToTargetProject(sqlMapGenerators, "sqlMapGenerator");
 	}
 

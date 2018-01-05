@@ -101,32 +101,6 @@ public abstract class Project implements Folder {
 		});
 	}
 	
-	/**
-	 * List full paths of possible resources which are close to the dao layer. By 'close to', 
-	 * it means the ones that are contained by the same submodule containing 'dao'.
-	 * @return A list that contains path names.
-	 */
-	public Set<String> getSyspathsOfResources() {
-		List<String> paths = getSyspathsOfDao();
-		Set<String> result = new HashSet<String>();
-		for (String path: paths) {
-			String tmp = path.replaceFirst(MAVEN_SOURCE_CODE_PATH + ".+$", MAVEN_RESOURCES_PATH);
-			result.add(tmp);
-		}
-		return result;
-	}
-
-	
-	public void closeInputStream(InputStream inputStream) {
-		if (inputStream != null) {
-			try {
-				inputStream.close();
-			} catch (IOException e) {
-				//Nothing to do.
-			}
-		}
-	}
-	
 
 	/**
 	 * Get {@code InputStream} of the {@code filepath}, if {@code filepath} represents a filename,
