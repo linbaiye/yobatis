@@ -16,7 +16,6 @@ import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.PomTree;
-import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.xml.AbstractXmlParser;
 import org.nalby.yobatis.xml.MybatisXmlParser;
 
@@ -82,8 +81,8 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		appendJdbcConnection(context);
 		appendTypeResolver(context);
 		appendJavaModelGenerator(context);
-		appendJavaClientGenerator(context);
 		appendSqlMapGenerator(context);
+		appendJavaClientGenerator(context);
 		appendTables(context);
 	}
 	
@@ -220,9 +219,11 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		}
 	}
 
-	private final static Pattern SOURCE_CODE_PATTERN = Pattern.compile("^.+" + Project.MAVEN_SOURCE_CODE_PATH + "/(.+)$");
+	private final static String MAVEN_SOURCE_CODE_PATH = "src/main/java";
+
+	private final static Pattern SOURCE_CODE_PATTERN = Pattern.compile("^.+" + MAVEN_SOURCE_CODE_PATH + "/(.+)$");
 	private String getPackageName(String path) {
-		if (path == null || !path.contains(Project.MAVEN_SOURCE_CODE_PATH)) {
+		if (path == null || !path.contains(MAVEN_SOURCE_CODE_PATH)) {
 			return null;
 		}
 		Matcher matcher = SOURCE_CODE_PATTERN.matcher(path);

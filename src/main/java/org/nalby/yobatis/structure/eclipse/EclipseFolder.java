@@ -1,7 +1,6 @@
 package org.nalby.yobatis.structure.eclipse;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -27,14 +26,27 @@ public class EclipseFolder implements Folder {
 
 	private String path;
 	
-	private List<Folder> subFolders;
+	/**
+	 * Subfolders this folder contains directly.
+	 */
+	private List<Folder> subfolders;
 
-	private Set<Folder> allSubFolders;
+	/**
+	 * Subfolders this folder contains.
+	 */
+	private Set<Folder> allSubfolders;
 	
 	private List<IFile> files;
 	
+	/**
+	 * Names of the files contained by this folder directly.
+	 */
 	private Set<String> filenames;
 	
+	/**
+	 * Paths of the files contained by this folder, should be absolute paths if contained
+	 * by the project folder, relative paths else.
+	 */
 	private Set<String> filepaths;
 
 	public EclipseFolder(String parentPath, IResource wrapped) {
@@ -49,7 +61,7 @@ public class EclipseFolder implements Folder {
 	private void listResources()  {
 		filenames = new HashSet<String>();
 		files = new LinkedList<IFile>();
-		subFolders = new LinkedList<Folder>();
+		subfolders = new LinkedList<Folder>();
 		try {
 			IResource[] resources = null;
 			if (wrappedFolder instanceof IProject) {
@@ -62,7 +74,7 @@ public class EclipseFolder implements Folder {
 					files.add((IFile)resource);
 					filenames.add(resource.getName());
 				} else if (resource.getType() == IResource.FOLDER) {
-					subFolders.add(new EclipseFolder(this.path, (IFolder) resource));
+					subfolders.add(new EclipseFolder(this.path, (IFolder) resource));
 				}
 			}
 		} catch (Exception e) {
@@ -72,17 +84,27 @@ public class EclipseFolder implements Folder {
 
 	@Override
 	public boolean containsFolders() {
-		return !subFolders.isEmpty();
+		return !subfolders.isEmpty();
 	}
 
 	@Override
-	public List<Folder> getSubFolders() {
-		return subFolders;
+	public List<Folder> getSubfolders() {
+		return subfolders;
 	}
 
 	@Override
-	public boolean containsFile(String name) {
-		return filenames.contains(name);
+	public boolean containsFile(String filepath) {
+		validatePath(filepath);
+		if (!filepath.contains("/")) {
+			return filenames.contains(filepath);
+		} else {
+			Folder folder = findFolder(FolderUtil.folderPath(filepath));
+			if (folder != null) {
+				String name = FolderUtil.filename(filepath);
+				return folder.containsFile(name);
+			}
+			return false;
+		}
 	}
 
 	@Override
@@ -103,10 +125,8 @@ public class EclipseFolder implements Folder {
 			}
 		}
 	}
-
-	@Override
-	public void writeFile(String filename, String content) {
-		Expect.asTrue(filename != null && filename.indexOf("/") == -1, "filename must not contain '/'.");
+	
+	private void doWriteFile(String filename, String content) {
 		try {
 			IFile file = null;
 			if (wrappedFolder instanceof IProject) {
@@ -119,30 +139,35 @@ public class EclipseFolder implements Folder {
 			if (file.exists()) {
 				file.delete(true, false, null);
 			}
-			InputStream inputStream = new ByteArrayInputStream(content.getBytes());
-			file.create(inputStream, IResource.NONE, null);
-			file.refreshLocal(0, null);
-			try {
-				inputStream.close();
-			} catch (IOException e) {
-				throw new ProjectException(e);
+			try (InputStream inputStream = new ByteArrayInputStream(content.getBytes())) {
+				file.create(inputStream, IResource.NONE, null);
+				file.refreshLocal(0, null);
 			}
-		} catch (CoreException e) {
+		} catch (Exception e) {
 			throw new ProjectException(e);
 		}
 	}
 	
+	private void validatePath(String path) {
+		Expect.asTrue(!TextUtil.isEmpty(path) && !path.startsWith("/"), "A relative path is expected, but got:" + path);
+	}
+
+	@Override
+	public void writeFile(String filepath, String content) {
+		validatePath(filepath);
+		if (!filepath.contains("/")) {
+			doWriteFile(filepath, content);
+		} else {
+			Folder folder = createFolder(FolderUtil.folderPath(filepath));
+			folder.writeFile(FolderUtil.filename(filepath), content);
+		}
+	}
+
 	@Override
 	public Folder findFolder(String folderpath) {
-		Expect.notEmpty(folderpath, "folderpath must not be null.");
-		if (folderpath.startsWith("/")) {
-			return null;
-		}
+		validatePath(folderpath);
 		String[] names = folderpath.split("/");
-		for (Folder folder : subFolders) {
-			if (TextUtil.isEmpty(names[0])) {
-				continue;
-			}
+		for (Folder folder : subfolders) {
 			if (folder.name().equals(names[0])) {
 				if (names.length == 1) {
 					return folder;
@@ -152,28 +177,47 @@ public class EclipseFolder implements Folder {
 		}
 		return null;
 	}
-
-	@Override
-	public Folder createFolder(String folderName) {
-		Expect.asTrue(folderName != null && folderName.indexOf("/") == -1, "filename must not contain '/'.");
+	
+	private Folder doCreateFolder(String name) {
 		try {
 			open();
 			IFolder newFolder = null;
 			if (wrappedFolder instanceof IProject) {
-				newFolder = ((IProject)wrappedFolder).getFolder(folderName);
+				newFolder = ((IProject) wrappedFolder).getFolder(name);
 			} else {
-				newFolder = ((IFolder)wrappedFolder).getFolder(folderName);
+				newFolder = ((IFolder) wrappedFolder).getFolder(name);
 			}
-			newFolder.refreshLocal(0, null);
 			if (!newFolder.exists()) {
 				newFolder.create(true, true, null);
 				newFolder.refreshLocal(0, null);
-				return new EclipseFolder(this.path, newFolder);
 			}
-			return findFolder(folderName);
+			Folder folder = new EclipseFolder(this.path, newFolder);
+			subfolders.add(folder);
+			return folder;
 		} catch (CoreException e) {
 			throw new ProjectException(e);
 		}
+	}
+
+	@Override
+	public Folder createFolder(String folderpath) {
+		validatePath(folderpath);
+		String tokens[] = folderpath.split("/");
+		String thisName = tokens[0];
+		Folder targetFolder = null;
+		for (Folder folder : subfolders) {
+			if (folder.name().equals(thisName)) {
+				targetFolder = folder;
+				break;
+			}
+		}
+		if (targetFolder == null) {
+			targetFolder = doCreateFolder(thisName);
+		}
+		if (tokens.length == 1) {
+			return targetFolder;
+		}
+		return targetFolder.createFolder(folderpath.replace(thisName + "/", ""));
 	}
 
 	@Override
@@ -183,35 +227,32 @@ public class EclipseFolder implements Folder {
 	
 	@Override
 	public Set<Folder> getAllFolders() {
-		if (allSubFolders != null) {
-			return allSubFolders;
+		if (allSubfolders != null) {
+			return allSubfolders;
 		}
-		allSubFolders = new HashSet<Folder>();
+		allSubfolders = new HashSet<Folder>();
 		Stack<Folder> stack = new Stack<Folder>();
 		stack.push(this);
 		while (!stack.isEmpty()) {
 			Folder folder = stack.pop();
-			List<Folder> folders = folder.getSubFolders();
+			List<Folder> folders = folder.getSubfolders();
 			for (Folder item: folders) {
-				allSubFolders.add(item);
+				allSubfolders.add(item);
 				stack.push(item);
 			}
 		}
-		return allSubFolders;
+		return allSubfolders;
 	}
 	
 	@Override
-	public InputStream openInputStream(String relativeFilepath) {
-		Expect.notEmpty(relativeFilepath, "relativeFilepath must not be empty.");
-		if (relativeFilepath.startsWith("/")) {
-			throw new ResourceNotFoundException("Unable to read file: " + relativeFilepath == null? "null": relativeFilepath);
-		}
+	public InputStream openFile(String filepath) {
+		validatePath(filepath);
 		Folder targetFolder = this;
-		String filename = relativeFilepath;
-		if (relativeFilepath.contains("/")) {
-			String basepath = FolderUtil.folderPath(relativeFilepath);
+		String filename = filepath;
+		if (filepath.contains("/")) {
+			String basepath = FolderUtil.folderPath(filepath);
 			targetFolder = findFolder(basepath);
-			filename = FolderUtil.filename(relativeFilepath);
+			filename = FolderUtil.filename(filepath);
 		}
 		try {
 			for (IFile file : ((EclipseFolder)targetFolder).files) {
@@ -222,7 +263,7 @@ public class EclipseFolder implements Folder {
 		} catch (Exception e) {
 			// Ignore.
 		}
-		throw new ResourceNotFoundException("Unable to read file: " + relativeFilepath == null? "null": relativeFilepath);
+		throw new ResourceNotFoundException("Unable to read file: " + filepath);
 	}
 
 	@Override
@@ -235,7 +276,7 @@ public class EclipseFolder implements Folder {
 			filepaths.add(FolderUtil.concatPath(this.path, name));
 		}
 		getAllFolders();
-		for (Folder item: allSubFolders) {
+		for (Folder item: allSubfolders) {
 			for (String name: item.getFilenames()) {
 				filepaths.add(FolderUtil.concatPath(item.path(), name));
 			}

@@ -36,6 +36,7 @@ public class TestUtil {
 		}
 	}
 	
+	@SafeVarargs
 	public static <T> Set<T> buildSet(T ... args) {
 		Set<T> set = new HashSet<T>();
 		for (T t : args) {
