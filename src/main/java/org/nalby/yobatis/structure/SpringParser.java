@@ -110,7 +110,7 @@ public class SpringParser {
 
 		private InputStream getInputStream() {
 			String name = FolderUtil.filename(filepath);
-			return folder.openInputStream(name);
+			return folder.openFile(name);
 		}
 		
 		public SpringXmlParser getSpringXmlParser() {

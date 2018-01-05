@@ -109,7 +109,7 @@ public class PomTree {
 		private void readPomFile() {
 			InputStream inputStream = null;
 			try {
-				inputStream = folder.openInputStream("pom.xml");
+				inputStream = folder.openFile("pom.xml");
 				pomXmlParser = new PomXmlParser(inputStream);
 			} catch (Exception e) {
 				throw new InvalidConfigurationException(e);

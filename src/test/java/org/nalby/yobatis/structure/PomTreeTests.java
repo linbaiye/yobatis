@@ -33,7 +33,7 @@ public class PomTreeTests {
 				"  <name>test</name>\n" + 
 				"  <url>test</url>\n" + 
 				"</project>\n";
-		when(project.openInputStream("pom.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
+		when(project.openFile("pom.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
 		PomTree tree = new PomTree(project);
 		Pom pom = tree.getWarPom();
 		assertTrue(pom == null);
@@ -53,7 +53,7 @@ public class PomTreeTests {
 				"  <url>test</url>\n" + 
 				"  <properties><hello>world</hello></properties>\n" +
 				"</project>\n";
-		when(project.openInputStream("pom.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
+		when(project.openFile("pom.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
 		when(project.findFolder("src/main/resources")).thenReturn(null);
 		PomTree tree = new PomTree(project);
 		Pom pom = tree.getWarPom();
@@ -94,9 +94,9 @@ public class PomTreeTests {
 				"      </resources>\n" + 
 				"    </build>\n" + 
 				"</project>"; 
-		when(project.openInputStream("pom.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
+		when(project.openFile("pom.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
 		Folder helloFolder = mock(Folder.class);
-		when(helloFolder.openInputStream("pom.xml")).thenReturn(new ByteArrayInputStream(helloXml.getBytes()));
+		when(helloFolder.openFile("pom.xml")).thenReturn(new ByteArrayInputStream(helloXml.getBytes()));
 		when(project.findFolder("hello")).thenReturn(helloFolder);
 		when(project.findFolder("missing")).thenReturn(null);
 		when(helloFolder.findFolder("src/main/resources")).thenReturn(mock(Folder.class));

@@ -88,12 +88,12 @@ public class SpringParserTests {
 		}
 	}
 	
-	private void addFilesToDir(Folder folder, SimpleEntry<String, String> ... files) {
+	private void addFilesToDir(Folder folder, @SuppressWarnings("unchecked") SimpleEntry<String, String> ... files) {
 		Set<String> paths = new HashSet<String>();
 		for (SimpleEntry<String, String> entry: files) {
 			String filepath = getFilepath(folder, entry.getKey());
 			paths.add(filepath);
-			when(folder.openInputStream(FolderUtil.filename(filepath))).thenReturn(new ByteArrayInputStream(entry.getValue().getBytes()));
+			when(folder.openFile(FolderUtil.filename(filepath))).thenReturn(new ByteArrayInputStream(entry.getValue().getBytes()));
 		}
 		when(folder.getAllFilepaths()).thenReturn(paths);
 	}
@@ -109,7 +109,7 @@ public class SpringParserTests {
 		ByteArrayInputStream inputStream = new ByteArrayInputStream(content.getBytes());
 		addFileToWebappDir(name);
 		name = name.replaceFirst("^/", "");
-		when(webPomWebappFolder.openInputStream(name)).thenReturn(inputStream);
+		when(webPomWebappFolder.openFile(name)).thenReturn(inputStream);
 		return initParamValues;
 	}
 	
