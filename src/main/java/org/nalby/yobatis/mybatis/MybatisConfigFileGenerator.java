@@ -32,8 +32,6 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	private Sql sql;
 
 	private PomTree pomTree;
-
-	public final static String CONFIG_FILENAME = "mybatisGeneratorConfig.xml";
 	
 	private DocumentFactory factory = DocumentFactory.getInstance();
 
@@ -182,12 +180,12 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 
 	private void appendCriteriaPlugin(Element context) {
 		criteriaPluginElement = context.addElement("plugin");
-		criteriaPluginElement.addAttribute("type",  "org.mybatis.generator.plugins.YobatisCriteriaPlugin");
+		criteriaPluginElement.addAttribute("type",  YOBATIS_CRITERIA_PLUGIN);
 	}
 	
 	private void appendYobatisPlugin(Element context) {
 		pluginElement = context.addElement("plugin");
-		pluginElement.addAttribute("type",  "org.mybatis.generator.plugins.YobatisPlugin");
+		pluginElement.addAttribute("type",  YOBATIS_PLUGIN);
 		Element property = pluginElement.addElement("property");
 		property.addAttribute("name", "enableBaseClass");
 		property.addAttribute("value", "true");
@@ -296,11 +294,6 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	public String getCriteriaDirPath() {
 		String daoPath =  glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
 		return daoPath + "/criteria";
-	}
-
-	@Override
-	public String getConfigeFilename() {
-		return CONFIG_FILENAME;
 	}
 
 	@Override

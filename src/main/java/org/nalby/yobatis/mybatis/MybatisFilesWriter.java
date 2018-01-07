@@ -32,7 +32,7 @@ public class MybatisFilesWriter {
 		this.project = project;
 		this.runner = new LibraryRunner();
 		try {
-			this.runner.parse(project.openFile(configReader.getConfigeFilename()));
+			this.runner.parse(project.openFile(MybatisConfigReader.CONFIG_FILENAME));
 		} catch (InvalidConfigurationException e) {
 			throw new InvalidMybatisGeneratorConfigException(e);
 		}

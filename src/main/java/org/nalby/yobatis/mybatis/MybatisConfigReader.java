@@ -2,6 +2,12 @@ package org.nalby.yobatis.mybatis;
 
 public interface MybatisConfigReader {
 	
+	public final static String CONFIG_FILENAME = "mybatisGeneratorConfig.xml";
+	
+	public final static String YOBATIS_PLUGIN = "org.mybatis.generator.plugins.YobatisPlugin";
+	
+	public final static String YOBATIS_CRITERIA_PLUGIN = "org.mybatis.generator.plugins.YobatisCriteriaPlugin";
+	
 	/**
 	 * The dir path where java mapper files will be saved.
 	 * @return the path.
@@ -23,11 +29,6 @@ public interface MybatisConfigReader {
 	 */
 	public String getCriteriaDirPath();
 	
-	/**
-	 * Get the generator's config filename.
-	 * @return the filename.
-	 */
-	public String getConfigeFilename();
 	
 	/**
 	 * Get the targetPackage value of the javaModelGenerator.

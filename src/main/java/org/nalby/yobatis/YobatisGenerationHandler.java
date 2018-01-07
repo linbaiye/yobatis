@@ -66,7 +66,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	 */
 	private MybatisConfigReader mergeIntoExistentConfig(MybatisConfigFileGenerator configFileGenerator, Project project) {
 		MybatisConfigReader reader = configFileGenerator;
-		try (InputStream inputStream = project.openFile(reader.getConfigeFilename())) {
+		try (InputStream inputStream = project.openFile(MybatisConfigReader.CONFIG_FILENAME)) {
 			MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(inputStream);
 			mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(configFileGenerator);
 			reader = mybatisXmlParser;
@@ -102,7 +102,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			MybatisConfigReader reader = mergeIntoExistentConfig(configFileGenerator, eclipseProject);
 
 			//Write mybatis-generator's config file to the project's root dir.
-			eclipseProject.writeFile(reader.getConfigeFilename(), reader.asXmlText());
+			eclipseProject.writeFile(MybatisConfigReader.CONFIG_FILENAME, reader.asXmlText());
 
 			MybatisFilesWriter filesWriter = new MybatisFilesWriter(eclipseProject, reader);
 			filesWriter.writeAll();

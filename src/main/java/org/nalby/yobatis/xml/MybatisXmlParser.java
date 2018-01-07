@@ -1,12 +1,10 @@
 package org.nalby.yobatis.xml;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -19,11 +17,9 @@ import org.dom4j.DocumentFactory;
 import org.dom4j.Element;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
-import org.eclipse.ui.dialogs.ListSelectionDialog;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
 import org.nalby.yobatis.mybatis.MybatisConfigReader;
-import org.w3c.dom.traversal.NodeIterator;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -287,17 +283,18 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	
 	private Element javaTypeResolver;
 	
-	private List<Element> plugins;
 
 	private DocumentFactory documentFactory  = DocumentFactory.getInstance();
+
+	private List<Element> plugins = new LinkedList<>();
 	
-	private Set<Node> javaModelGenerators = new HashSet<Node>();
+	private List<Element> javaModelGenerators = new LinkedList<>();
 
-	private Set<Node> sqlMapGenerators = new HashSet<Node>();
+	private List<Element> sqlMapGenerators = new LinkedList<>();
 
-	private Set<Node> javaClientGenerators = new HashSet<Node>();
+	private List<Element> javaClientGenerators = new LinkedList<>();
 
-	private Set<Node> tables = new HashSet<Node>();
+	private List<Element> tables = new LinkedList<>();
 	
 	private List<Element> commentedElements;
 	
@@ -316,14 +313,16 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		root = document.getRootElement();
 		loadClasspathEntry();
 		loadContext();
-		loadCommentedElements();
-		loadJdbcConnection();
-		loadJavaTypeResolver();
-		loadNodes(MODEL_GENERATOR_TAG,  javaModelGenerators);
-		loadNodes(SQLMAP_GENERATOR_TAG,  sqlMapGenerators);
-		loadNodes(CLIENT_GENERATOR_TAG,  javaClientGenerators);
-		loadTables();
-		loadPlugins();
+		if (context != null) {
+			loadCommentedElements();
+			loadJdbcConnection();
+			loadJavaTypeResolver();
+			loadElements(PLUGIN_TAG, plugins);
+			loadElements(MODEL_GENERATOR_TAG, javaModelGenerators);
+			loadElements(SQLMAP_GENERATOR_TAG, sqlMapGenerators);
+			loadElements(CLIENT_GENERATOR_TAG, javaClientGenerators);
+			loadElements(TABLE_TAG, tables);
+		}
 		document.remove(root);
 		root = documentFactory.createElement(ROOT_TAG);
 		document.setRootElement(root);
@@ -354,11 +353,10 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		return null;
 	}
 	
-	private boolean isPluginCommented(Element plugin) {
-		if (findPluginElement(commentedElements, plugin) != null) {
-			return true;
+	private void loadElements(String tag, List<Element> dst) {
+		for (Element element : context.elements(tag)) {
+			dst.add(element.createCopy());
 		}
-		return false;
 	}
 	
 	
@@ -382,7 +380,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	
 
 	private void loadCommentedElements()  {
-		String text = "";
+		String text = null;
 		for (Iterator<Node> iterator = context.nodeIterator(); iterator.hasNext(); ) {
 			Node node = iterator.next();
 			if (node.getNodeType() != Node.COMMENT_NODE) {
@@ -393,7 +391,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 			tmp = tmp.replaceAll("<!--", "<");
 			tmp = tmp.replaceAll("-->", ">");
 			if (isCommentedElement(tmp)) {
-				text = text + tmp;
+				text = text == null ? tmp : text + tmp;
 			}
 		}
 		convertToElements(text);
@@ -406,30 +404,6 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 			classPathEntry.detach();
 		}
 	}
-	
-	private void loadTables() {
-		loadNodes(TABLE_TAG,  tables);
-		for (Iterator<Node> iterator = context.nodeIterator(); iterator.hasNext(); ) {
-			Node node = iterator.next();
-			if (node.getNodeType() != Node.COMMENT_NODE) {
-				continue;
-			}
-			iterator.remove();
-			Comment comment = (Comment) node;
-			String tmp = comment.getText().replace("<!--", "");
-			if (tmp.trim().startsWith("table")) {
-				tables.add(node.detach());
-			}
-		}
-	}
-	
-	private void loadPlugins() {
-		plugins = new LinkedList<>();
-		for (Element element : context.elements(PLUGIN_TAG)) {
-			plugins.add(element.createCopy());
-		}
-	}
-	
 	
 	private void loadContext() {
 		context = root.element("context");
@@ -452,53 +426,24 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		}	
 	}
 
-	private void loadNodes(String name, Set<Node> set) {
-		List<Element> list = context.elements(name);
-		for (Element element: list) {
-			set.add(element.detach());
-		}
-	}
 	
-	private boolean hasGenerator(Element element, Set<Node> set) {
-		for (Node node : set) {
-			if (!(node instanceof Element)) {
+	private Element findTable(List<Element> elements, Element table) {
+		for (Element e: elements) {
+			if (!"table".equals(e.getName())) {
 				continue;
 			}
-			Element e = (Element) node;
-			if (e.attributeValue("targetPackage").equals(element.attributeValue("targetPackage")) &&
-				e.attributeValue("targetProject").equals(element.attributeValue("targetProject"))) {
-				return true;
+			String name = e.attributeValue("tableName");
+			String schema = e.attributeValue("schema");
+			if ((name != null && name.equals(table.attributeValue("tableName"))) &&
+				(schema != null && schema.equals(table.attributeValue("schema")))) {
+				return e;
 			}
 		}
-		return false;
+		return null;
 	}
-	
+
 	private boolean hasTable(Element table) {
-		for (Node node: tables) {
-			if (!(node instanceof Element)) {
-				continue;
-			}
-			Element e = (Element) node;
-			if (e.attributeValue("tableName").equals(table.attributeValue("tableName"))) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	private boolean isTableCommented(Element table) {
-		for (Node node: tables) {
-			if (!(node instanceof Comment)) {
-				continue;
-			}
-			Comment comment = (Comment)node;
-			String text = comment.getText().replaceAll("\\s", "");
-			if (text.contains("tableName=\"" + table.attributeValue("tableName") + "\"")
-				&& text.contains("schema=\"" + table.attributeValue("schema") + "\"")) {
-				return true;
-			}
-		}
-		return false;
+		return findTable(tables, table) != null;
 	}
 	
 	private Comment commentElement(Element e) {
@@ -508,30 +453,25 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		return documentFactory.createComment(str);
 	}
 
-	
-	private void appendGenerators(Set<Element> generatedElements, Set<Node> existentElements) {
-		boolean needComment = existentElements.isEmpty() ? false : true;
-		for (Element e: generatedElements) {
-			if (!hasGenerator(e, existentElements)) {
-				//Add commented element if the existent generators don't have this one.
-				existentElements.add(needComment ? commentElement(e) : e.createCopy());
-			}
+	private void mergeGenerators(Set<Element> generatedOnes, List<Element> currentOnes) {
+		if (currentOnes.isEmpty()) {
+			currentOnes.addAll(generatedOnes);
 		}
-		for (Node e : existentElements) {
-			context.add(e);
+		for (Element e : currentOnes) {
+			context.add(e.createCopy());
 		}
 	}
 	
-	private void appendSqlMapGenerators(MybatisConfigFileGenerator configFileGenerator) {
-		appendGenerators(configFileGenerator.getSqlMapGeneratorElements(), sqlMapGenerators);
+	private void mergeSqlMapGenerators(MybatisConfigFileGenerator configFileGenerator) {
+		mergeGenerators(configFileGenerator.getSqlMapGeneratorElements(), sqlMapGenerators);
 	}
 	
-	private void appendJavaModelGenerators(MybatisConfigFileGenerator configFileGenerator) {
-		appendGenerators(configFileGenerator.getJavaModelGeneratorElements(), javaModelGenerators);
+	private void mergeJavaModelGenerators(MybatisConfigFileGenerator configFileGenerator) {
+		mergeGenerators(configFileGenerator.getJavaModelGeneratorElements(), javaModelGenerators);
 	}
 	
-	private void appendJavaClientGenerators(MybatisConfigFileGenerator configFileGenerator) {
-		appendGenerators(configFileGenerator.getJavaClientGeneratorElements(), javaClientGenerators);
+	private void mergeJavaClientGenerators(MybatisConfigFileGenerator configFileGenerator) {
+		mergeGenerators(configFileGenerator.getJavaClientGeneratorElements(), javaClientGenerators);
 	}
 	
 	private void mergeClasspathEntry(MybatisConfigFileGenerator configFileGenerator) {
@@ -551,7 +491,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		return true;
 	}
 	
-	private void appendJavaTypeResolver(MybatisConfigFileGenerator configFileGenerator) {
+	private void mergeJavaTypeResolver(MybatisConfigFileGenerator configFileGenerator) {
 		if (javaTypeResolver == null) {
 			context.add(configFileGenerator.getJavaTypeResolverElement().createCopy());
 		} else {
@@ -559,31 +499,33 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		}
 	}
 	
-	private void appendJdbcConnection(MybatisConfigFileGenerator configFileGenerator) {
+	private void mergeJdbcConnection(MybatisConfigFileGenerator configFileGenerator) {
 		if (jdbcConnection == null) {
 			context.add(configFileGenerator.getJdbConnectionElement().createCopy());
 		} else {
 			context.add(jdbcConnection);
 		}
 	}
+
 	
-	private void appendTables(MybatisConfigFileGenerator configFileGenerator) {
-		Set<Element> newTables = configFileGenerator.getTableElements();
-		if (newTables != null && !newTables.isEmpty()) {
-			for (Element table: newTables) {
-				if (isTableCommented(table)) {
-					continue;
-				}
-				if (!hasTable(table)) {
-					tables.add(table.createCopy());
-				}
-			}
+	private void mergeTables(MybatisConfigFileGenerator configFileGenerator) {
+		for (Element current: tables) {
+			context.add(current);
 		}
-		for (Node e: tables) {
-			context.add(e);
+		for (Element newTable : configFileGenerator.getTableElements()) {
+			if (hasTable(newTable)) {
+				continue;
+			}
+			Element commented = findTable(commentedElements, newTable);
+			if (commented != null) {
+				context.add(commentElement(commented));
+			} else {
+				context.add(newTable);
+			}
 		}
 	}
 	
+	//TODO: Still need to cope with artificially added plug-ins.
 	private void mergePlugins(MybatisConfigFileGenerator configFileGenerator) {
 		Element pluginElement = configFileGenerator.getPluginElement();
 		Element currentPlugin = findPluginElement(plugins, pluginElement);
@@ -608,21 +550,19 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	}
 	
 	/**
-	 * Under some circumstances, we might find multiple dao/domain layers, so it's necessary
-	 * to merge generated elements. If this existed config file does not have the element in the new one,
-	 * a copy is issued.
+	 * Preserve manually edited elements. 
 	 * @param configFileGenerator
 	 */
 	public void mergeGeneratedConfigAndGetXmlString(MybatisConfigFileGenerator configFileGenerator) {
 		mergeClasspathEntry(configFileGenerator);
 		if (mergeContext(configFileGenerator)) {
 			mergePlugins(configFileGenerator);
-			appendJdbcConnection(configFileGenerator);
-			appendJavaTypeResolver(configFileGenerator);
-			appendJavaModelGenerators(configFileGenerator);
-			appendSqlMapGenerators(configFileGenerator);
-			appendJavaClientGenerators(configFileGenerator);
-			appendTables(configFileGenerator);
+			mergeJdbcConnection(configFileGenerator);
+			mergeJavaTypeResolver(configFileGenerator);
+			mergeJavaModelGenerators(configFileGenerator);
+			mergeSqlMapGenerators(configFileGenerator);
+			mergeJavaClientGenerators(configFileGenerator);
+			mergeTables(configFileGenerator);
 		}
 	}
 
@@ -642,81 +582,65 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	}
 	
 	
-	/*
-	 * Each generator set can only has one valid element, while others
-	 * need to be commented out, to enable mybatis-generator to work properly.
-	 */
-	private Element findAcitveElement(Set<Node> generators, String name) {
-		if (generators == null || generators.isEmpty()) {
+	
+	private void assertHasSingleElement(List<Element> elements, String name) {
+		if (elements.isEmpty() ) {
 			throw new InvalidMybatisGeneratorConfigException(
-					String.format("There is no %s configured, please set the element and re-run.", name));
+				String.format("There is no %s configured, please set the element and re-run.", name));
+		} else if (elements.size() > 1)  {
+			throw new InvalidMybatisGeneratorConfigException(
+				String.format("More than one %s configured, please remove unintentional ones and re-run.", name));
 		}
-		Iterator<Node> iterator =  generators.iterator();
-		for (int i = 0; iterator.hasNext(); ) {
-			Node node = iterator.next();
-			i += node instanceof Element? 1 : 0;
-			if (i > 1) {
-				throw new InvalidMybatisGeneratorConfigException(
-					String.format("More than one %s configured, please remove unintentional ones and re-run.", name));
-			}
-		}
-		iterator =  generators.iterator();
-		while (iterator.hasNext()) {
-			Node node = iterator.next();
-			if (!(node instanceof Element)) {
-				continue;
-			}
-			return (Element)node;
-		}
-		throw new InvalidMybatisGeneratorConfigException("Should not happen.");
 	}
 
+	
 	/*
 	 * a.b.c + /user/test -> /user/test/a/b/c
 	 */
-	private String glueTargetPackageToTargetProject(Set<Node> generators, String name) {
-		Element element = findAcitveElement(generators, name);
+	private String buildGeneratorPath(List<Element> elements, String name) {
+		assertHasSingleElement(elements, name);
+		Element element = elements.get(0);
 		String packageName = element.attributeValue("targetPackage");
 		String targetProject = element.attributeValue("targetProject");
 		return targetProject + "/" + packageName.replace(".", "/");
 	}
 
+
 	@Override
 	public String getDaoDirPath() {
-		return glueTargetPackageToTargetProject(javaClientGenerators, CLIENT_GENERATOR_TAG);
+		return buildGeneratorPath(javaClientGenerators, CLIENT_GENERATOR_TAG);
 	}
 
 	@Override
 	public String getDomainDirPath() {
-		return glueTargetPackageToTargetProject(javaModelGenerators, MODEL_GENERATOR_TAG);
+		return buildGeneratorPath(javaModelGenerators, MODEL_GENERATOR_TAG);
 	}
 
 	@Override
 	public String getCriteriaDirPath() {
-		String daoPath =  glueTargetPackageToTargetProject(javaModelGenerators, MODEL_GENERATOR_TAG);
-		return daoPath + "/criteria";
+		return getDomainDirPath() + "/criteria";
 	}
 
-	@Override
-	public String getConfigeFilename() {
-		return MybatisConfigFileGenerator.CONFIG_FILENAME;
+
+	private String getTargetPackage(List<Element> elements, String tag) {
+		assertHasSingleElement(elements, tag);
+		Element element = javaModelGenerators.get(0);
+		return element.attributeValue("targetPackage");
 	}
 
 	@Override
 	public String getPackageNameOfDomains() {
-		Element element = findAcitveElement(javaModelGenerators, MODEL_GENERATOR_TAG);
-		return element.attributeValue("targetPackage");
+		return getTargetPackage(javaModelGenerators, MODEL_GENERATOR_TAG);
 	}
 
 	@Override
 	public String getXmlMapperDirPath() {
-		return glueTargetPackageToTargetProject(sqlMapGenerators, SQLMAP_GENERATOR_TAG);
+		return buildGeneratorPath(sqlMapGenerators, SQLMAP_GENERATOR_TAG);
 	}
 
 	@Override
 	public String getPackageNameOfJavaMappers() {
-		Element element = findAcitveElement(javaClientGenerators, CLIENT_GENERATOR_TAG);
-		return element.attributeValue("targetPackage");
+		return getTargetPackage(javaClientGenerators, CLIENT_GENERATOR_TAG);
 	}
 
 	@Override
