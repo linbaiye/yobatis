@@ -3,21 +3,21 @@ package org.nalby.yobatis.mybatis;
 public interface MybatisConfigReader {
 	
 	/**
-	 * The dir path where mapper files will be saved.
+	 * The dir path where java mapper files will be saved.
 	 * @return the path.
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
 	public String getDaoDirPath();
 	
 	/**
-	 * The dir path where domain/model files will be saved.
+	 * The dir path where java domain/model files will be saved.
 	 * @return the path.
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
 	public String getDomainDirPath();
 	
 	/**
-	 * The dir path where criteria files will be saved.
+	 * The dir path where java criteria files will be saved.
 	 * @return the path.
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
@@ -45,11 +45,11 @@ public interface MybatisConfigReader {
 	public String getPackageNameOfJavaMappers();
 	
 	/**
-	 * The dir path where xml mapper files will be saved..
+	 * The dir path where xml mapper files will be saved.
 	 * @return the dir path.
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
-	public String getMapperDirPath();
+	public String getXmlMapperDirPath();
 	
 	/**
 	 * Turn this config into a text string.

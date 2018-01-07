@@ -9,8 +9,10 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.DriverPropertyInfo;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
@@ -21,6 +23,7 @@ import java.util.regex.Pattern;
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.exception.SqlConfigIncompleteException;
 import org.nalby.yobatis.sql.Sql;
+import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.util.Expect;
 
 public class Mysql extends Sql {
@@ -45,17 +48,9 @@ public class Mysql extends Sql {
 		return DriverManager.getConnection(this.url, username, password);
 	}
 	
-	/**
-	 * Get all table names associated with the {@code url}.
-	 * @return table names.
-	 * @throws ProjectException, if any configuration value is not valid.
-	 */
-	@Override
 	public List<String> getTableNames() {
 		tableNames.clear();
-		Connection connection = null;
-		try {
-			connection = getConnection();
+		try (Connection connection = getConnection()) {
 			DatabaseMetaData meta = connection.getMetaData();
 			ResultSet res = meta.getTables(null, null, null, new String[] {"TABLE"});
 			while (res.next()) {
@@ -65,14 +60,56 @@ public class Mysql extends Sql {
 			return tableNames;
 		} catch (Exception e) {
 			throw new ProjectException(e);
-		} finally {
-			try {
-				if (connection != null) {
-					connection.close();
-				}
-			} catch (Exception e) {}
 		}
 	}
+	
+	private Table makeTable(String name) {
+		Table table = new Table(name);
+		try (Connection connection = DriverManager.getConnection(this.url, username, password)) {
+			DatabaseMetaData metaData = connection.getMetaData();
+			ResultSet resultSet = metaData.getColumns(null, null, name, null);
+			while (resultSet.next()) {
+				String columnName = resultSet.getString("COLUMN_NAME");
+				String autoIncrment = resultSet.getString("IS_AUTOINCREMENT");
+				if (autoIncrment.toLowerCase().contains("true") ||
+					autoIncrment.toLowerCase().contains("yes")) {
+					table.addAutoIncColumn(columnName);
+				}
+			}
+			resultSet.close();
+			resultSet = metaData.getPrimaryKeys(null,null, name);
+			while(resultSet.next()) {
+				table.addPrimaryKey(resultSet.getString("COLUMN_NAME"));
+			}
+			resultSet.close();
+		} catch (Exception e) {
+			//Nothing we can do.
+		}
+		return table;
+	}
+	
+	/**
+	 * Get all tables according to the configuration.
+	 * @return tables.
+	 * @throws ProjectException, if any configuration value is not valid.
+	 */
+	@Override
+	public List<Table> getTables() {
+		List<Table> result = new ArrayList<>();
+		try (Connection connection = getConnection()) {
+			DatabaseMetaData meta = connection.getMetaData();
+			ResultSet res = meta.getTables(null, null, null, new String[] {"TABLE"});
+			while (res.next()) {
+				String tmp = res.getString("TABLE_NAME");
+				result.add(makeTable(tmp));
+			}
+			res.close();
+			return result;
+		} catch (Exception e) {
+			throw new ProjectException(e);
+		}
+	}
+	
 	
 	public static class Builder {
 		private String username;

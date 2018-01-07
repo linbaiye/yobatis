@@ -55,6 +55,11 @@ public class EclipseFolder implements Folder {
 		Expect.asTrue((wrapped instanceof IFolder) || (wrapped instanceof IProject),  "Invalid type.");
 		wrappedFolder = wrapped;
 		path = "/".equals(parentPath) ? "/" + wrapped.getName() : parentPath + "/" + wrapped.getName();
+		try {
+			open();
+		} catch (CoreException e) {
+			throw new ProjectException("Failed to open project.");
+		}
 		listResources();
 	}
 	
@@ -130,7 +135,6 @@ public class EclipseFolder implements Folder {
 		try {
 			IFile file = null;
 			if (wrappedFolder instanceof IProject) {
-				open();
 				file = ((IProject)wrappedFolder).getFile(filename);
 			} else {
 				file = ((IFolder)wrappedFolder).getFile(filename);
@@ -155,6 +159,7 @@ public class EclipseFolder implements Folder {
 	@Override
 	public void writeFile(String filepath, String content) {
 		validatePath(filepath);
+
 		if (!filepath.contains("/")) {
 			doWriteFile(filepath, content);
 		} else {
@@ -180,7 +185,6 @@ public class EclipseFolder implements Folder {
 	
 	private Folder doCreateFolder(String name) {
 		try {
-			open();
 			IFolder newFolder = null;
 			if (wrappedFolder instanceof IProject) {
 				newFolder = ((IProject) wrappedFolder).getFolder(name);
@@ -202,6 +206,9 @@ public class EclipseFolder implements Folder {
 	@Override
 	public Folder createFolder(String folderpath) {
 		validatePath(folderpath);
+		if (folderpath.toLowerCase().contains("criteria")) {
+			System.out.println(folderpath);
+		}
 		String tokens[] = folderpath.split("/");
 		String thisName = tokens[0];
 		Folder targetFolder = null;
@@ -217,7 +224,7 @@ public class EclipseFolder implements Folder {
 		if (tokens.length == 1) {
 			return targetFolder;
 		}
-		return targetFolder.createFolder(folderpath.replace(thisName + "/", ""));
+		return targetFolder.createFolder(folderpath.replaceFirst(thisName + "/", ""));
 	}
 
 	@Override
@@ -247,15 +254,15 @@ public class EclipseFolder implements Folder {
 	@Override
 	public InputStream openFile(String filepath) {
 		validatePath(filepath);
-		Folder targetFolder = this;
-		String filename = filepath;
-		if (filepath.contains("/")) {
-			String basepath = FolderUtil.folderPath(filepath);
-			targetFolder = findFolder(basepath);
-			filename = FolderUtil.filename(filepath);
-		}
 		try {
-			for (IFile file : ((EclipseFolder)targetFolder).files) {
+			Folder targetFolder = this;
+			String filename = filepath;
+			if (filepath.contains("/")) {
+				String basepath = FolderUtil.folderPath(filepath);
+				targetFolder = findFolder(basepath);
+				filename = FolderUtil.filename(filepath);
+			}
+			for (IFile file : ((EclipseFolder) targetFolder).files) {
 				if (file.getName().equals(filename)) {
 					return file.getContents();
 				}

@@ -1,6 +1,7 @@
 package org.nalby.yobatis;
 
 import java.io.InputStream;
+import java.util.List;
 
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -14,10 +15,12 @@ import org.eclipse.ui.PlatformUI;
 import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
 import org.nalby.yobatis.mybatis.MybatisConfigReader;
 import org.nalby.yobatis.mybatis.MybatisFilesWriter;
+import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.sql.mysql.Mysql;
 import org.nalby.yobatis.sql.mysql.Mysql.Builder;
 import org.nalby.yobatis.structure.LogFactory;
 import org.nalby.yobatis.structure.Logger;
+import org.nalby.yobatis.structure.Pom;
 import org.nalby.yobatis.structure.PomTree;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SpringParser;
@@ -159,14 +162,26 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		.setUsername(username)
 		.setPassword(password)
 		.setUrl(url);
-		MybatisConfigFileGenerator generator = new MybatisConfigFileGenerator(pomTree, builder.build());
-		System.out.println(generator.asXmlText());
+		List<Table> tables = builder.build().getTables();
+		for (Table table : tables) {
+			System.out.println(table.getName() + ":");
+			System.out.println("\t keys:");
+			for (String key : table.getPrimaryKey()) {
+				System.out.println("\t\t key:" + key );
+			}
+			System.out.println("\t auto inc columns:");
+			for (String key : table.getAutoIncColumn()) {
+				System.out.println("\t\t column:" + key);
+			}
+		}
+		//MybatisConfigFileGenerator generator = new MybatisConfigFileGenerator(pomTree, builder.build());
+		//System.out.println(generator.asXmlText());
 	}
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
 		start();
-	/*	ISelectionService selectionService = PlatformUI.getWorkbench()
+/*		ISelectionService selectionService = PlatformUI.getWorkbench()
 				.getActiveWorkbenchWindow().getSelectionService();
 		ISelection selection = selectionService.getSelection();
 		if (!(selection instanceof IStructuredSelection)) {

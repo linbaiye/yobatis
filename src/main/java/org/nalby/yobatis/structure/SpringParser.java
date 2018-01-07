@@ -17,7 +17,7 @@ import org.nalby.yobatis.xml.SpringXmlParser;
 /**
  * Used to parse spring configuration files. The main purpose is to locate
  * database's properties by parsing imported spring xml files and properties
- * files. At present, it's poorly designed and should be optimized in future.
+ * files. It's poorly designed for now and should be optimized in future.
  * 
  * @author Kyle Lin
  */
@@ -77,10 +77,9 @@ public class SpringParser {
 	}
 	
 	/**
-	 * A convenient class that helps analyze either spring xml file or properties file,
-	 * as the pom is used to solve placeholders, the folder is for searching files when importing
+	 * A convenient class that helps analyze a spring xml file and a properties file,
+	 * while the pom is used to solve placeholders, the folder is for searching files when importing
 	 * a file with relative path happens.
-	 * @author Kyle Lin
 	 */
 	private class FilepathMetadata {
 		/* The Pom that this filepath belongs to. */
@@ -126,9 +125,7 @@ public class SpringParser {
 		}
 		
 		public void parseProperties() {
-			InputStream inputStream = null;
-			try {
-				inputStream = getInputStream();
+			try (InputStream inputStream = getInputStream()) {
 				Properties properties = new Properties();
 				properties.load(inputStream);
 				Set<String> keys = properties.stringPropertyNames();
@@ -143,8 +140,6 @@ public class SpringParser {
 				}
 			} catch (Exception e) {
 				//Ignore.
-			} finally {
-				FolderUtil.closeStream(inputStream);
 			}
 		}
 	}

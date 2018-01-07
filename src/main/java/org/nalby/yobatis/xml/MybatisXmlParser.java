@@ -280,10 +280,8 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	
 	private Element javaTypeResolver;
 	
-	private Element pluginElement;
+	private List<Element> plugins;
 
-	private Element pagingAndLockElement;
-	
 	private DocumentFactory documentFactory  = DocumentFactory.getInstance();
 	
 	private Set<Node> javaModelGenerators = new HashSet<Node>();
@@ -314,8 +312,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		loadNodes(SQLMAP_GENERATOR_TAG,  sqlMapGenerators);
 		loadNodes(CLIENT_GENERATOR_TAG,  javaClientGenerators);
 		loadTables();
-		loadRenamePlugin();
-		loadPagingAndLockPlugin();
+		loadPlugins();
 		document.remove(root);
 		root = documentFactory.createElement(ROOT_TAG);
 		document.setRootElement(root);
@@ -344,28 +341,10 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		}
 	}
 	
-	private void loadRenamePlugin() {
-		List<Element> elemtns = context.elements("plugin");
-		for (Element element : elemtns) {
-			if ("org.mybatis.generator.plugins.RenameExampleClassPlugin".equals(element.attributeValue("type"))) {
-				pluginElement = context.element("plugin");
-				pluginElement.detach();
-				return;
-			}
-		}
+	private void loadPlugins() {
+		plugins = context.elements("plugin");
 	}
 	
-	
-	private void loadPagingAndLockPlugin() {
-		List<Element> elemtns = context.elements("plugin");
-		for (Element element : elemtns) {
-			if ("org.mybatis.generator.plugins.PagingAndLockPlugin".equals(element.attributeValue("type"))) {
-				pagingAndLockElement = context.element("plugin");
-				pagingAndLockElement.detach();
-				return;
-			}
-		}
-	}
 	
 	private void loadContext() {
 		context = root.element("context");
@@ -520,22 +499,6 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		}
 	}
 	
-	private void appendRenamePlugin(MybatisConfigFileGenerator configFileGenerator) {
-		if (pluginElement == null) {
-			context.add(configFileGenerator.getPluginElement().createCopy());
-		} else {
-			context.add(pluginElement);
-		}
-	}
-	
-	private void appendPagingAndLockPlugin(MybatisConfigFileGenerator configFileGenerator) {
-		if (pagingAndLockElement == null) {
-			context.add(configFileGenerator.getPagingAndLockElement().createCopy());
-		} else {
-			context.add(pagingAndLockElement);
-		}
-	}
-	
 	
 	/**
 	 * Under some circumstances, we might find multiple dao/domain layers, so it's necessary
@@ -546,8 +509,6 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	public void mergeGeneratedConfigAndGetXmlString(MybatisConfigFileGenerator configFileGenerator) {
 		appendClasspathEntry(configFileGenerator);
 		if (appendContextAndTestIfContinueAppending(configFileGenerator)) {
-			appendRenamePlugin(configFileGenerator);
-			appendPagingAndLockPlugin(configFileGenerator);
 			appendJdbcConnection(configFileGenerator);
 			appendJavaTypeResolver(configFileGenerator);
 			appendJavaModelGenerators(configFileGenerator);
@@ -640,7 +601,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	}
 
 	@Override
-	public String getMapperDirPath() {
+	public String getXmlMapperDirPath() {
 		return glueTargetPackageToTargetProject(sqlMapGenerators, SQLMAP_GENERATOR_TAG);
 	}
 

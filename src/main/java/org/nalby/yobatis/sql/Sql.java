@@ -31,7 +31,7 @@ public abstract class Sql {
 		return driverClassName;
 	}
 	
-	public abstract List<String> getTableNames();
+	public abstract List<Table> getTables();
 	
 	public abstract String getSchema();
 
