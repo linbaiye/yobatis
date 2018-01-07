@@ -4,6 +4,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 import org.nalby.yobatis.util.Expect;
+import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 public abstract class Project implements Folder {
 	
 	protected Folder root;
@@ -38,6 +39,9 @@ public abstract class Project implements Folder {
 	public void writeFile(String filepath, String content) {
 		Expect.notEmpty(filepath, "filepath must not be null.");
 		filepath = wipeRootFolderPath(filepath);
+		if (filepath.toLowerCase().contains("criteria")) {
+			System.out.println(filepath);
+		}
 		root.writeFile(filepath, content);
 	}
 	

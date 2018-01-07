@@ -14,14 +14,15 @@ import org.dom4j.DocumentType;
 import org.dom4j.Element;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.sql.Sql;
+import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.PomTree;
 import org.nalby.yobatis.xml.AbstractXmlParser;
 import org.nalby.yobatis.xml.MybatisXmlParser;
 
 /**
- * Used to generate mybaits generator's config file according to
- * current project structure.
+ * Generate MyBaits Generator's configuration file according to current project structure.
+ * 
  * @author Kyle Lin
  */
 public class MybatisConfigFileGenerator implements MybatisConfigReader {
@@ -66,7 +67,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	
 	private Set<Element> javaClientGenerators = new HashSet<Element>();
 
-	private Set<Element> tables = new HashSet<Element>();
+	private Set<Element> tableElemnts = new HashSet<Element>();
 	
 	public MybatisConfigFileGenerator(PomTree pomTree, Sql sql) {
 		this.sql = sql;
@@ -76,8 +77,8 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		document.setRootElement(root);
 		appendClassPathEntry(root);
 		context = appendContext(root);
-		appendRenamePlugin(context);
-		appendPagingAndLock(context);
+		appendYobatisPlugin(context);
+		appendCriteriaPlugin(context);
 		appendJdbcConnection(context);
 		appendTypeResolver(context);
 		appendJavaModelGenerator(context);
@@ -111,7 +112,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	public Set<Element> getTableElements() {
-		return tables;
+		return tableElemnts;
 	}
 	
 	public Element getContext() {
@@ -139,16 +140,23 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	private void appendTables(Element context)  {
-		List<String> names = sql.getTableNames();
-		if (names.isEmpty()) {
+		List<Table> tables = sql.getTables();
+		if (tables.isEmpty()) {
 			errorCode = ErrorCode.NO_TABLES;
 		}
-		for (String name: names) {
-			Element table = context.addElement("table");
-			table.addAttribute("tableName", name);
-			table.addAttribute("schema", sql.getSchema());
-			table.addAttribute("modelType", "flat");
-			tables.add(table);
+		for (Table table: tables) {
+			Element element = context.addElement("table");
+			element.addAttribute("tableName", table.getName());
+			element.addAttribute("schema", sql.getSchema());
+			element.addAttribute("modelType", "flat");
+			String autoIncKey = table.getAutoIncPK();
+			if (autoIncKey != null) {
+				Element pk = element.addElement("generatedKey");
+				pk.addAttribute("column", autoIncKey);
+				pk.addAttribute("sqlStatement", "mysql");
+				pk.addAttribute("identity", "true");
+			}
+			tableElemnts.add(element);
 		}
 	}
 	
@@ -185,20 +193,17 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		}
 	}
 
-	private void appendPagingAndLock(Element context) {
+	private void appendCriteriaPlugin(Element context) {
 		pagingAndLockElement = context.addElement("plugin");
-		pagingAndLockElement.addAttribute("type",  "org.mybatis.generator.plugins.PagingAndLockPlugin");
+		pagingAndLockElement.addAttribute("type",  "org.mybatis.generator.plugins.YobatisCriteriaPlugin");
 	}
 	
-	private void appendRenamePlugin(Element context) {
+	private void appendYobatisPlugin(Element context) {
 		pluginElement = context.addElement("plugin");
-		pluginElement.addAttribute("type",  "org.mybatis.generator.plugins.RenameExampleClassPlugin");
+		pluginElement.addAttribute("type",  "org.mybatis.generator.plugins.YobatisPlugin");
 		Element property = pluginElement.addElement("property");
-		property.addAttribute("name", "searchString");
-		property.addAttribute("value", "Example$");
-		property = pluginElement.addElement("property");
-		property.addAttribute("name", "replaceString");
-		property.addAttribute("value", "Criteria");
+		property.addAttribute("name", "enableBaseClass");
+		property.addAttribute("value", "true");
 	}
 	
 	private Element appendContext(Element root) {
