@@ -15,20 +15,14 @@ import org.dom4j.Element;
 import org.dom4j.Node;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
-@RunWith(MockitoJUnitRunner.class)
 public class MybatisXmlParserTests {
 	
-;
-
-	@Mock
 	private MybatisConfigFileGenerator mockedGenerator;
 
 	private DocumentFactory documentFactory = DocumentFactory.getInstance();
@@ -48,6 +42,8 @@ public class MybatisXmlParserTests {
 	private Element javaTypeResolver;
 
 	private Element pluginElement;
+	
+	private Element criteriaPluginElement;
 	
 	private void initClasspath(String location) {
 		classpath = documentFactory.createElement("classPathEntry");
@@ -115,9 +111,16 @@ public class MybatisXmlParserTests {
 	
 	private void initPluginElement() {
 		pluginElement = documentFactory.createElement("plugin");
+		pluginElement.addAttribute("type", "org.mybatis.generator.plugins.YobatisPlugin");
+	}
+	
+	private void initCriteriaPluginElement() {
+		criteriaPluginElement = documentFactory.createElement("plugin");
+		criteriaPluginElement.addAttribute("type", "org.mybatis.generator.plugins.YobatisCriteriaPlugin");
 	}
 	
 	public void resetGenerator() {
+		mockedGenerator = mock(MybatisConfigFileGenerator.class);
 		when(mockedGenerator.getClassPathEntryElement()).thenReturn(classpath);
 		when(mockedGenerator.getContext()).thenReturn(context);
 		when(mockedGenerator.getJavaTypeResolverElement()).thenReturn(javaTypeResolver);
@@ -126,7 +129,7 @@ public class MybatisXmlParserTests {
 		when(mockedGenerator.getJavaClientGeneratorElements()).thenReturn(javaClientGenerators);
 		when(mockedGenerator.getTableElements()).thenReturn(tables);
 		when(mockedGenerator.getPluginElement()).thenReturn(pluginElement);
-		when(mockedGenerator.getPagingAndLockElement()).thenReturn(pluginElement);
+		when(mockedGenerator.getCriteriaPluginElement()).thenReturn(criteriaPluginElement);
 	}
 
 	@Before
@@ -139,6 +142,7 @@ public class MybatisXmlParserTests {
 		initJavaClientGenerators();
 		initTables();
 		initPluginElement();
+		initCriteriaPluginElement();
 		resetGenerator();
 	}
 
@@ -148,6 +152,7 @@ public class MybatisXmlParserTests {
 		private List<Element> javaModelGenerators;
 		private Element context;
 		private List<Element> tables;
+		private List<Element> plugins;
 		public DocXml(InputStream inputStream)
 				throws DocumentException, IOException {
 			super(inputStream, "generatorConfiguration");
@@ -156,9 +161,33 @@ public class MybatisXmlParserTests {
 			context = root.element("context");
 			javaModelGenerators = context.elements("javaModelGenerator");
 			tables = context.elements("table");
+			plugins = context.elements("plugin");
 		}
 		public void assertClasspathEntry(String location) {
 			assertTrue(classpathEntry.attributeValue("location").equals(location));
+		}
+		
+		
+		public boolean hasSingleSqlMapGenerator(String targetPackage, String targetProject) {
+			int counter = 0;
+			for (Element generator: this.context.elements("sqlMapGenerator")) {
+				if (generator.attributeValue("targetPackage").equals(targetPackage) && 
+						generator.attributeValue("targetProject").equals(targetProject)) {
+					++counter;
+				}
+			}
+			return counter == 1;
+		}
+		
+		public boolean hasSqlMapGenerator(String targetPackage, String targetProject) {
+			int counter = 0;
+			for (Element generator: this.context.elements("sqlMapGenerator")) {
+				if (generator.attributeValue("targetPackage").equals(targetPackage) && 
+						generator.attributeValue("targetProject").equals(targetProject)) {
+					++counter;
+				}
+			}
+			return counter > 0;
 		}
 
 		public boolean hasJavaModelGenerator(String targetPackage, String targetProject) {
@@ -177,6 +206,47 @@ public class MybatisXmlParserTests {
 				if (table.attributeValue("tableName").equals(tableName) &&
 						table.attributeValue("schema").equals(schema)) {
 					return true;
+				}
+			}
+			return false;
+		}
+		
+		
+	
+		public int countPlugin(String type) {
+			int counter = 0;
+			for (Element plugin: plugins) {
+				if (type.equals(plugin.attributeValue("type"))) {
+					++counter;
+				}
+			}
+			return counter;
+		}
+		
+		public boolean hasPlugin(String type) {
+			return countPlugin(type) > 0;
+		}
+		
+		
+		public boolean hasSinglePlugin(String type) {
+			if (countPlugin(type) != 1) {
+				return false;
+			}
+			return true;
+		}
+		
+		public boolean hasSinglePlugin(String type, String propName, String propValue) {
+			if (countPlugin(type) != 1) {
+				return false;
+			}
+			for (Element plugin: plugins) {
+				if (type.equals(plugin.attributeValue("type"))) {
+					for (Element property: plugin.elements("property")) {
+						if (propName.equals(property.attributeValue("name")) &&
+							propValue.equals(property.attributeValue("value"))) {
+							return true;
+						}
+					}
 				}
 			}
 			return false;
@@ -215,11 +285,25 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		setup();
 		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		newDoc.assertClasspathEntry("oldLocation");
+	}
+	
+	
+	@Test
+	public void hasNoContext() throws DocumentException, IOException {
+		String xmldoc = 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"<generatorConfiguration>\n" + 
+				"<classPathEntry location=\"oldLocation\"/>\n" + 
+				"</generatorConfiguration>\n";
+		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		String tmp = mybatisXmlParser.asXmlText();
+		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
+		newDoc.hasTable("table1", "schema");
 	}
 	
 	@Test
@@ -247,7 +331,7 @@ public class MybatisXmlParserTests {
 	}
 	
 	@Test
-	public void testMergeGeneratorWhenExisted() throws DocumentException, IOException {
+	public void mergeJavaGeneratorWhenExisted() throws DocumentException, IOException {
 		String xmldoc = 
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
 				"\n" + 
@@ -268,11 +352,11 @@ public class MybatisXmlParserTests {
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(newDoc.hasJavaModelGenerator("targetPackage1", "targetProject1"));
-		assertTrue(newDoc.hasCommentedElement("javaModelGenerator"));
+		assertTrue(!newDoc.hasJavaModelGenerator("targetPackage2", "targetProject2"));
 	}
 	
 	@Test
-	public void testMergeGeneratorWhenNotExisted() throws DocumentException, IOException {
+	public void noJavaGeneratorExisted() throws DocumentException, IOException {
 		String xmldoc = 
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
 				"\n" + 
@@ -289,13 +373,191 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		resetGenerator();
 		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(newDoc.hasJavaModelGenerator("targetPackage1", "targetProject1"));
 		assertTrue(newDoc.hasJavaModelGenerator("targetPackage2", "targetProject2"));
 	}
+
+	@Test
+	public void mergeSqlMapGeneratorWhenExisted() throws DocumentException, IOException {
+		String xmldoc = 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"\n" + 
+				"<generatorConfiguration>\n" + 
+				"  <!--classPathEntry location=\"oldLocation\"/-->\n" + 
+				"  <context id=\"mysqlTables\" targetRuntime=\"MyBatis3\">\n" + 
+				"    <jdbcConnection driverClass=\"com.mysql.jdbc.Driver\" connectionURL=\"jdbc:mysql://127.0.0.1:3306/uplending?characterEncoding=utf-8\" userId=\"uplending\" password=\"uplendingxwg370\"/>\n" + 
+				"    <javaTypeResolver>\n" + 
+				"      <property name=\"forceBigDecimals\" value=\"false\"/>\n" + 
+				"    </javaTypeResolver>\n" + 
+				"    <javaModelGenerator targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <sqlMapGenerator targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"  </context>\n" + 
+				"</generatorConfiguration>\n";
+		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		String tmp = mybatisXmlParser.asXmlText();
+		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
+		assertTrue(newDoc.hasSingleSqlMapGenerator("targetPackage1", "targetProject1"));
+		assertTrue(!newDoc.hasSqlMapGenerator("targetPackage2", "targetProject2"));
+	}
+	
+
+	@Test
+	public void sqlMapperDirPath() throws DocumentException, IOException {
+		String xmldoc = 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"\n" + 
+				"<generatorConfiguration>\n" + 
+				"  <!--classPathEntry location=\"oldLocation\"/-->\n" + 
+				"  <context id=\"mysqlTables\" targetRuntime=\"MyBatis3\">\n" + 
+				"    <jdbcConnection driverClass=\"com.mysql.jdbc.Driver\" connectionURL=\"jdbc:mysql://127.0.0.1:3306/uplending?characterEncoding=utf-8\" userId=\"uplending\" password=\"uplendingxwg370\"/>\n" + 
+				"    <javaTypeResolver>\n" + 
+				"      <property name=\"forceBigDecimals\" value=\"false\"/>\n" + 
+				"    </javaTypeResolver>\n" + 
+				"    <javaModelGenerator targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <sqlMapGenerator targetPackage=\"hello\" targetProject=\"world\"/>\n" + 
+				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"  </context>\n" + 
+				"</generatorConfiguration>\n";
+		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		assertTrue("world/hello".equals(mybatisXmlParser.getXmlMapperDirPath()));
+	}
+	
+	@Test
+	public void daoDirPath() throws DocumentException, IOException {
+		String xmldoc = 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"\n" + 
+				"<generatorConfiguration>\n" + 
+				"  <!--classPathEntry location=\"oldLocation\"/-->\n" + 
+				"  <context id=\"mysqlTables\" targetRuntime=\"MyBatis3\">\n" + 
+				"    <jdbcConnection driverClass=\"com.mysql.jdbc.Driver\" connectionURL=\"jdbc:mysql://127.0.0.1:3306/uplending?characterEncoding=utf-8\" userId=\"uplending\" password=\"uplendingxwg370\"/>\n" + 
+				"    <javaTypeResolver>\n" + 
+				"      <property name=\"forceBigDecimals\" value=\"false\"/>\n" + 
+				"    </javaTypeResolver>\n" + 
+				"    <javaModelGenerator targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <sqlMapGenerator targetPackage=\"hello\" targetProject=\"world\"/>\n" + 
+				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"dao\" targetProject=\"/test\"/>\n" + 
+				"  </context>\n" + 
+				"</generatorConfiguration>\n";
+		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		assertTrue("/test/dao".equals(mybatisXmlParser.getDaoDirPath()));
+	}
+	
+	@Test
+	public void criteriaDirPath() throws DocumentException, IOException {
+		String xmldoc = 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"\n" + 
+				"<generatorConfiguration>\n" + 
+				"  <!--classPathEntry location=\"oldLocation\"/-->\n" + 
+				"  <context id=\"mysqlTables\" targetRuntime=\"MyBatis3\">\n" + 
+				"    <jdbcConnection driverClass=\"com.mysql.jdbc.Driver\" connectionURL=\"jdbc:mysql://127.0.0.1:3306/uplending?characterEncoding=utf-8\" userId=\"uplending\" password=\"uplendingxwg370\"/>\n" + 
+				"    <javaTypeResolver>\n" + 
+				"      <property name=\"forceBigDecimals\" value=\"false\"/>\n" + 
+				"    </javaTypeResolver>\n" + 
+				"    <javaModelGenerator targetPackage=\"world\" targetProject=\"hello\"/>\n" + 
+				"    <sqlMapGenerator targetPackage=\"hello\" targetProject=\"world\"/>\n" + 
+				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"  </context>\n" + 
+				"</generatorConfiguration>\n";
+		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		assertTrue("hello/world/criteria".equals(mybatisXmlParser.getCriteriaDirPath()));
+	}
+	
+	
+	@Test(expected = InvalidMybatisGeneratorConfigException.class)
+	public void domainPathWhenNoGenerators() throws DocumentException, IOException {
+		String xmldoc = 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"\n" + 
+				"<generatorConfiguration>\n" + 
+				"  <!--classPathEntry location=\"oldLocation\"/-->\n" + 
+				"  <context id=\"mysqlTables\" targetRuntime=\"MyBatis3\">\n" + 
+				"    <jdbcConnection driverClass=\"com.mysql.jdbc.Driver\" connectionURL=\"jdbc:mysql://127.0.0.1:3306/uplending?characterEncoding=utf-8\" userId=\"uplending\" password=\"uplendingxwg370\"/>\n" + 
+				"    <javaTypeResolver>\n" + 
+				"      <property name=\"forceBigDecimals\" value=\"false\"/>\n" + 
+				"    </javaTypeResolver>\n" + 
+				"    <sqlMapGenerator targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"  </context>\n" + 
+				"</generatorConfiguration>\n";
+		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		javaModelGenerators.clear();
+		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.getDomainDirPath();
+	}
+	
+	@Test(expected = InvalidMybatisGeneratorConfigException.class)
+	public void domainPathWhenMoreThanOneGenerators() throws DocumentException, IOException {
+		String xmldoc = 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"\n" + 
+				"<generatorConfiguration>\n" + 
+				"  <classPathEntry location=\"oldLocation\"/>\n" + 
+				"  <context id=\"mysqlTables\" targetRuntime=\"MyBatis3\">\n" + 
+				"    <jdbcConnection driverClass=\"com.mysql.jdbc.Driver\" connectionURL=\"jdbc:mysql://127.0.0.1:3306/uplending?characterEncoding=utf-8\" userId=\"uplending\" password=\"uplendingxwg370\"/>\n" + 
+				"    <javaTypeResolver>\n" + 
+				"      <property name=\"forceBigDecimals\" value=\"false\"/>\n" + 
+				"    </javaTypeResolver>\n" + 
+				"  </context>\n" + 
+				"</generatorConfiguration>\n";
+		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.getDomainDirPath();
+	}
+	
+	@Test
+	public void domainPath() throws DocumentException, IOException {
+		String xmldoc = 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"\n" + 
+				"<generatorConfiguration>\n" + 
+				"  <!--classPathEntry location=\"oldLocation\"/-->\n" + 
+				"  <context id=\"mysqlTables\" targetRuntime=\"MyBatis3\">\n" + 
+				"    <jdbcConnection driverClass=\"com.mysql.jdbc.Driver\" connectionURL=\"jdbc:mysql://127.0.0.1:3306/uplending?characterEncoding=utf-8\" userId=\"uplending\" password=\"uplendingxwg370\"/>\n" + 
+				"    <javaTypeResolver>\n" + 
+				"      <property name=\"forceBigDecimals\" value=\"false\"/>\n" + 
+				"    </javaTypeResolver>\n" + 
+				"    <javaModelGenerator targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <sqlMapGenerator targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"  </context>\n" + 
+				"</generatorConfiguration>\n";
+		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		assertTrue("targetProject1/targetPackage1".equals(mybatisXmlParser.getDomainDirPath()));
+	}
+	
+	@Test
+	public void domainPackage() throws DocumentException, IOException {
+		String xmldoc = 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"\n" + 
+				"<generatorConfiguration>\n" + 
+				"  <!--classPathEntry location=\"oldLocation\"/-->\n" + 
+				"  <context id=\"mysqlTables\" targetRuntime=\"MyBatis3\">\n" + 
+				"    <jdbcConnection driverClass=\"com.mysql.jdbc.Driver\" connectionURL=\"jdbc:mysql://127.0.0.1:3306/uplending?characterEncoding=utf-8\" userId=\"uplending\" password=\"uplendingxwg370\"/>\n" + 
+				"    <javaTypeResolver>\n" + 
+				"      <property name=\"forceBigDecimals\" value=\"false\"/>\n" + 
+				"    </javaTypeResolver>\n" + 
+				"    <javaModelGenerator targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <sqlMapGenerator targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"  </context>\n" + 
+				"</generatorConfiguration>\n";
+		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		assertTrue("targetPackage1".equals(mybatisXmlParser.getPackageNameOfDomains()));
+	}
+	
 	
 	
 	@Test
@@ -316,7 +578,6 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		setup();
 		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -325,7 +586,7 @@ public class MybatisXmlParserTests {
 	}
 	
 	@Test
-	public void testSomeTablesCommented() throws DocumentException, IOException {
+	public void tablesCommented() throws DocumentException, IOException {
 		String xmldoc = 
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
 				"\n" + 
@@ -343,7 +604,6 @@ public class MybatisXmlParserTests {
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		setup();
 		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -370,14 +630,120 @@ public class MybatisXmlParserTests {
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		setup();
 		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(!newDoc.hasTable("table1", "schema"));
 		assertTrue(!newDoc.hasTable("table2", "schema"));
 	}
+	
+	@Test
+	public void existentConfigHasNoPlugins() throws DocumentException, IOException {
+		String xmldoc = 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"\n" + 
+				"<generatorConfiguration>\n" + 
+				"  <classPathEntry location=\"oldLocation\"/>\n" + 
+				"  <context id=\"mysqlTables\" targetRuntime=\"MyBatis3\">\n" + 
+				"    <jdbcConnection driverClass=\"com.mysql.jdbc.Driver\" connectionURL=\"jdbc:mysql://127.0.0.1:3306/uplending?characterEncoding=utf-8\" userId=\"uplending\" password=\"uplendingxwg370\"/>\n" + 
+				"    <javaTypeResolver>\n" + 
+				"      <property name=\"forceBigDecimals\" value=\"false\"/>\n" + 
+				"    </javaTypeResolver>\n" + 
+				"    <sqlMapGenerator targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <!--table tableName=\"table1\" schema=\"schema\" />\n" +
+				"    <table tableName=\"table2\" schema=\"schema\" /-->\n" +
+				"  </context>\n" +
+				"</generatorConfiguration>\n";
+		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		String tmp = mybatisXmlParser.asXmlText();
+		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
+		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisPlugin"));
+		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisCriteriaPlugin"));
+	}
+	
+	@Test
+	public void existentConfigCommentsYobatisPlugin() throws DocumentException, IOException {
+		String xmldoc = 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"\n" + 
+				"<generatorConfiguration>\n" + 
+				"  <classPathEntry location=\"oldLocation\"/>\n" + 
+				"  <context id=\"mysqlTables\" targetRuntime=\"MyBatis3\">\n" + 
+				"  <!--plugin type=\"org.mybatis.generator.plugins.YobatisPlugin\">\n" + 
+				"        <property name=\"enableBaseClass\" value=\"true\"/>\n" + 
+				"    </plugin-->\n" + 
+				"    <jdbcConnection driverClass=\"com.mysql.jdbc.Driver\" connectionURL=\"jdbc:mysql://127.0.0.1:3306/uplending?characterEncoding=utf-8\" userId=\"uplending\" password=\"uplendingxwg370\"/>\n" + 
+				"    <javaTypeResolver>\n" + 
+				"      <property name=\"forceBigDecimals\" value=\"false\"/>\n" + 
+				"    </javaTypeResolver>\n" + 
+				"    <sqlMapGenerator targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"  </context>\n" +
+				"</generatorConfiguration>\n";
+		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		String tmp = mybatisXmlParser.asXmlText();
+		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
+		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisPlugin"));
+	}
+	
+	@Test
+	public void existentConfigHasPlugins() throws DocumentException, IOException {
+		String xmldoc = 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"\n" + 
+				"<generatorConfiguration>\n" + 
+				"  <classPathEntry location=\"oldLocation\"/>\n" + 
+				"  <context id=\"mysqlTables\" targetRuntime=\"MyBatis3\">\n" + 
+				"  	 <plugin type=\"org.mybatis.generator.plugins.YobatisPlugin\">\n" + 
+				"        <property name=\"enableBaseClass\" value=\"false\"/>\n" + 
+				"  	 </plugin>" + 
+				"  	 <plugin type=\"org.mybatis.generator.plugins.YobatisCriteriaPlugin\" />\n" + 
+				"    <jdbcConnection driverClass=\"com.mysql.jdbc.Driver\" connectionURL=\"jdbc:mysql://127.0.0.1:3306/uplending?characterEncoding=utf-8\" userId=\"uplending\" password=\"uplendingxwg370\"/>\n" + 
+				"    <javaTypeResolver>\n" + 
+				"      <property name=\"forceBigDecimals\" value=\"false\"/>\n" + 
+				"    </javaTypeResolver>\n" + 
+				"    <sqlMapGenerator targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"  </context>\n" +
+				"</generatorConfiguration>\n";
+		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		String tmp = mybatisXmlParser.asXmlText();
+		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
+		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisPlugin", "enableBaseClass", "false"));
+		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisCriteriaPlugin"));
+	}
+	
 
-
-
+	@Test
+	public void existentConfigHasCommentedCriteiraPlugin() throws DocumentException, IOException {
+		String xmldoc = 
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"\n" + 
+				"<generatorConfiguration>\n" + 
+				"  <classPathEntry location=\"oldLocation\"/>\n" + 
+				"  <context id=\"mysqlTables\" targetRuntime=\"MyBatis3\">\n" + 
+				"  	 <plugin type=\"org.mybatis.generator.plugins.YobatisPlugin\">\n" + 
+				"        <property name=\"enableBaseClass\" value=\"false\"/>\n" + 
+				"  	 </plugin>" + 
+				"  	 <!--plugin type=\"org.mybatis.generator.plugins.YobatisCriteriaPlugin\" /-->\n" + 
+				"    <jdbcConnection driverClass=\"com.mysql.jdbc.Driver\" connectionURL=\"jdbc:mysql://127.0.0.1:3306/uplending?characterEncoding=utf-8\" userId=\"uplending\" password=\"uplendingxwg370\"/>\n" + 
+				"    <javaTypeResolver>\n" + 
+				"      <property name=\"forceBigDecimals\" value=\"false\"/>\n" + 
+				"    </javaTypeResolver>\n" + 
+				"    <sqlMapGenerator targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
+				"  </context>\n" +
+				"</generatorConfiguration>\n";
+		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		String tmp = mybatisXmlParser.asXmlText();
+		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
+		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisPlugin", "enableBaseClass", "false"));
+		assertTrue(!newDoc.hasPlugin("org.mybatis.generator.plugins.YobatisCriteriaPlugin"));
+		assertTrue(newDoc.hasCommentedElement("plugin"));
+	}
 }

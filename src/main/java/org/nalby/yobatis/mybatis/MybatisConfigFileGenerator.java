@@ -26,24 +26,12 @@ import org.nalby.yobatis.xml.MybatisXmlParser;
  * @author Kyle Lin
  */
 public class MybatisConfigFileGenerator implements MybatisConfigReader {
-	private Document document;
-	private Sql sql;
-	private ErrorCode errorCode;
-	
-	private PomTree pomTree;
 
-	private enum ErrorCode {
-		OK,
-		NO_MODEL_PATH,
-		NO_DAO_PATH,
-		NO_RESOURCES_PATH,
-		MULTIPLE_MODEL_PATHS,
-		MULTIPLE_DAO_PATHS,
-		MULTIPLE_RESOURCES_PATHS,
-		NO_TABLES
-	}
-	
-	public final static String CONFIG_FILENAME = "mybatisGeneratorConfig.xml";
+	private Document document;
+
+	private Sql sql;
+
+	private PomTree pomTree;
 	
 	private DocumentFactory factory = DocumentFactory.getInstance();
 
@@ -59,7 +47,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	
 	private Element pluginElement;
 
-	private Element pagingAndLockElement;
+	private Element criteriaPluginElement;
 
 	private Set<Element> javaModelGenerators = new HashSet<Element>();
 
@@ -123,8 +111,8 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		return pluginElement;
 	}
 	
-	public Element getPagingAndLockElement() {
-		return pagingAndLockElement;
+	public Element getCriteriaPluginElement() {
+		return criteriaPluginElement;
 	}
 	
 	private void appendClassPathEntry(Element root) {
@@ -141,9 +129,6 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	
 	private void appendTables(Element context)  {
 		List<Table> tables = sql.getTables();
-		if (tables.isEmpty()) {
-			errorCode = ErrorCode.NO_TABLES;
-		}
 		for (Table table: tables) {
 			Element element = context.addElement("table");
 			element.addAttribute("tableName", table.getName());
@@ -194,13 +179,13 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 
 	private void appendCriteriaPlugin(Element context) {
-		pagingAndLockElement = context.addElement("plugin");
-		pagingAndLockElement.addAttribute("type",  "org.mybatis.generator.plugins.YobatisCriteriaPlugin");
+		criteriaPluginElement = context.addElement("plugin");
+		criteriaPluginElement.addAttribute("type",  YOBATIS_CRITERIA_PLUGIN);
 	}
 	
 	private void appendYobatisPlugin(Element context) {
 		pluginElement = context.addElement("plugin");
-		pluginElement.addAttribute("type",  "org.mybatis.generator.plugins.YobatisPlugin");
+		pluginElement.addAttribute("type",  YOBATIS_PLUGIN);
 		Element property = pluginElement.addElement("property");
 		property.addAttribute("name", "enableBaseClass");
 		property.addAttribute("value", "true");
@@ -255,9 +240,6 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	
-	public boolean hasError() {
-		return errorCode != ErrorCode.OK;
-	}
 	
 	private void createDocument() {
 		document = factory.createDocument();
@@ -312,11 +294,6 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	public String getCriteriaDirPath() {
 		String daoPath =  glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
 		return daoPath + "/criteria";
-	}
-
-	@Override
-	public String getConfigeFilename() {
-		return CONFIG_FILENAME;
 	}
 
 	@Override
