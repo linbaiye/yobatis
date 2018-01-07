@@ -1,22 +1,29 @@
 package org.nalby.yobatis.xml;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.dom4j.Comment;
+import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentFactory;
 import org.dom4j.Element;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
+import org.eclipse.ui.dialogs.ListSelectionDialog;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
 import org.nalby.yobatis.mybatis.MybatisConfigReader;
+import org.w3c.dom.traversal.NodeIterator;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -292,6 +299,8 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 
 	private Set<Node> tables = new HashSet<Node>();
 	
+	private List<Element> commentedElements;
+	
 	public final static String CLASS_PATH_ENTRY_TAG = "classPathEntry";
 	public final static String MODEL_GENERATOR_TAG = "javaModelGenerator";
 	public final static String SQLMAP_GENERATOR_TAG = "sqlMapGenerator";
@@ -299,6 +308,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	public final static String TABLE_TAG = "table";
 	public final static String ROOT_TAG = "generatorConfiguration";
 	public final static String CONTEXT_ID = "yobatis";
+	public final static String PLUGIN_TAG = "plugin";
 	public final static String TARGET_RUNTIME = "MyBatis3";
 
 	public MybatisXmlParser(InputStream inputStream) throws DocumentException, IOException {
@@ -306,6 +316,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		root = document.getRootElement();
 		loadClasspathEntry();
 		loadContext();
+		loadCommentedElements();
 		loadJdbcConnection();
 		loadJavaTypeResolver();
 		loadNodes(MODEL_GENERATOR_TAG,  javaModelGenerators);
@@ -317,6 +328,77 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		root = documentFactory.createElement(ROOT_TAG);
 		document.setRootElement(root);
 	}
+	
+	
+	private Document buildDoc(String text) {
+		SAXReader saxReader = new SAXReader();
+		saxReader.setValidation(false);
+		try  {
+			return saxReader.read(new ByteArrayInputStream(("<rootDoc>" + text + "</rootDoc>").getBytes()));
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+	private Element findPluginElement(List<Element> elements, Element target) {
+		for (Element element : elements) {
+			if (!PLUGIN_TAG.equals(element.getName())) {
+				continue;
+			}
+			String typeAttr = target.attributeValue("type");
+			if (typeAttr != null && 
+				typeAttr.equals(element.attributeValue("type"))) {
+				return element;
+			}
+		}
+		return null;
+	}
+	
+	private boolean isPluginCommented(Element plugin) {
+		if (findPluginElement(commentedElements, plugin) != null) {
+			return true;
+		}
+		return false;
+	}
+	
+	
+	private void convertToElements(String text) {
+		Document doc = buildDoc(text);
+		if (doc != null) {
+			commentedElements = doc.getRootElement().elements();
+		}
+		if (commentedElements == null) {
+			commentedElements = new ArrayList<>(0);
+		}
+	}
+	
+	
+	private boolean isCommentedElement(String text) {
+		if (buildDoc(text) != null) {
+			return true;
+		}
+		return false;
+	}
+	
+
+	private void loadCommentedElements()  {
+		String text = "";
+		for (Iterator<Node> iterator = context.nodeIterator(); iterator.hasNext(); ) {
+			Node node = iterator.next();
+			if (node.getNodeType() != Node.COMMENT_NODE) {
+				continue;
+			}
+			Comment comment = (Comment) node;
+			String tmp = comment.asXML().replaceAll("\\s+", " ");
+			tmp = tmp.replaceAll("<!--", "<");
+			tmp = tmp.replaceAll("-->", ">");
+			if (isCommentedElement(tmp)) {
+				text = text + tmp;
+			}
+		}
+		convertToElements(text);
+	}
+	
 	
 	private void loadClasspathEntry() {
 		classPathEntry = root.element(CLASS_PATH_ENTRY_TAG);	
@@ -342,7 +424,10 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	}
 	
 	private void loadPlugins() {
-		plugins = context.elements("plugin");
+		plugins = new LinkedList<>();
+		for (Element element : context.elements(PLUGIN_TAG)) {
+			plugins.add(element.createCopy());
+		}
 	}
 	
 	
@@ -449,7 +534,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		appendGenerators(configFileGenerator.getJavaClientGeneratorElements(), javaClientGenerators);
 	}
 	
-	private void appendClasspathEntry(MybatisConfigFileGenerator configFileGenerator) {
+	private void mergeClasspathEntry(MybatisConfigFileGenerator configFileGenerator) {
 		if (classPathEntry == null) {
 			root.add(configFileGenerator.getClassPathEntryElement().createCopy());
 		} else {
@@ -457,12 +542,12 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		}
 	}
 
-	private boolean appendContextAndTestIfContinueAppending(MybatisConfigFileGenerator configFileGenerator) {
+	private boolean mergeContext(MybatisConfigFileGenerator configFileGenerator) {
 		if (context == null) {
 			root.add(configFileGenerator.getContext().createCopy());
 			return false;
 		}
-		root.add(context);
+		context = root.addElement("context");
 		return true;
 	}
 	
@@ -499,6 +584,28 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		}
 	}
 	
+	private void mergePlugins(MybatisConfigFileGenerator configFileGenerator) {
+		Element pluginElement = configFileGenerator.getPluginElement();
+		Element currentPlugin = findPluginElement(plugins, pluginElement);
+		if (currentPlugin == null) {
+			context.add(pluginElement.createCopy());
+		} else {
+			context.add(currentPlugin.createCopy());
+		}
+
+		pluginElement = configFileGenerator.getCriteriaPluginElement();
+		currentPlugin = findPluginElement(plugins, pluginElement);
+		if (currentPlugin == null) {
+			Element commentedPlugin = findPluginElement(commentedElements, pluginElement);
+			if (commentedPlugin == null) {
+				context.add(pluginElement.createCopy());
+			} else {
+				context.add(commentElement(commentedPlugin));
+			}
+		} else {
+			context.add(currentPlugin.createCopy());
+		}
+	}
 	
 	/**
 	 * Under some circumstances, we might find multiple dao/domain layers, so it's necessary
@@ -507,8 +614,9 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	 * @param configFileGenerator
 	 */
 	public void mergeGeneratedConfigAndGetXmlString(MybatisConfigFileGenerator configFileGenerator) {
-		appendClasspathEntry(configFileGenerator);
-		if (appendContextAndTestIfContinueAppending(configFileGenerator)) {
+		mergeClasspathEntry(configFileGenerator);
+		if (mergeContext(configFileGenerator)) {
+			mergePlugins(configFileGenerator);
 			appendJdbcConnection(configFileGenerator);
 			appendJavaTypeResolver(configFileGenerator);
 			appendJavaModelGenerators(configFileGenerator);
