@@ -1,66 +1,69 @@
 package org.nalby.yobatis.structure.eclipse;
 
+
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
-import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.console.ConsolePlugin;
 import org.eclipse.ui.console.IConsole;
 import org.eclipse.ui.console.IConsoleConstants;
+import org.eclipse.ui.console.IConsoleFactory;
 import org.eclipse.ui.console.IConsoleManager;
 import org.eclipse.ui.console.IConsoleView;
 import org.eclipse.ui.console.MessageConsole;
 import org.eclipse.ui.console.MessageConsoleStream;
-import org.nalby.yobatis.structure.Logger;
+import org.nalby.yobatis.exception.ProjectException;
+import org.nalby.yobatis.log.AbstractLogger;
 
-public class EclipseLogger implements Logger {
+public class EclipseLogger extends AbstractLogger implements IConsoleFactory {
 	
-	private String className;
+	private final static String VIEW_NAME = "Yobatis";
+	
+	private MessageConsole yobatisConsole;
 	
 	public EclipseLogger(String className) {
-		this.className = className;
-	}
-
-	private MessageConsole findConsole(String name) {
-		ConsolePlugin plugin = ConsolePlugin.getDefault();
-		IConsoleManager conMan = plugin.getConsoleManager();
-		IConsole[] existing = conMan.getConsoles();
-
-		for (int i = 0; i < existing.length; i++)
-			if (name.equals(existing[i].getName()))
-				return (MessageConsole) existing[i];
-		// no console found, so create a new one
-		MessageConsole myConsole = new MessageConsole(name, null);
-		conMan.addConsoles(new IConsole[] { myConsole });
-		return myConsole;
-	}
-	
-	
-	private void openConsole(IConsole myConsole) throws PartInitException {
-		IWorkbench wb = PlatformUI.getWorkbench();
-		IWorkbenchWindow win = wb.getActiveWorkbenchWindow();
-		IWorkbenchPage page = win.getActivePage();
-		String id = IConsoleConstants.ID_CONSOLE_VIEW;
-		IConsoleView view = (IConsoleView) page.showView(id);
-		view.display(myConsole);
+		super(className);
 	}
 
 	@Override
-	public void info(String format, Object... args) {
-		if (format == null) {
-			return;
+	public void openConsole() {
+		ConsolePlugin plugin = ConsolePlugin.getDefault();
+		IConsoleManager conMan = plugin.getConsoleManager();
+		IConsole[] existing = conMan.getConsoles();
+		for (int i = 0; i < existing.length; i++) {
+			if (VIEW_NAME.equals(existing[i].getName())) {
+				yobatisConsole = (MessageConsole) existing[i];
+				return;
+			}
 		}
-		String fmt = format.replaceAll("\\{\\}", "%s");
-		String result = String.format(fmt, args);
+		// no console found, so create a new one
 		try {
-			MessageConsole myConsole = findConsole("yobatis");
-			openConsole(myConsole);
-			MessageConsoleStream out = myConsole.newMessageStream();
-			out.write("[ " + className + ".java ] " + result + "\n");
+			yobatisConsole = new MessageConsole(VIEW_NAME, null);
+			conMan.addConsoles(new IConsole[] { yobatisConsole });
+			IWorkbench wb = PlatformUI.getWorkbench();
+			IWorkbenchWindow win = wb.getActiveWorkbenchWindow();
+			IWorkbenchPage page = win.getActivePage();
+			String id = IConsoleConstants.ID_CONSOLE_VIEW;
+			IConsoleView view = (IConsoleView) page.showView(id);
+			view.display(yobatisConsole);
 		} catch (Exception e) {
-			//Ignore.
+			throw new ProjectException(e);
 		}
 	}
 
+	@Override
+	protected void wirteToConsole(String msg) {
+		if (msg == null) {
+			return;
+		}
+		try {
+			openConsole();
+			try (MessageConsoleStream out = yobatisConsole.newMessageStream()) {
+				out.write(msg);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 }

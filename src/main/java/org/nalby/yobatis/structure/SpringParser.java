@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
+import org.nalby.yobatis.log.LogFactory;
+import org.nalby.yobatis.log.Logger;
 import org.nalby.yobatis.util.AntPathMatcher;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.FolderUtil;

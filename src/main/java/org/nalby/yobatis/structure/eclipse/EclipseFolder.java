@@ -3,6 +3,7 @@ package org.nalby.yobatis.structure.eclipse;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -142,11 +143,20 @@ public class EclipseFolder implements Folder {
 			file.refreshLocal(0, null);
 			if (file.exists()) {
 				file.delete(true, false, null);
+				Iterator<IFile> iterator = files.iterator();
+				while (iterator.hasNext()) {
+					IFile iFile = iterator.next();
+					if (filename.equals(iFile.getName())) {
+						iterator.remove();
+					}
+				}
 			}
 			try (InputStream inputStream = new ByteArrayInputStream(content.getBytes())) {
 				file.create(inputStream, IResource.NONE, null);
 				file.refreshLocal(0, null);
 			}
+			filenames.add(filename);
+			files.add(file);
 		} catch (Exception e) {
 			throw new ProjectException(e);
 		}
@@ -197,6 +207,8 @@ public class EclipseFolder implements Folder {
 			}
 			Folder folder = new EclipseFolder(this.path, newFolder);
 			subfolders.add(folder);
+			allSubfolders = null;
+			filepaths = null;
 			return folder;
 		} catch (CoreException e) {
 			throw new ProjectException(e);
@@ -206,9 +218,6 @@ public class EclipseFolder implements Folder {
 	@Override
 	public Folder createFolder(String folderpath) {
 		validatePath(folderpath);
-		if (folderpath.toLowerCase().contains("criteria")) {
-			System.out.println(folderpath);
-		}
 		String tokens[] = folderpath.split("/");
 		String thisName = tokens[0];
 		Folder targetFolder = null;
@@ -268,7 +277,7 @@ public class EclipseFolder implements Folder {
 				}
 			}
 		} catch (Exception e) {
-			// Ignore.
+			e.printStackTrace();
 		}
 		throw new ResourceNotFoundException("Unable to read file: " + filepath);
 	}
