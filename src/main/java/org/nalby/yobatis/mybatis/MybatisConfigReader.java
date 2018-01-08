@@ -1,5 +1,6 @@
 package org.nalby.yobatis.mybatis;
 
+
 public interface MybatisConfigReader {
 	
 	public final static String CONFIG_FILENAME = "mybatisGeneratorConfig.xml";
@@ -7,6 +8,10 @@ public interface MybatisConfigReader {
 	public final static String YOBATIS_PLUGIN = "org.mybatis.generator.plugins.YobatisPlugin";
 	
 	public final static String YOBATIS_CRITERIA_PLUGIN = "org.mybatis.generator.plugins.YobatisCriteriaPlugin";
+	
+	public final static String DEFAULT_CONTEXT_ID = "yobatis";
+
+	public final static String TARGET_RUNTIME = "MyBatis3";
 	
 	/**
 	 * The dir path where java mapper files will be saved.
