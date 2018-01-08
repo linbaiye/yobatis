@@ -92,24 +92,19 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	
 
 	private void generateFromProject(IProject project) {
-		try {
-			logger.info("Scaning project:{}.", project.getName());
-			EclipseProject eclipseProject = new EclipseProject(project);
+		logger.info("Scaning project:{}.", project.getName());
+		EclipseProject eclipseProject = new EclipseProject(project);
 
-			MybatisConfigFileGenerator configFileGenerator = buildMybatisGeneratorConfigMaker(eclipseProject);
+		MybatisConfigFileGenerator configFileGenerator = buildMybatisGeneratorConfigMaker(eclipseProject);
 
-			MybatisConfigReader reader = mergeIntoExistentConfig(configFileGenerator, eclipseProject);
+		MybatisConfigReader reader = mergeIntoExistentConfig(configFileGenerator, eclipseProject);
 
-			//Write mybatis-generator's config file to the project's root dir.
-			eclipseProject.writeFile(MybatisConfigReader.CONFIG_FILENAME, reader.asXmlText());
+		// Write mybatis-generator's config file to the project's root dir.
+		eclipseProject.writeFile(MybatisConfigReader.CONFIG_FILENAME, reader.asXmlText());
 
-			MybatisFilesWriter filesWriter = new MybatisFilesWriter(eclipseProject, reader);
-			filesWriter.writeAll();
-			logger.info("Generated files.");
-		} catch (Exception e) {
-			e.printStackTrace();
-			logger.info("Caught exception:{}.", e.getMessage());
-		}
+		MybatisFilesWriter filesWriter = new MybatisFilesWriter(eclipseProject, reader);
+		filesWriter.writeAll();
+		logger.info("Generated files.");
 	}
 	
 	
@@ -179,7 +174,11 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 	@Override
 	public Object execute(ExecutionEvent event) throws ExecutionException {
-		start();
+		try {
+			start();
+		} catch (Exception e) {
+			logger.info("Caught exception:{}.", e);
+		}
 /*		ISelectionService selectionService = PlatformUI.getWorkbench()
 				.getActiveWorkbenchWindow().getSelectionService();
 		ISelection selection = selectionService.getSelection();

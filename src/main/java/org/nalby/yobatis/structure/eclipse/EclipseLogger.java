@@ -1,5 +1,8 @@
 package org.nalby.yobatis.structure.eclipse;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.IWorkbenchWindow;
@@ -45,21 +48,48 @@ public class EclipseLogger implements Logger, IConsoleFactory {
 		IConsoleView view = (IConsoleView) page.showView(id);
 		view.display(myConsole);
 	}
+	
+	
+	private String formatArgs (String format, Object ... args) {
+		if (args == null || args.length == 0) {
+			return format;
+		}
+		Object[] strings = new String[args.length];
+		for (int i = 0; i < args.length; i++) {
+			Object arg = args[i];
+			if (arg instanceof String) {
+				strings[i] = (String)arg;
+			} else if (arg instanceof Exception) {
+				Exception exception = (Exception) arg;
+				String tmp = exception.getMessage();
+				try (StringWriter sw = new StringWriter();
+					PrintWriter pw = new PrintWriter(sw);) {
+					exception.printStackTrace(pw);
+					tmp = sw.toString();
+				} catch (Exception e) {
+				}
+				strings[i] = tmp;
+			} else {
+				strings[i] = arg.toString();
+			}
+		}
+		String fmt = format.replaceAll("\\{\\}", "%s");
+		return String.format(fmt, strings);
+	}
 
 	@Override
 	public void info(String format, Object... args) {
 		if (format == null) {
 			return;
 		}
-		String fmt = format.replaceAll("\\{\\}", "%s");
-		String result = String.format(fmt, args);
+		String result = formatArgs(format, args);
 		try {
 			MessageConsole myConsole = findConsole("yobatis");
 			openConsole(myConsole);
 			MessageConsoleStream out = myConsole.newMessageStream();
-			out.write("[ " + className + ".java ] " + result + "\n");
+			out.write("INFO " + className + ".java - " + result + "\n");
 		} catch (Exception e) {
-			//Ignore.
+			e.printStackTrace();
 		}
 	}
 

@@ -4,7 +4,6 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 import org.nalby.yobatis.util.Expect;
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 public abstract class Project implements Folder {
 	
 	protected Folder root;
