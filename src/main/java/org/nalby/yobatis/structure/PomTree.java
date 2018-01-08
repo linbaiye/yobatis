@@ -269,7 +269,7 @@ public class PomTree {
 			}
 		});
 	}
-	
+
 	public List<Folder> lookupModelFolders() {
 		return iterateSourceCodeFolders(new FolderSelector() {
 			@Override

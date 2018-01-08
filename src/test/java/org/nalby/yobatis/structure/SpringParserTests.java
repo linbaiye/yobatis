@@ -16,6 +16,7 @@ import static org.mockito.Mockito.*;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
+import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.util.TestUtil;
 
@@ -26,7 +27,7 @@ public class SpringParserTests {
 	
 	private Set<Folder> webPomResourceFolders;
 
-	private Folder webPomWebappFolder;
+	private Folder webappFolder;
 	
 	private Pom webPom;
 	
@@ -34,11 +35,38 @@ public class SpringParserTests {
 	
 	private Set<Pom> poms;
 	
+	private Set<Folder> webappFolders;
+	
 	private final static String PROJECT_PATH = "/yobatis";
 
 	private final static String DEFAULT_RESOURCE_PATH = PROJECT_PATH + "/src/main/resources";
 
 	private final static String WEBAPP_PATH = "/yobatis/src/main/webapp";
+	
+	private final static String defaultSpringConfig = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+			"<beans xmlns=\"http://www.springframework.org/schema/beans\"\n" + 
+			"	xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n" + 
+			"	xmlns:context=\"http://www.springframework.org/schema/context\"\n" + 
+			"	xsi:schemaLocation=\"http://www.springframework.org/schema/beans \n" + 
+			"       		http://www.springframework.org/schema/beans/spring-beans.xsd \n" + 
+			"       		http://www.springframework.org/schema/context \n" + 
+			"       		http://mybatis.org/schema/mybatis-spring.xsd\">\n" + 
+			"	<bean id=\"dataSource\" class=\"org.apache.commons.dbcp.BasicDataSource\" destroy-method=\"close\">\n" + 
+			"        <property name=\"driverClassName\" value=\"com.mysql.jdbc.Driver\"/>\n" + 
+			"        <property name=\"url\" value=\"mybatisurl\"/>\n" + 
+			"        <property name=\"password\" value=\"${mybatis}\"/>\n" + 
+			"        <property name=\"username\" value=\"username\"/>\n" + 
+			"  </bean>\n" + 
+			"  \n" + 
+			" 	<bean id=\"propertyConfigurer\" class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
+			" <property name=\"locations\">" +
+            "<list><value>yobatis.properties</value></list>" +
+            "</property></bean> " + 
+			"</beans>";
+	
+	
+	private final static String defaultProperties = "mybatis=password";
+
 
 	private Folder mockFolder(String path) {
 		Folder folder = mock(Folder.class);
@@ -47,27 +75,51 @@ public class SpringParserTests {
 	}
 	
 	
-	@Before
-	public void setup() {
-		pomTree = mock(PomTree.class);
+	private void setupWebpom() {
 		webPom = mock(Pom.class);
-		webappFolderFilepaths = new HashSet<String>();
-
-		webPomWebappFolder = mockFolder(WEBAPP_PATH);
-		
-
-		when(webPomWebappFolder.getAllFilepaths()).thenReturn(webappFolderFilepaths);
-		when(webPom.getWebappFolder()).thenReturn(webPomWebappFolder);
-
-		webPomResourceFolders = new HashSet<Folder>();
+		webPomResourceFolders = new HashSet<>();
 		when(webPom.getResourceFolders()).thenReturn(webPomResourceFolders);
+
+		webappFolder = mockFolder(WEBAPP_PATH);
+		when(webappFolder.openFile("yobatis.xml")).thenReturn(new ByteArrayInputStream(defaultSpringConfig.getBytes()));
+		when(webappFolder.openFile("yobatis.properties")).thenReturn(new ByteArrayInputStream(defaultProperties.getBytes()));
+
+		webappFolders = new HashSet<>();
+		when(webappFolder.getAllFolders()).thenReturn(webappFolders);
+
+		webappFolderFilepaths = new HashSet<>();
+		webappFolderFilepaths.add(webappFolder.path() + "/yobatis.xml");
+		webappFolderFilepaths.add(webappFolder.path() + "/yobatis.properties");
+
+		when(webappFolder.getAllFilepaths()).thenReturn(webappFolderFilepaths);
+
+		when(webPom.getWebappFolder()).thenReturn(webappFolder);
+		
+		when(webPom.filterPlaceholders(anyString())).thenAnswer(new Answer<String>() {
+			@Override
+			public String answer(InvocationOnMock invocation) throws Throwable {
+				Object arg = invocation.getArguments()[0];
+				return (String)arg;
+			}
+		});
+	}
+	
+	
+	
+	private void setupPomTree() {
+		pomTree = mock(PomTree.class);
+		when(pomTree.getWarPom()).thenReturn(webPom);
 
 		poms = new HashSet<Pom>();
 		poms.add(webPom);
-		
 		when(pomTree.getPoms()).thenReturn(poms);
-
-		when(pomTree.getWarPom()).thenReturn(webPom);
+	}
+	
+	
+	@Before
+	public void setup() {
+		setupWebpom();
+		setupPomTree();
 	}
 	
 	private void addFileToWebappDir(String file) {
@@ -109,11 +161,11 @@ public class SpringParserTests {
 		ByteArrayInputStream inputStream = new ByteArrayInputStream(content.getBytes());
 		addFileToWebappDir(name);
 		name = name.replaceFirst("^/", "");
-		when(webPomWebappFolder.openFile(name)).thenReturn(inputStream);
+		when(webappFolder.openFile(name)).thenReturn(inputStream);
 		return initParamValues;
 	}
 	
-	@Test
+	/*@Test
 	public void noXmlFileExist() throws FileNotFoundException {
 		Set<String> initParamValues = TestUtil.buildSet("test.conf");
 		when(webPom.filterPlaceholders("test.conf")).thenReturn("test.conf");
@@ -183,7 +235,7 @@ public class SpringParserTests {
 		Folder folder = mockFolder("folder1/folder2");
 		addFilesToDir(folder, new SimpleEntry<String, String>("test.xml", springConfig));
 		Set<String> initParamValues = wireXmlFile(springConfig, "folder1/folder2/test.xml");
-		when(webPomWebappFolder.findFolder("folder1/folder2")).thenReturn(folder);
+		when(webappFolder.findFolder("folder1/folder2")).thenReturn(folder);
 		SpringParser springParser = new SpringParser(pomTree, initParamValues);
 		assertTrue(springParser.getDatabasePassword().equals("mybatis"));
 	}
@@ -299,10 +351,10 @@ public class SpringParserTests {
 				"  </bean>\n" + 
 				"</beans>";
 		Set<String> initParamValues = wireXmlFile(xml, "test.xml");
-		Folder folder = mockFolder(webPomWebappFolder.path() + "/conf");
+		Folder folder = mockFolder(webappFolder.path() + "/conf");
 		addFilesToDir(folder, new SimpleEntry<String, String>("hello.xml", importedXml));
 		webappFolderFilepaths.add(WEBAPP_PATH + "/conf/hello.xml");
-		when(webPomWebappFolder.findFolder("conf")).thenReturn(folder);
+		when(webappFolder.findFolder("conf")).thenReturn(folder);
 
 		SpringParser springParser = new SpringParser(pomTree, initParamValues);
 		assertTrue(springParser.getDatabasePassword().equals("mybatis"));
@@ -348,5 +400,78 @@ public class SpringParserTests {
 		
 		SpringParser springParser = new SpringParser(pomTree, initParamValues);
 		assertTrue(springParser.getDatabasePassword().equals("mybatis"));
+	}*/
+	
+	@Test(expected = UnsupportedProjectException.class)
+	public void invalidClasspath() {
+		try {
+			Set<String> set = TestUtil.buildSet("classpath:");
+			new SpringParser(pomTree, set);
+			fail();
+		} catch (Exception e) {
+			//Expected.
+		}
+		Set<String> set = TestUtil.buildSet("classpath*:");
+		new SpringParser(pomTree, set);
 	}
+
+	@Test(expected = UnsupportedProjectException.class)
+	public void nullConfigPath() {
+		Set<String> set = TestUtil.buildSet("");
+		new SpringParser(pomTree, set);
+	}
+	
+	@Test
+	public void webappSpringXml() {
+		Set<String> set = TestUtil.buildSet("yobatis.xml");
+		SpringParser parser = new SpringParser(pomTree, set);
+		assertTrue("username".equals(parser.getDatabaseUsername()));
+		assertTrue("password".equals(parser.getDatabasePassword()));
+		assertTrue("com.mysql.jdbc.Driver".equals(parser.getDatabaseDriverClassName()));
+		assertTrue("mybatisurl".equals(parser.getDatabaseUrl()));
+	}
+	
+	@Test
+	public void webappSpringXmlAbsolutePath() {
+		String config = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+				"<beans xmlns=\"http://www.springframework.org/schema/beans\"\n" + 
+				"	xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n" + 
+				"	xmlns:context=\"http://www.springframework.org/schema/context\"\n" + 
+				"	xsi:schemaLocation=\"http://www.springframework.org/schema/beans \n" + 
+				"       		http://www.springframework.org/schema/beans/spring-beans.xsd \n" + 
+				"       		http://www.springframework.org/schema/context \n" + 
+				"       		http://mybatis.org/schema/mybatis-spring.xsd\">\n" + 
+				"	<bean id=\"dataSource\" class=\"org.apache.commons.dbcp.BasicDataSource\" destroy-method=\"close\">\n" + 
+				"        <property name=\"driverClassName\" value=\"com.mysql.jdbc.Driver\"/>\n" + 
+				"        <property name=\"url\" value=\"mybatisurl\"/>\n" + 
+				"        <property name=\"password\" value=\"${mybatis}\"/>\n" + 
+				"        <property name=\"username\" value=\"username\"/>\n" + 
+				"  </bean>\n" + 
+				"  \n" + 
+				" 	<bean id=\"propertyConfigurer\" class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
+				" <property name=\"locations\">" +
+	            "<list><value>/yobatis.properties</value></list>" +
+	            "</property></bean> " + 
+				"</beans>";
+		when(webappFolder.openFile("yobatis.xml")).thenReturn(new ByteArrayInputStream(config.getBytes()));
+		Set<String> set = TestUtil.buildSet("/yobatis.xml");
+		SpringParser parser = new SpringParser(pomTree, set);
+		assertTrue("username".equals(parser.getDatabaseUsername()));
+		assertTrue("password".equals(parser.getDatabasePassword()));
+	}
+	
+	@Test
+	public void classpathSpringXml() {
+		Folder folder = mockFolder(DEFAULT_RESOURCE_PATH);
+		when(folder.openFile("yobatis.xml")).thenReturn(new ByteArrayInputStream(defaultSpringConfig.getBytes()));
+		when(folder.openFile("yobatis.properties")).thenReturn(new ByteArrayInputStream(defaultSpringConfig.getBytes()));
+		webPomResourceFolders.add(folder);
+
+		Set<String> set = TestUtil.buildSet("classpath:yobatis.xml");
+		SpringParser parser = new SpringParser(pomTree, set);
+		assertTrue("username".equals(parser.getDatabaseUsername()));
+		assertTrue("password".equals(parser.getDatabasePassword()));
+	}
+
+	
 }

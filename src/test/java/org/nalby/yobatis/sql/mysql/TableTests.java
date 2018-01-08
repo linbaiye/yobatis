@@ -18,6 +18,7 @@ public class TableTests {
 
 	@Test
 	public void hasNoKey() {
+		assertTrue("test".equals(table.getName()));
 		assertNull(table.getAutoIncPK());
 	}
 	
@@ -41,6 +42,14 @@ public class TableTests {
 		table.addAutoIncColumn("f1");
 		table.addAutoIncColumn("f2");
 		assertTrue("f1".equals(table.getAutoIncPK()));
+	}
+	
+	@Test
+	public void autoincColumnsContainNoPk() {
+		table.addPrimaryKey("f3");
+		table.addAutoIncColumn("f1");
+		table.addAutoIncColumn("f2");
+		assertNull(table.getAutoIncPK());
 	}
 
 }
