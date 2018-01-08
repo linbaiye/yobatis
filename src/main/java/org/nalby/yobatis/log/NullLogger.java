@@ -7,4 +7,9 @@ public class NullLogger implements Logger {
 		//Do nothing.
 	}
 
+	@Override
+	public void error(String fomart, Object... args) {
+		// TODO Auto-generated method stub
+	}
+
 }

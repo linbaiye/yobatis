@@ -177,7 +177,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		try {
 			start();
 		} catch (Exception e) {
-			logger.info("Caught exception:{}.", e);
+			logger.error("Caught exception:{}.", e);
 		}
 /*		ISelectionService selectionService = PlatformUI.getWorkbench()
 				.getActiveWorkbenchWindow().getSelectionService();
