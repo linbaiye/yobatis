@@ -1,4 +1,4 @@
-package org.nalby.yobatis.structure;
+package org.nalby.yobatis.log;
 
 public class NullLogger implements Logger {
 

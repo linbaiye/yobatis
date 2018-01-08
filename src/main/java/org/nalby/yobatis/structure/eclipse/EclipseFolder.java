@@ -147,6 +147,7 @@ public class EclipseFolder implements Folder {
 				file.create(inputStream, IResource.NONE, null);
 				file.refreshLocal(0, null);
 			}
+			filenames.add(filename);
 		} catch (Exception e) {
 			throw new ProjectException(e);
 		}
@@ -268,7 +269,7 @@ public class EclipseFolder implements Folder {
 				}
 			}
 		} catch (Exception e) {
-			// Ignore.
+			e.printStackTrace();
 		}
 		throw new ResourceNotFoundException("Unable to read file: " + filepath);
 	}

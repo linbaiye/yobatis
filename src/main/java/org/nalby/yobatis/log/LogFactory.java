@@ -1,4 +1,4 @@
-package org.nalby.yobatis.structure;
+package org.nalby.yobatis.log;
 
 import java.lang.reflect.Constructor;
 

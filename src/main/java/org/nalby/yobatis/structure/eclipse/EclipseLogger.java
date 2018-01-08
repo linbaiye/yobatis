@@ -12,7 +12,7 @@ import org.eclipse.ui.console.IConsoleManager;
 import org.eclipse.ui.console.IConsoleView;
 import org.eclipse.ui.console.MessageConsole;
 import org.eclipse.ui.console.MessageConsoleStream;
-import org.nalby.yobatis.structure.Logger;
+import org.nalby.yobatis.log.Logger;
 
 public class EclipseLogger implements Logger {
 	
