@@ -1,6 +1,7 @@
 package org.nalby.yobatis.sql.mysql;
 
-import java.net.MalformedURLException;
+import static org.hamcrest.Matchers.nullValue;
+
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.sql.Connection;
@@ -12,10 +13,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,44 +26,44 @@ import org.nalby.yobatis.util.Expect;
 
 public class Mysql extends Sql {
 	
-	private List<String> tableNames;
+	
+	private String timedoutUrl;
 
 	private Mysql(String username, String password, String url, String connectorJarPath, String driverClassName) {
-		this.username = username;
-		this.password = password;
-		this.url = url;
-		this.connectorJarPath = connectorJarPath;
-		this.driverClassName = driverClassName;
-		this.tableNames = new LinkedList<String>();
-	}
-	
-	private Connection getConnection() throws SQLException, InstantiationException, IllegalAccessException, ClassNotFoundException, MalformedURLException {
-		URL url = new URL("file://" + connectorJarPath);
-		URLClassLoader classLoader = new URLClassLoader(new URL[] { url });
-		Driver driver =  (Driver)Class.forName(driverClassName, true, classLoader).newInstance();
-		DriverWrapper driverWrapper = new DriverWrapper(driver);
-		DriverManager.registerDriver(driverWrapper);
-		return DriverManager.getConnection(this.url, username, password);
-	}
-	
-	public List<String> getTableNames() {
-		tableNames.clear();
-		try (Connection connection = getConnection()) {
-			DatabaseMetaData meta = connection.getMetaData();
-			ResultSet res = meta.getTables(null, null, null, new String[] {"TABLE"});
-			while (res.next()) {
-				tableNames.add(res.getString("TABLE_NAME"));
+		try {
+			this.username = username;
+			this.password = password;
+			this.url = url;
+			this.connectorJarPath = connectorJarPath;
+			this.driverClassName = driverClassName;
+			URL jarurl = new URL("file://" + connectorJarPath);
+			URLClassLoader classLoader = new URLClassLoader(new URL[] { jarurl });
+			Driver driver = (Driver) Class.forName(driverClassName, true, classLoader).newInstance();
+			DriverWrapper driverWrapper = new DriverWrapper(driver);
+			DriverManager.registerDriver(driverWrapper);
+			timedoutUrl = this.url;
+			if (!this.timedoutUrl.contains("socketTimeout")) {
+				if (this.timedoutUrl.contains("?")) {
+					this.timedoutUrl = this.timedoutUrl + "&socketTimeout=2000";
+				} else {
+					this.timedoutUrl = this.timedoutUrl + "?socketTimeout=2000";
+				}
 			}
-			res.close();
-			return tableNames;
+			if (!this.timedoutUrl.contains("connectTimeout")) {
+				this.timedoutUrl = this.timedoutUrl + "&connectTimeout=2000";
+			}
 		} catch (Exception e) {
 			throw new ProjectException(e);
 		}
 	}
 	
+	private Connection getConnection() throws SQLException {
+		return DriverManager.getConnection(this.timedoutUrl, username, password);
+	}
+	
 	private Table makeTable(String name) {
 		Table table = new Table(name);
-		try (Connection connection = DriverManager.getConnection(this.url, username, password)) {
+		try (Connection connection = getConnection()) {
 			DatabaseMetaData metaData = connection.getMetaData();
 			ResultSet resultSet = metaData.getColumns(null, null, name, null);
 			while (resultSet.next()) {
@@ -166,13 +165,13 @@ public class Mysql extends Sql {
 	private static class DriverWrapper implements Driver {
 		
 		private Driver driver;
-		
+
 		public DriverWrapper(Driver driver) {
 			this.driver = driver;
 		}
 
 		@Override
-		public Connection connect(String url, Properties info)
+		public Connection connect(final String url, Properties info)
 				throws SQLException {
 			return driver.connect(url, info);
 		}
@@ -204,7 +203,7 @@ public class Mysql extends Sql {
 		}
 
 		@Override
-		public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+		public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
 			return driver.getParentLogger();
 		}
 		

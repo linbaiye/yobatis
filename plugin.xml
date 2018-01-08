@@ -27,7 +27,7 @@
    <extension
          point="org.eclipse.ui.console.consoleFactories">
       <consoleFactory
-            class="yobatis.ConsoleFactory1"
+            class="org.nalby.yobatis.structure.eclipse.EclipseLogger"
             label="label">
       </consoleFactory>
    </extension>

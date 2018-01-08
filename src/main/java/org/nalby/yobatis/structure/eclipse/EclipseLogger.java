@@ -8,13 +8,14 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.console.ConsolePlugin;
 import org.eclipse.ui.console.IConsole;
 import org.eclipse.ui.console.IConsoleConstants;
+import org.eclipse.ui.console.IConsoleFactory;
 import org.eclipse.ui.console.IConsoleManager;
 import org.eclipse.ui.console.IConsoleView;
 import org.eclipse.ui.console.MessageConsole;
 import org.eclipse.ui.console.MessageConsoleStream;
 import org.nalby.yobatis.log.Logger;
 
-public class EclipseLogger implements Logger {
+public class EclipseLogger implements Logger, IConsoleFactory {
 	
 	private String className;
 	
@@ -36,8 +37,7 @@ public class EclipseLogger implements Logger {
 		return myConsole;
 	}
 	
-	
-	private void openConsole(IConsole myConsole) throws PartInitException {
+	public void openConsole(IConsole myConsole) throws PartInitException {
 		IWorkbench wb = PlatformUI.getWorkbench();
 		IWorkbenchWindow win = wb.getActiveWorkbenchWindow();
 		IWorkbenchPage page = win.getActivePage();
@@ -61,6 +61,11 @@ public class EclipseLogger implements Logger {
 		} catch (Exception e) {
 			//Ignore.
 		}
+	}
+
+	@Override
+	public void openConsole() {
+		
 	}
 
 }
