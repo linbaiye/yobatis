@@ -21,20 +21,8 @@ public class Table {
 		return name;
 	}
 
-	public void setName(String name) {
-		this.name = name;
-	}
-
 	public void addAutoIncColumn(String autoIncKey) {
 		this.autoIncColumn.add(autoIncKey);
-	}
-
-	public List<String> getAutoIncColumn() {
-		return autoIncColumn;
-	}
-
-	public List<String> getPrimaryKey() {
-		return primaryKey;
 	}
 
 	public void addPrimaryKey(String primaryKey) {

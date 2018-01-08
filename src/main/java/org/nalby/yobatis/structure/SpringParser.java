@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Pattern;
+
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
@@ -54,28 +56,29 @@ public class SpringParser {
 	}
 	
 	
+	private boolean isValidClasspath(String location) {
+		return Pattern.matches("classpath*?:[a-zA-Z_].*", location);
+	}
+	
+	
 	private Set<String> parseLocationsInInitParamValues(Set<String> initParamValues) {
-		Set<String> locations = new HashSet<String>();
+		Set<String> result = new HashSet<String>();
 		for (String paramValue : initParamValues) {
-			String[] tokens = paramValue.split("[,\\s]+");
-			for (int i = 0; i < tokens.length; i++) {
-				if ("".equals(tokens[i])) {
+			String[] locations = paramValue.split("[,\\s]+");
+			for (int i = 0; i < locations.length; i++) {
+				if ("".equals(locations[i])) {
 					continue;
 				}
-				String tmp = tokens[i];
-				if ("classpath".equals(tokens[i]) || "classpath*".equals(tokens[i])) {
-					if (i + 2 > tokens.length-1
-						|| !":".equals(tokens[i+1])
-						|| "".equals(tokens[i+2])) {
-						logger.info("Ignore location:{}.", paramValue);
+				String tmp = locations[i];
+				if (tmp.startsWith("classpath:") || tmp.startsWith("classpath*:")) {
+					if (!isValidClasspath(tmp)) {
 						break;
 					}
-					tmp = tokens[i] + tokens[++i] + tokens[++i];
 				}
-				locations.add(tmp);
+				result.add(tmp);
 			}
 		}
-		return locations;
+		return result;
 	}
 	
 	/**
@@ -115,14 +118,10 @@ public class SpringParser {
 		}
 		
 		public SpringXmlParser getSpringXmlParser() {
-			InputStream inputStream = null;
-			try {
-				inputStream = getInputStream();
+			try (InputStream inputStream = getInputStream()) {
 				return new SpringXmlParser(inputStream);
 			} catch (Exception e) {
 				return null;
-			} finally {
-				FolderUtil.closeStream(inputStream);
 			}
 		}
 		

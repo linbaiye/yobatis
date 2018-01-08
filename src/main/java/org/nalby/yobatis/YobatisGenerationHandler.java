@@ -159,14 +159,6 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		List<Table> tables = builder.build().getTables();
 		for (Table table : tables) {
 			System.out.println(table.getName() + ":");
-			System.out.println("\t keys:");
-			for (String key : table.getPrimaryKey()) {
-				System.out.println("\t\t key:" + key );
-			}
-			System.out.println("\t auto inc columns:");
-			for (String key : table.getAutoIncColumn()) {
-				System.out.println("\t\t column:" + key);
-			}
 		}
 		//MybatisConfigFileGenerator generator = new MybatisConfigFileGenerator(pomTree, builder.build());
 		//System.out.println(generator.asXmlText());
