@@ -11,14 +11,13 @@ import org.nalby.yobatis.exception.InvalidConfigurationException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.util.Expect;
-import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.util.PropertyUtil;
 import org.nalby.yobatis.util.TextUtil;
 import org.nalby.yobatis.xml.PomXmlParser;
 
 /**
- * This class is responsible for parsing the pom tree. Also it will
- * find out the entry pom, the WAR packaging currently.
+ * PomTree is responsible for parsing the pom tree. Also it will
+ * find out the entry pom, source code folders, dao folders, resource dirs.
  * 
  * @author Kyle Lin
  */
@@ -107,14 +106,11 @@ public class PomTree {
 		}
 
 		private void readPomFile() {
-			InputStream inputStream = null;
-			try {
-				inputStream = folder.openFile("pom.xml");
+
+			try (InputStream inputStream = folder.openFile("pom.xml")) {
 				pomXmlParser = new PomXmlParser(inputStream);
 			} catch (Exception e) {
 				throw new InvalidConfigurationException(e);
-			} finally {
-				FolderUtil.closeStream(inputStream);
 			}
 		}
 

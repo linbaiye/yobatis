@@ -488,6 +488,8 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 			return false;
 		}
 		context = root.addElement("context");
+		context.addAttribute("id", MybatisConfigReader.DEFAULT_CONTEXT_ID);
+		context.addAttribute("targetRuntime", MybatisConfigReader.TARGET_RUNTIME);
 		return true;
 	}
 	

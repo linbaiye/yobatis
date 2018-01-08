@@ -193,8 +193,8 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	
 	private Element appendContext(Element root) {
 		context = root.addElement("context");
-		context.addAttribute("id", MybatisXmlParser.CONTEXT_ID);
-		context.addAttribute("targetRuntime", MybatisXmlParser.TARGET_RUNTIME);
+		context.addAttribute("id", MybatisConfigReader.DEFAULT_CONTEXT_ID);
+		context.addAttribute("targetRuntime", MybatisConfigReader.TARGET_RUNTIME);
 		return context;
 	}
 	
