@@ -2,7 +2,6 @@ package org.nalby.yobatis.structure;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.cglib.transform.impl.AddDelegateTransformer;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.nalby.yobatis.util.FolderUtil;
@@ -11,9 +10,9 @@ import org.nalby.yobatis.util.TestUtil;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -96,6 +95,11 @@ public class SpringAntPatternFileManagerTests {
 	}
 	
 	@Test
+	public void nullHint() {
+		assertTrue(fileManager.findSpringFiles("").isEmpty());
+	}
+	
+	@Test
 	public void relativePath() {
 		addFileToFolder(webappFolder, "conf.xml", "test.xml");
 		Set<String> files = fileManager.findSpringFiles("test.xml");
@@ -125,6 +129,15 @@ public class SpringAntPatternFileManagerTests {
 		addFileToFolder(folder, "test.xml", "test1.xml");
 		Set<String> files = fileManager.findSpringFiles("classpath:test.xml");
 		TestUtil.assertCollectionSizeAndStringsIn(files, 1, "/yobatis/src/main/resources/test.xml");
+	}
+	
+	@Test
+	public void brokenClasspath() {
+		Folder folder = TestUtil.mockFolder("/yobatis/src/main/resources");
+		resourceFolders.add(folder);
+		addFileToFolder(folder, "test.xml", "test1.xml");
+		Set<String> files = fileManager.findSpringFiles("classpath:");
+		assertTrue(files.isEmpty());
 	}
 	
 	@Test
@@ -170,5 +183,109 @@ public class SpringAntPatternFileManagerTests {
 				"/yobatis/src/main/resources1/test1.xml", "/yobatis/src/main/resources/test.xml");
 	}
 	
+	@Test
+	public void brokenPrefixWildcardClasspath() {
+		Folder folder = TestUtil.mockFolder("/yobatis/src/main/resources");
+		resourceFolders.add(folder);
+		addFileToFolder(folder, "test.xml");
+
+		folder = TestUtil.mockFolder("/yobatis/src/main/resources1");
+		resourceFolders.add(folder);
+		addFileToFolder(folder, "test1.xml");
+
+		Set<String> files = fileManager.findSpringFiles("classpath*:");
+		assertTrue(files.isEmpty());
+	}
+	
+	@Test
+	public void getImportedFilesWithNoExistedPath() {
+		Set<String> files = fileManager.findImportedSpringXmlFiles("null");
+		assertTrue(files.isEmpty());
+	}
+	
+	//When the spring file is not valid.
+	@Test
+	public void getImportedFilesWithInvalidXmlFile() {
+		addFileToFolder(webappFolder, "test.xml");
+		Set<String> files = fileManager.findSpringFiles("test.xml");
+		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream("invalid file".getBytes()));
+		files = fileManager.findImportedSpringXmlFiles(webappFolder.path() + "/test.xml");
+		assertTrue(files.isEmpty());
+	}
+	
+	@Test
+	public void importNonExistedRelativePath() {
+		String testXml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">\n" +
+				"<import resource=\"test1.xml\" />" +
+				"</beans>";
+		addFileToFolder(webappFolder, "test.xml");
+		Set<String> files = fileManager.findSpringFiles("test.xml");
+		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(testXml.getBytes()));
+		files = fileManager.findImportedSpringXmlFiles(webappFolder.path() + "/test.xml");
+		assertTrue(files.isEmpty());
+	}
+	
+	@Test
+	public void importDirectRelativePath() {
+		String testXml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">\n" +
+				"<import resource=\"test1.xml\" />" +
+				"</beans>";
+		addFileToFolder(webappFolder, "test1.xml", "test.xml");
+		Set<String> files = fileManager.findSpringFiles("test.xml");
+		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(testXml.getBytes()));
+		files = fileManager.findImportedSpringXmlFiles(webappFolder.path() + "/test.xml");
+		TestUtil.assertCollectionSizeAndStringsIn(files, 1, webappFolder.path() + "/test1.xml");
+	}
+	
+	
+	@Test
+	public void importIndirectRelativePath() {
+		String testXml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">\n" +
+				"<import resource=\"conf/test1.xml\" />" +
+				"</beans>";
+		addFileToFolder(webappFolder, "conf/test1.xml", "test.xml");
+		Set<String> files = fileManager.findSpringFiles("test.xml");
+		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(testXml.getBytes()));
+		files = fileManager.findImportedSpringXmlFiles(webappFolder.path() + "/test.xml");
+		TestUtil.assertCollectionSizeAndStringsIn(files, 1, webappFolder.path() + "/conf/test1.xml");
+	}
+	
+	
+	@Test
+	public void importClassRelativePath() {
+		String testXml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">\n" +
+				"<import resource=\"classpath:test1.xml\" />" +
+				"</beans>";
+		addFileToFolder(webappFolder, "conf/test1.xml", "test.xml");
+		Set<String> files = fileManager.findSpringFiles("test.xml");
+
+		Folder folder = TestUtil.mockFolder("/yobatis/src/main/resources");
+		addFileToFolder(folder, "test1.xml", "test2.xml");
+		resourceFolders.add(folder);
+
+		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(testXml.getBytes()));
+		files = fileManager.findImportedSpringXmlFiles(webappFolder.path() + "/test.xml");
+		TestUtil.assertCollectionSizeAndStringsIn(files, 1, folder.path() + "/test1.xml");
+	}
+	
+	@Test
+	public void importWildcardClassPath() {
+		String testXml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">\n" +
+				"<import resource=\"classpath*:test1.xml\" />" +
+				"</beans>";
+		addFileToFolder(webappFolder, "conf/test1.xml", "test.xml");
+		Set<String> files = fileManager.findSpringFiles("test.xml");
+
+		Pom pom = mockPom();
+		Folder folder = TestUtil.mockFolder("/yobatis/submodule/src/main/resources");
+		Set<Folder> resources = new HashSet<>();
+		resources.add(folder);
+		addFileToFolder(folder, "test1.xml", "test2.xml");
+		when(pom.getResourceFolders()).thenReturn(resources);
+
+		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(testXml.getBytes()));
+		files = fileManager.findImportedSpringXmlFiles(webappFolder.path() + "/test.xml");
+		TestUtil.assertCollectionSizeAndStringsIn(files, 1, folder.path() + "/test1.xml");
+	}
 
 }

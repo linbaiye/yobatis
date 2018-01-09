@@ -1,13 +1,18 @@
 package org.nalby.yobatis.structure;
 
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import javax.swing.Spring;
+
+import org.mockito.asm.tree.TryCatchBlockNode;
 import org.nalby.yobatis.util.AntPathMatcher;
 import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.util.TextUtil;
+import org.nalby.yobatis.xml.SpringXmlParser;
 
 /**
  * SpringAntPatternFileManager supports finding spring xml files, properties files and
@@ -18,24 +23,23 @@ import org.nalby.yobatis.util.TextUtil;
  *
  */
 public class SpringAntPatternFileManager {
+	private Project project;
 	
 	private static class FileMetadata { 
-		private String filepath;
 		private Folder folder;
 		private Pom pom;
-		private FileMetadata(String path, Folder folder, Pom pom) {
-			this.filepath = path;
+		
+		private FileMetadata(Folder folder, Pom pom) {
 			this.folder = folder;
 			this.pom = pom;
 		}
-		public String getFilepath() {
-			return filepath;
-		}
-		public void setFilepath(String filepath) {
-			this.filepath = filepath;
-		}
+
 		public Folder getFolder() {
 			return folder;
+		}
+
+		public Pom getPom() {
+			return pom;
 		}
 	}
 	
@@ -45,16 +49,23 @@ public class SpringAntPatternFileManager {
 
 	private AntPathMatcher antPathMatcher;
 
-
 	private Map<String, FileMetadata> files;
-
-	private Project project;
+	
+	
+	private SpringXmlParser getXmlParser(String path) {
+		try (InputStream inputStream = project.openFile(path)){
+			return new SpringXmlParser(inputStream);
+		} catch (Exception e) {
+			return null;
+		}
+	}
 	
 	public SpringAntPatternFileManager(PomTree pomTree, Project project) {
 		this.pomTree = pomTree;
 		files = new HashMap<>();
 		antPathMatcher = new AntPathMatcher();
 		this.project = project;
+
 	}
 	
 	/**
@@ -68,7 +79,7 @@ public class SpringAntPatternFileManager {
 		String antpath = FolderUtil.concatPath(folder.path(), antPattern);
 		for (String filepath : folder.getAllFilepaths()) {
 			if (antpath.equals(filepath) || antPathMatcher.match(antpath, filepath)) {
-				files.put(filepath, new FileMetadata(filepath, folder, pom));
+				files.put(filepath, new FileMetadata(folder, pom));
 				result.add(filepath);
 			}
 		}
@@ -100,7 +111,16 @@ public class SpringAntPatternFileManager {
 	}
 	
 	
-	private final static String CLASSPATH_REGEX = "^classpath\\*?:.*$";
+	private Set<String> getImportedFilesWithClasspath(String hint, Pom pom) {
+		String tokens[] = hint.split(":");
+		if (hint.startsWith("classpath:")) {
+			return matchFilesInResourceFolders(pom, tokens[1]);
+		} 
+		return matchFilesInAllResourceFolders(tokens[1]);
+	}
+
+	
+	private final static String CLASSPATH_REGEX = "^classpath\\*?:.+$";
 	/**
 	 * Find spring's config files by hint, this should be called when
 	 * searching for hints that are configured in web.xml.
@@ -113,15 +133,34 @@ public class SpringAntPatternFileManager {
 		}
 		Pom webpom = pomTree.getWarPom();
 		hint = webpom.filterPlaceholders(hint);
-		if (hint.startsWith("classpath:") && hint.matches(CLASSPATH_REGEX)) {
-			String tokens[] = hint.split(":");
-			return matchFilesInResourceFolders(webpom, tokens[1]);
-		} else if (hint.startsWith("classpath*:") && hint.matches(CLASSPATH_REGEX)) {
-			String tokens[] = hint.split(":");
-			return matchFilesInAllResourceFolders(tokens[1]);
+		if (hint.matches(CLASSPATH_REGEX)) {
+			return getImportedFilesWithClasspath(hint, webpom);
 		} else {
 			return matchFilesInWebappFolder(hint);
 		}
 	}
+	
+	public Set<String> findImportedSpringXmlFiles(String path) {
+		if (!files.containsKey(path)) {
+			return EMPTY_FILES;
+		}
+		SpringXmlParser parser = getXmlParser(path);
+		if (parser == null) {
+			return EMPTY_FILES;
+		}
+		FileMetadata metadata = files.get(path);
+		Pom pom = metadata.getPom();
+		Set<String> result = new HashSet<>();
+		for (String hint : parser.getImportedLocations()) {
+			hint = pom.filterPlaceholders(hint);
+			if (hint.matches(CLASSPATH_REGEX)) {
+				result.addAll(getImportedFilesWithClasspath(hint, pom));
+			} else {
+				matchFilesInFolder(pom, metadata.getFolder(), hint, result);
+			}
+		}
+		return result;
+	}
+	
 
 }
