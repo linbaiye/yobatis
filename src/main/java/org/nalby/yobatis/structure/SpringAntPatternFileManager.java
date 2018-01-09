@@ -4,11 +4,9 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
-import javax.swing.Spring;
-
-import org.mockito.asm.tree.TryCatchBlockNode;
 import org.nalby.yobatis.util.AntPathMatcher;
 import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.util.TextUtil;
@@ -18,6 +16,8 @@ import org.nalby.yobatis.xml.SpringXmlParser;
  * SpringAntPatternFileManager helps find spring xml files, properties files and
  * read hints that are configured in the &lt;import&gt; element and properties that
  * are configured in placeholder beans.
+ * 
+ * <p>Must start iterating files by calling {@link #findSpringFiles(String hint) findSpringFiles} method.
  * 
  * @author Kyle Lin
  *
@@ -51,10 +51,17 @@ public class SpringAntPatternFileManager {
 
 	private Map<String, FileMetadata> files;
 	
+	private Map<String, SpringXmlParser> parsers;
+	
 	
 	private SpringXmlParser getXmlParser(String path) {
+		if (parsers.containsKey(path)) {
+			return parsers.get(path);
+		}
 		try (InputStream inputStream = project.openFile(path)){
-			return new SpringXmlParser(inputStream);
+			SpringXmlParser parser = new SpringXmlParser(inputStream);
+			parsers.put(path, parser);
+			return parser;
 		} catch (Exception e) {
 			return null;
 		}
@@ -63,9 +70,9 @@ public class SpringAntPatternFileManager {
 	public SpringAntPatternFileManager(PomTree pomTree, Project project) {
 		this.pomTree = pomTree;
 		files = new HashMap<>();
+		parsers = new HashMap<>();
 		antPathMatcher = new AntPathMatcher();
 		this.project = project;
-
 	}
 	
 	/**
@@ -157,7 +164,6 @@ public class SpringAntPatternFileManager {
 		if (parser == null) {
 			return EMPTY_FILES;
 		}
-
 		FileMetadata metadata = files.get(path);
 		Pom pom = metadata.getPom();
 		Set<String> hints = parser.getPropertiesFileLocations();
@@ -200,4 +206,44 @@ public class SpringAntPatternFileManager {
 			}
 		});
 	}
+	
+	public SpringXmlParser getSpringXmlParser(String path) {
+		return getXmlParser(path);
+	}
+	
+	public String solvePlaceholders(String text, String path) {
+		if (!files.containsKey(path)) {
+			return text;
+		}
+		Pom pom = files.get(path).getPom();
+		return pom.filterPlaceholders(text);
+	}
+	
+	/**
+	 * Read properties file, and filter all placeholders if possible.
+	 * @param path the properties file path.
+	 * @return properties properties filtered, null if not a valid path.
+	 */
+	public Properties readProperties(String path) {
+		if (!files.containsKey(path)) {
+			return null;
+		}
+		Pom pom = files.get(path).getPom();
+		try (InputStream inputStream = project.openFile(path)) {
+			Properties result = new Properties();
+			Properties properties = new Properties();
+			properties.load(inputStream);
+			for (String key: properties.stringPropertyNames()) {
+				String text = properties.getProperty(key);
+				if (TextUtil.isEmpty(text)) {
+					continue;
+				}
+				result.put(key, pom.filterPlaceholders(text));
+			}
+			return result;
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
 }

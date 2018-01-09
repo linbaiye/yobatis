@@ -14,6 +14,7 @@ import java.io.ByteArrayInputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 
@@ -327,5 +328,79 @@ public class SpringAntPatternFileManagerTests {
 
 		Set<String> files = fileManager.findPropertiesFiles(folder.path() + "/test.xml");
 		TestUtil.assertCollectionSizeAndStringsIn(files, 1, webappFolder.path() + "/important.properties");
+	}
+	
+	@Test
+	public void solvePlaceholders() {
+		addFileToFolder(webappFolder, "conf.xml", "test.xml");
+		Set<String> files = fileManager.findSpringFiles("/test.xml");
+		String file = files.iterator().next();
+		when(webpom.filterPlaceholders(anyString())).thenAnswer(new Answer<String>() {
+			@Override
+			public String answer(InvocationOnMock invocation) throws Throwable {
+				String arg = (String)invocation.getArguments()[0];
+				if ("${hello}${world}".equals(arg)) {
+					return "test1test2";
+				}
+				return arg;
+			}
+		});
+		String result = fileManager.solvePlaceholders("${hello}${world}", file);
+		assertTrue(result.equals("test1test2"));
+	}
+	
+	@Test
+	public void readProperties() {
+		String xml = "<beans><bean id=\"propertyConfigurer\" " +
+		        "class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
+		        "<property name=\"systemPropertiesModeName\" value=\"SYSTEM_PROPERTIES_MODE_OVERRIDE\" />" + 
+		        "<property name=\"ignoreResourceNotFound\" value=\"true\" />" +
+		        "<property name=\"locations\"><list><value>important.properties</value></list></property></bean></beans>";
+		addFileToFolder(webappFolder, "important.properties", "test.xml");
+		String propertiesFile = "key1=val1\nkey2=${help}\nkey3=";
+		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
+
+		fileManager.findSpringFiles("test.xml");
+		Set<String> files = fileManager.findPropertiesFiles(webappFolder.path() + "/test.xml");
+
+		String file = files.iterator().next();
+		when(project.openFile(webappFolder.path() + "/important.properties")).thenReturn(new ByteArrayInputStream(propertiesFile.getBytes()));
+
+		when(webpom.filterPlaceholders(anyString())).thenAnswer(new Answer<String>() {
+			@Override
+			public String answer(InvocationOnMock invocation) throws Throwable {
+				String arg = (String)invocation.getArguments()[0];
+				if ("${help}".equals(arg)) {
+					return "val2";
+				}
+				return arg;
+			}
+		});
+		Properties properties = fileManager.readProperties(file);
+		assertTrue(properties.getProperty("key1").equals("val1"));
+		assertTrue(properties.getProperty("key2").equals("val2"));
+		assertTrue(properties.getProperty("key3") == null);
+	}
+	
+	@Test
+	public void readPropertiesWithInvalidPath() {
+		assertTrue(fileManager.readProperties("test") == null);
+	}
+
+	@Test
+	public void readPropertiesWithException() {
+		String xml = "<beans><bean id=\"propertyConfigurer\" " +
+		        "class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
+		        "<property name=\"systemPropertiesModeName\" value=\"SYSTEM_PROPERTIES_MODE_OVERRIDE\" />" + 
+		        "<property name=\"ignoreResourceNotFound\" value=\"true\" />" +
+		        "<property name=\"locations\"><list><value>important.properties</value></list></property></bean></beans>";
+		addFileToFolder(webappFolder, "important.properties", "test.xml");
+		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
+
+		fileManager.findSpringFiles("test.xml");
+		Set<String> files = fileManager.findPropertiesFiles(webappFolder.path() + "/test.xml");
+		String file = files.iterator().next();
+		when(project.openFile(webappFolder.path() + "/important.properties")).thenThrow(new IllegalArgumentException());
+		fileManager.readProperties(file);
 	}
 }
