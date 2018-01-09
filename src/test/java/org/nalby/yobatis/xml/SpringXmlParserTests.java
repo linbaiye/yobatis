@@ -89,6 +89,18 @@ public class SpringXmlParserTests {
 	}
 	
 	@Test
+	public void absolutePropertiesPath() throws DocumentException, IOException {
+		String xml = "<beans><bean id=\"propertyConfigurer\" " +
+        "class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
+        "<property name=\"systemPropertiesModeName\" value=\"SYSTEM_PROPERTIES_MODE_OVERRIDE\" />" + 
+        "<property name=\"ignoreResourceNotFound\" value=\"true\" />" +
+        "<property name=\"locations\"><list><value>/important.properties</value></list></property></bean></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		Set<String> locations = parser.getPropertiesFileLocations();
+		TestUtil.assertCollectionSizeAndStringsIn(locations, 1, "/important.properties");
+	}
+	
+	@Test
 	public void trimPropertiesValue() throws DocumentException, IOException {
 		String xml = "<beans><bean id=\"propertyConfigurer\" " +
         "class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +

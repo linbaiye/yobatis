@@ -25,8 +25,14 @@ public class SpringAntPatternFileManagerTests {
 	
 	private Pom webpom;
 	
+	/**
+	 * The webapp folder of webpm.
+	 */
 	private Folder webappFolder;
 
+	/**
+	 * Resource folders of webpom.
+	 */
 	private Set<Folder> resourceFolders;
 	
 	private Project project;
@@ -199,7 +205,7 @@ public class SpringAntPatternFileManagerTests {
 	
 	@Test
 	public void getImportedFilesWithNoExistedPath() {
-		Set<String> files = fileManager.findImportedSpringXmlFiles("null");
+		Set<String> files = fileManager.findImportSpringXmlFiles("null");
 		assertTrue(files.isEmpty());
 	}
 	
@@ -209,7 +215,7 @@ public class SpringAntPatternFileManagerTests {
 		addFileToFolder(webappFolder, "test.xml");
 		Set<String> files = fileManager.findSpringFiles("test.xml");
 		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream("invalid file".getBytes()));
-		files = fileManager.findImportedSpringXmlFiles(webappFolder.path() + "/test.xml");
+		files = fileManager.findImportSpringXmlFiles(webappFolder.path() + "/test.xml");
 		assertTrue(files.isEmpty());
 	}
 	
@@ -221,7 +227,7 @@ public class SpringAntPatternFileManagerTests {
 		addFileToFolder(webappFolder, "test.xml");
 		Set<String> files = fileManager.findSpringFiles("test.xml");
 		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(testXml.getBytes()));
-		files = fileManager.findImportedSpringXmlFiles(webappFolder.path() + "/test.xml");
+		files = fileManager.findImportSpringXmlFiles(webappFolder.path() + "/test.xml");
 		assertTrue(files.isEmpty());
 	}
 	
@@ -233,7 +239,7 @@ public class SpringAntPatternFileManagerTests {
 		addFileToFolder(webappFolder, "test1.xml", "test.xml");
 		Set<String> files = fileManager.findSpringFiles("test.xml");
 		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(testXml.getBytes()));
-		files = fileManager.findImportedSpringXmlFiles(webappFolder.path() + "/test.xml");
+		files = fileManager.findImportSpringXmlFiles(webappFolder.path() + "/test.xml");
 		TestUtil.assertCollectionSizeAndStringsIn(files, 1, webappFolder.path() + "/test1.xml");
 	}
 	
@@ -246,7 +252,7 @@ public class SpringAntPatternFileManagerTests {
 		addFileToFolder(webappFolder, "conf/test1.xml", "test.xml");
 		Set<String> files = fileManager.findSpringFiles("test.xml");
 		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(testXml.getBytes()));
-		files = fileManager.findImportedSpringXmlFiles(webappFolder.path() + "/test.xml");
+		files = fileManager.findImportSpringXmlFiles(webappFolder.path() + "/test.xml");
 		TestUtil.assertCollectionSizeAndStringsIn(files, 1, webappFolder.path() + "/conf/test1.xml");
 	}
 	
@@ -264,7 +270,7 @@ public class SpringAntPatternFileManagerTests {
 		resourceFolders.add(folder);
 
 		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(testXml.getBytes()));
-		files = fileManager.findImportedSpringXmlFiles(webappFolder.path() + "/test.xml");
+		files = fileManager.findImportSpringXmlFiles(webappFolder.path() + "/test.xml");
 		TestUtil.assertCollectionSizeAndStringsIn(files, 1, folder.path() + "/test1.xml");
 	}
 	
@@ -284,8 +290,42 @@ public class SpringAntPatternFileManagerTests {
 		when(pom.getResourceFolders()).thenReturn(resources);
 
 		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(testXml.getBytes()));
-		files = fileManager.findImportedSpringXmlFiles(webappFolder.path() + "/test.xml");
+		files = fileManager.findImportSpringXmlFiles(webappFolder.path() + "/test.xml");
 		TestUtil.assertCollectionSizeAndStringsIn(files, 1, folder.path() + "/test1.xml");
 	}
 
+	@Test
+	public void findRelativePathProperties() {
+		String xml = "<beans><bean id=\"propertyConfigurer\" " +
+		        "class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
+		        "<property name=\"systemPropertiesModeName\" value=\"SYSTEM_PROPERTIES_MODE_OVERRIDE\" />" + 
+		        "<property name=\"ignoreResourceNotFound\" value=\"true\" />" +
+		        "<property name=\"locations\"><list><value>important.properties</value></list></property></bean></beans>";
+		addFileToFolder(webappFolder, "important.properties", "test.xml");
+		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
+		fileManager.findSpringFiles("test.xml");
+
+		Set<String> files = fileManager.findPropertiesFiles(webappFolder.path() + "/test.xml");
+		TestUtil.assertCollectionSizeAndStringsIn(files, 1, webappFolder.path() + "/important.properties");
+	}
+
+	@Test
+	public void findAbsolutePathProperties() {
+		String xml = "<beans><bean id=\"propertyConfigurer\" " +
+		        "class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
+		        "<property name=\"systemPropertiesModeName\" value=\"SYSTEM_PROPERTIES_MODE_OVERRIDE\" />" + 
+		        "<property name=\"ignoreResourceNotFound\" value=\"true\" />" +
+		        "<property name=\"locations\"><list><value>/important.properties</value></list></property></bean></beans>";
+		Folder folder = TestUtil.mockFolder("/yobatis/src/main/resources");
+		addFileToFolder(folder, "test.xml");
+		resourceFolders.add(folder);
+		
+		addFileToFolder(webappFolder, "important.properties");
+
+		when(project.openFile(folder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
+		fileManager.findSpringFiles("classpath:test.xml");
+
+		Set<String> files = fileManager.findPropertiesFiles(folder.path() + "/test.xml");
+		TestUtil.assertCollectionSizeAndStringsIn(files, 1, webappFolder.path() + "/important.properties");
+	}
 }

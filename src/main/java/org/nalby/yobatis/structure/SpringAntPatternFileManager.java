@@ -15,9 +15,9 @@ import org.nalby.yobatis.util.TextUtil;
 import org.nalby.yobatis.xml.SpringXmlParser;
 
 /**
- * SpringAntPatternFileManager supports finding spring xml files, properties files and
- * reading hints that are configured in the &lg;import&bg; element and properties that
- * are configured in placeholder bean.
+ * SpringAntPatternFileManager helps find spring xml files, properties files and
+ * read hints that are configured in the &lt;import&gt; element and properties that
+ * are configured in placeholder beans.
  * 
  * @author Kyle Lin
  *
@@ -140,7 +140,16 @@ public class SpringAntPatternFileManager {
 		}
 	}
 	
-	public Set<String> findImportedSpringXmlFiles(String path) {
+	
+	/*
+	 * There is a difference on importing relative paths between spring files and properties files.
+	 */
+	private interface NonclasspathHandler {
+		void handle(String hint, FileMetadata fileMetadata, Set<String> result);
+	}
+	
+	private Set<String> findImportedFiles(String path, boolean isSpringXml,
+			NonclasspathHandler nonclasspathHandler) {
 		if (!files.containsKey(path)) {
 			return EMPTY_FILES;
 		}
@@ -148,19 +157,47 @@ public class SpringAntPatternFileManager {
 		if (parser == null) {
 			return EMPTY_FILES;
 		}
+
 		FileMetadata metadata = files.get(path);
 		Pom pom = metadata.getPom();
+		Set<String> hints = parser.getPropertiesFileLocations();
+		if (isSpringXml) {
+			hints = parser.getImportedLocations();
+		}
+
 		Set<String> result = new HashSet<>();
-		for (String hint : parser.getImportedLocations()) {
+		for (String hint : hints) {
 			hint = pom.filterPlaceholders(hint);
 			if (hint.matches(CLASSPATH_REGEX)) {
 				result.addAll(getImportedFilesWithClasspath(hint, pom));
 			} else {
-				matchFilesInFolder(pom, metadata.getFolder(), hint, result);
+				nonclasspathHandler.handle(hint, metadata, result);
 			}
 		}
 		return result;
 	}
 	
+	public Set<String> findImportSpringXmlFiles(String path) {
+		return findImportedFiles(path, true, new NonclasspathHandler() {
+			@Override
+			public void handle(String hint, FileMetadata fileMetadata, Set<String> result) {
+				matchFilesInFolder(fileMetadata.getPom(), fileMetadata.getFolder(), hint, result);
+			}
+		});
+	}
 
+	
+	public Set<String> findPropertiesFiles(String path) {
+		return findImportedFiles(path, false, new NonclasspathHandler() {
+			@Override
+			public void handle(String hint, FileMetadata fileMetadata, Set<String> result) {
+				if (!hint.startsWith("/")){
+					matchFilesInFolder(fileMetadata.getPom(), fileMetadata.getFolder(), hint, result);
+				} else {
+					Pom webpom = pomTree.getWarPom();
+					matchFilesInFolder(webpom, webpom.getWebappFolder(), hint, result);
+				}
+			}
+		});
+	}
 }
