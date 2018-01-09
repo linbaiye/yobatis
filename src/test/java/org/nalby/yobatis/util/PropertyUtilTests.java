@@ -67,7 +67,7 @@ public class PropertyUtilTests {
 		tmp = PropertyUtil.placeholdersFrom("${} ${xxx} ${22}");
 		assertStringsInList(tmp, "${}", "${xxx}", "${22}");
 
-		tmp = PropertyUtil.placeholdersFrom("xx${xx} $xx}");
+		tmp = PropertyUtil.placeholdersFrom("xx${xx} ${xx}");
 		assertTrue(tmp.size() == 2);
 		assertStringsInList(tmp, "${xx}", "${xx}");
 	}

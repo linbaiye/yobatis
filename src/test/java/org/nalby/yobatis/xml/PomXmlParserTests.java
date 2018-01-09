@@ -101,15 +101,6 @@ public class PomXmlParserTests {
 		assertTrue("test".equals(parser.getProperty("type")));
 	}
 	
-	@Test(expected = UnsupportedProjectException.class)
-	public void testNoArtifactId() throws DocumentException, IOException {
-		String xml = "<project><profiles><profile><id>develop</id><activation><activeByDefault>true</activeByDefault>"
-				+ "</activation><properties><uplending.jdbc.datasource.type>test</uplending.jdbc.datasource.type>"
-				+ "<type>test</type>" + 
-		    "</properties></profile></profiles></project>";
-			new PomXmlParser(new ByteArrayInputStream(xml.getBytes()));
-	}
-	
 	@Test
 	public void resourceDirsWithoutPackaging() throws DocumentException, IOException {
 		String xml = "<project>\n" + 

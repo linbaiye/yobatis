@@ -1,6 +1,5 @@
 package org.nalby.yobatis.sql.mysql;
 
-import static org.hamcrest.Matchers.nullValue;
 
 import java.net.URL;
 import java.net.URLClassLoader;

@@ -78,8 +78,8 @@ public class PomTreeTests {
 
 			@Override
 			public String answer(InvocationOnMock invocation) throws Throwable {
-				Object arg = invocation.getArguments()[0];
-				if ("com.mysql.jdbc.Driver".equals(arg)) {
+				String arg = (String)invocation.getArguments()[0];
+				if (arg.contains("mysql-connector-java")) {
 					return "/m2/" + arg;
 				}
 				return null;
