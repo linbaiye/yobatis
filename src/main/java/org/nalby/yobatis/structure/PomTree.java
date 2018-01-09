@@ -9,7 +9,6 @@ import java.util.Stack;
 
 import org.nalby.yobatis.exception.InvalidConfigurationException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
-import org.nalby.yobatis.structure.Project.FolderSelector;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.PropertyUtil;
 import org.nalby.yobatis.util.TextUtil;
@@ -242,6 +241,10 @@ public class PomTree {
 			}
 		}
 		return sourceCodeFolders;
+	}
+
+	private interface FolderSelector {
+		public boolean isSelected(Folder folder);
 	}
 	
 	private List<Folder> iterateSourceCodeFolders(FolderSelector selector) {

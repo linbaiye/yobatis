@@ -9,10 +9,6 @@ public abstract class Project implements Folder {
 	protected Folder root;
 	
 
-	public static interface FolderSelector {
-		public boolean isSelected(Folder folder);
-	}
-	
 	public abstract String concatMavenResitoryPath(String path);
 	
 	@Override
@@ -38,9 +34,6 @@ public abstract class Project implements Folder {
 	public void writeFile(String filepath, String content) {
 		Expect.notEmpty(filepath, "filepath must not be null.");
 		filepath = wipeRootFolderPath(filepath);
-		if (filepath.toLowerCase().contains("criteria")) {
-			System.out.println(filepath);
-		}
 		root.writeFile(filepath, content);
 	}
 	
