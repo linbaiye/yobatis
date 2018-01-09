@@ -22,6 +22,7 @@ import org.nalby.yobatis.sql.mysql.Mysql;
 import org.nalby.yobatis.sql.mysql.Mysql.Builder;
 import org.nalby.yobatis.structure.PomTree;
 import org.nalby.yobatis.structure.Project;
+import org.nalby.yobatis.structure.SpringAntPatternFileManager;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.WebContainerParser;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
@@ -39,7 +40,9 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 		WebContainerParser webContainerParser = new WebContainerParser(pomTree.getWarPom());
 
-		SpringParser springParser = new SpringParser(pomTree, webContainerParser.getSpringInitParamValues());
+		SpringAntPatternFileManager fileManager = new SpringAntPatternFileManager(pomTree, project);
+
+		SpringParser springParser = new SpringParser(fileManager, webContainerParser.getSpringInitParamValues());
 
 		String username = springParser.getDatabaseUsername();
 
@@ -138,7 +141,9 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 		WebContainerParser webContainerParser = new WebContainerParser(pomTree.getWarPom());
 
-		SpringParser springParser = new SpringParser(pomTree, webContainerParser.getSpringInitParamValues());
+		SpringAntPatternFileManager fileManager = new SpringAntPatternFileManager(pomTree, project);
+
+		SpringParser springParser = new SpringParser(fileManager, webContainerParser.getSpringInitParamValues());
 
 		String username = springParser.getDatabaseUsername();
 

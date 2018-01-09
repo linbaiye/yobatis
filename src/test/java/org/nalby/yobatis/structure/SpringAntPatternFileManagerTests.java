@@ -331,25 +331,6 @@ public class SpringAntPatternFileManagerTests {
 	}
 	
 	@Test
-	public void solvePlaceholders() {
-		addFileToFolder(webappFolder, "conf.xml", "test.xml");
-		Set<String> files = fileManager.findSpringFiles("/test.xml");
-		String file = files.iterator().next();
-		when(webpom.filterPlaceholders(anyString())).thenAnswer(new Answer<String>() {
-			@Override
-			public String answer(InvocationOnMock invocation) throws Throwable {
-				String arg = (String)invocation.getArguments()[0];
-				if ("${hello}${world}".equals(arg)) {
-					return "test1test2";
-				}
-				return arg;
-			}
-		});
-		String result = fileManager.solvePlaceholders("${hello}${world}", file);
-		assertTrue(result.equals("test1test2"));
-	}
-	
-	@Test
 	public void readProperties() {
 		String xml = "<beans><bean id=\"propertyConfigurer\" " +
 		        "class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">" +
@@ -402,5 +383,25 @@ public class SpringAntPatternFileManagerTests {
 		String file = files.iterator().next();
 		when(project.openFile(webappFolder.path() + "/important.properties")).thenThrow(new IllegalArgumentException());
 		fileManager.readProperties(file);
+	}
+
+	
+	@Test
+	public void readPropertyOfSpringFile() {
+		String testXml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\"><bean class=\"org.apache.commons.dbcp.BasicDataSource\">" +
+				 "<property name=\"username\" value=\"test\"/><property name=\"driverClassName\" value=\"mysql\"/>"
+				 + "<property name=\"url\" value=\"testurl\"/><property name=\"password\" value=\"${test}\"/></bean></beans>";
+		addFileToFolder(webappFolder, "important.properties", "test.xml");
+		when(project.openFile(webappFolder.path() + "/test.xml")).thenReturn(new ByteArrayInputStream(testXml.getBytes()));
+		fileManager.findSpringFiles("test.xml");
+		when(webpom.filterPlaceholders("${test}")).thenReturn("password");
+		String name = fileManager.lookupPropertyOfSpringFile(webappFolder.path() + "/test.xml", "username");
+		assertTrue(name.equals("test"));
+		String password = fileManager.lookupPropertyOfSpringFile(webappFolder.path() + "/test.xml", "password");
+		assertTrue(password.equals("password"));
+		String url = fileManager.lookupPropertyOfSpringFile(webappFolder.path() + "/test.xml", "url");
+		assertTrue(url.equals("testurl"));
+		String driver = fileManager.lookupPropertyOfSpringFile(webappFolder.path() + "/test.xml", "driverClassName");
+		assertTrue(driver.equals("mysql"));
 	}
 }

@@ -207,17 +207,28 @@ public class SpringAntPatternFileManager {
 		});
 	}
 	
-	public SpringXmlParser getSpringXmlParser(String path) {
-		return getXmlParser(path);
+	public String lookupPropertyOfSpringFile(String path, String name) {
+		if (!files.containsKey(path)) {
+			return null;
+		}
+		SpringXmlParser parser = getXmlParser(path);
+		if (parser == null) {
+			return null;
+		}
+		FileMetadata metadata = files.get(path);
+		Pom pom = metadata.getPom();
+		if ("username".equals(name)) {
+			return pom.filterPlaceholders(parser.getDbUsername());
+		} else if ("password".equals(name)) {
+			return pom.filterPlaceholders(parser.getDbPassword());
+		} else if ("driverClassName".equals(name)) {
+			return pom.filterPlaceholders(parser.getDbDriverClass());
+		} else if ("url".equals(name)) {
+			return pom.filterPlaceholders(parser.getDbUrl());
+		}
+		return null;
 	}
 	
-	public String solvePlaceholders(String text, String path) {
-		if (!files.containsKey(path)) {
-			return text;
-		}
-		Pom pom = files.get(path).getPom();
-		return pom.filterPlaceholders(text);
-	}
 	
 	/**
 	 * Read properties file, and filter all placeholders if possible.
