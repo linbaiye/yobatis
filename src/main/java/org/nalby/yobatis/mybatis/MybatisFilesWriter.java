@@ -105,7 +105,6 @@ public class MybatisFilesWriter {
 		List<GeneratedJavaFile> files = getCriteriaFiles();
 		for (GeneratedJavaFile file : files) {
 			String path = reader.getCriteriaDirPath() + "/" + file.getFileName();
-			System.out.println(path);
 			project.writeFile(path, file.getFormattedContent());
 		}
 	}

@@ -1,8 +1,13 @@
 package org.nalby.yobatis.util;
 
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+
+import org.nalby.yobatis.structure.Folder;
 
 import static org.junit.Assert.assertTrue;
 
@@ -43,6 +48,14 @@ public class TestUtil {
 			set.add(t);
 		}
 		return set;
+	}
+	
+	public static Folder mockFolder(String path) {
+		Folder folder = mock(Folder.class);
+		when(folder.path()).thenReturn(path);
+		String name = FolderUtil.filename(path);
+		when(folder.name()).thenReturn(name);
+		return folder;
 	}
 
 }
