@@ -10,6 +10,8 @@ public interface File {
 
 	InputStream open();
 	
-	void write(String name, String content);
+	void write(InputStream inputStream);
+
+	void write(String content);
 
 }

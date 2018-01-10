@@ -30,10 +30,10 @@ public interface FolderV1 {
 	File findFile(String filepath);
 	
 	/**
-	 * Write {@code content} to the file of the path, and return the file. If the file
-	 * is already existed, it will be overwrote.
+	 * Create a {@link File} of the path, all missing folder nodes will be 
+	 * created, or the file is returned if already existed.
 	 * @param filepath the file path.
-	 * @param content content to write.
+	 * @return the file created or returned.
 	 */
 	File createFile(String filepath);
 	

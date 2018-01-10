@@ -35,7 +35,7 @@ public class TestUtil {
 		}
 	}
 	
-	public static <T> void assertCollectionSizeAndStringsIn(Collection<T> collection,
+	public static <T> void assertCollectionSizeAndContains(Collection<T> collection,
 			int collectionSize,
 			@SuppressWarnings("unchecked") T ... list)  {
 		assertTrue(collectionSize == collection.size());

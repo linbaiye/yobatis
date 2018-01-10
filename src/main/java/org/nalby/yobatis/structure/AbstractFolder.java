@@ -98,9 +98,21 @@ public abstract class AbstractFolder implements FolderV1 {
 		return null;
 	}
 
+
 	@Override
 	public File createFile(String filepath) {
-		return null;
+		validatePath(filepath);
+		if (filepath.contains("/")) {
+			String folderpath = FolderUtil.folderPath(filepath);
+			FolderV1 folder = createFolder(folderpath);
+			return folder.createFile(filepath.replaceFirst(folderpath + "/", ""));
+		}
+		File file = findFile(filepath);
+		if (file == null) {
+			file = doCreateFile(filepath);
+			files.add(file);
+		}
+		return file;
 	}
 
 
@@ -136,6 +148,7 @@ public abstract class AbstractFolder implements FolderV1 {
 		return null;
 	}
 
+
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<File> listFiles() {
@@ -148,6 +161,6 @@ public abstract class AbstractFolder implements FolderV1 {
 		}
 		return files;
 	}
-
+	
 }
 	

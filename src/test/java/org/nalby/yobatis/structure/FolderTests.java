@@ -113,6 +113,12 @@ public class FolderTests {
 		}
 	}
 	
+	public void addFileToFolder(FolderV1 folder, File file) {
+		FolderData folderData = folderDataMap.get(folder);
+		folderData.files.add(file);
+	}
+	
+	
 	public void addFolderToFolder(FolderV1 dst, FolderV1 src) {
 		FolderData folderData = folderDataMap.get(dst);
 		folderData.subfolders.add(src);
@@ -224,7 +230,7 @@ public class FolderTests {
 		};
 		assertTrue(testFolder.createFolder("hello") == folder);
 		List<FolderV1> list = testFolder.listFolders();
-		TestUtil.assertCollectionSizeAndStringsIn(list, 1, folder);
+		TestUtil.assertCollectionSizeAndContains(list, 1, folder);
 	}
 	
 	
@@ -244,6 +250,50 @@ public class FolderTests {
 		assertTrue(testFolder.createFolder("depth1/depth2") == depth2);
 
 		assertTrue(testFolder.findFolder("depth1/depth2") == depth2);
+	}
+	
+	//Need to create file.
+	@Test
+	public void createDepth1File() {
+		File file = mockFile(testFolder.path() + "/file", "file");
+		testFolder.createFileHandler = (String name) -> { 
+			if (name.equals("file")) {
+				return file;
+			}
+			throw new ResourceNotAvailableExeception("err");
+		};
+		assertTrue(testFolder.createFile("file") == file);
+
+		//Make sure the created file was added to the list.
+		TestUtil.assertCollectionSizeAndContains(testFolder.listFiles(), 1, file);
+	}
+	
+	//When the file to create is already existed.
+	@Test
+	public void createDepth1FileWhenExisted() {
+		File file = mockFile(testFolder.path() + "/file", "file");
+		addFileToFolder(testFolder, file);
+		assertTrue(testFolder.createFile("file") == file);
+	}
+	
+	@Test
+	public void createDepth2File() {
+		TestFolder depth1 = buildTestFolder(testFolder.path() + "/depth1", "depth1");
+		testFolder.createFolderHandler = (String name) -> {
+			if ("depth1".equals(name)) {
+				return depth1;
+			}
+			throw new ResourceNotAvailableExeception("err");
+		};
+
+		File file = mockFile(testFolder.path() + "/depth1/file", "file");
+		depth1.createFileHandler = (String name) -> { 
+			if (name.equals("file")) {
+				return file;
+			}
+			throw new ResourceNotAvailableExeception("err");
+		};
+		assertTrue(testFolder.createFile("depth1/file") == file);
 	}
 
 }
