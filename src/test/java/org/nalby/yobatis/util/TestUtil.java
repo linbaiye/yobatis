@@ -35,6 +35,15 @@ public class TestUtil {
 		}
 	}
 	
+	public static <T> void assertCollectionSizeAndStringsIn(Collection<T> collection,
+			int collectionSize,
+			@SuppressWarnings("unchecked") T ... list)  {
+		assertTrue(collectionSize == collection.size());
+		for (T tmp: list) {
+			assertTrue(collection.contains(tmp));
+		}
+	}
+	
 	public static void dumpStringCollection(Collection<String> collection) {
 		for (String tmp: collection) {
 			System.out.println(tmp);

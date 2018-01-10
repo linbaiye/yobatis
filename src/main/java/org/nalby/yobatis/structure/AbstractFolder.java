@@ -30,11 +30,28 @@ public abstract class AbstractFolder implements FolderV1 {
 	 */
 	protected List<File> files;
 
-	
+
 	protected abstract List<FolderV1> doListFolders();
 
 
 	protected abstract List<File> doListFiles();
+	
+	/**
+	 * Create a folder based on the platform, throw a ResourceNotAvailableExeception if it is unable to create.
+	 * @param name the folder name.
+	 * @return the folder created.
+	 * @throws ResourceNotAvailableExeception if error.
+	 */
+	protected abstract FolderV1 doCreateFolder(String name);
+
+	/**
+	 * Create a file based on the platform, throw a ResourceNotAvailableExeception if it is unable to create.
+	 * @param name the file name.
+	 * @return the file created.
+	 * @throws ResourceNotAvailableExeception if error.
+	 */
+	protected abstract File doCreateFile(String name);
+	
 	
 	@Override
 	public String path() {
@@ -86,10 +103,23 @@ public abstract class AbstractFolder implements FolderV1 {
 		return null;
 	}
 
+
 	@Override
 	public FolderV1 createFolder(String folderpath) {
-		return null;
+		validatePath(folderpath);
+		String tokens[] = folderpath.split("/");
+		String thisName = tokens[0];
+		FolderV1 targetFolder = findFolder(thisName);
+		if (targetFolder == null) {
+			targetFolder = doCreateFolder(thisName);
+			folders.add(targetFolder);
+		}
+		if (tokens.length == 1) {
+			return targetFolder;
+		}
+		return targetFolder.createFolder(folderpath.replaceFirst(thisName + "/", ""));
 	}
+
 
 	@Override
 	public FolderV1 findFolder(String folerpath) {

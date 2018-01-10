@@ -9,10 +9,26 @@ import java.util.List;
 import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
+import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
+import org.nalby.yobatis.util.TestUtil;
 
 public class FolderTests {
 	
+	@FunctionalInterface
+	private static interface CreateFolderHandler {
+		FolderV1 handle(String name);
+	}
+
+	@FunctionalInterface
+	private static interface CreateFileHandler {
+		File handle(String name);
+	}
+	
 	private static class TestFolder extends AbstractFolder {
+
+		private CreateFileHandler createFileHandler;
+		
+		private CreateFolderHandler createFolderHandler;
 
 		public TestFolder(String path, String name) {
 			this.name = name;
@@ -40,13 +56,21 @@ public class FolderTests {
 		public void setFiles(List<File> list) {
 			files = list;
 		}
+
+		@Override
+		protected FolderV1 doCreateFolder(String name) {
+			return createFolderHandler.handle(name);
+		}
+
+		@Override
+		protected File doCreateFile(String name) {
+			return createFileHandler.handle(name);
+		}
 	}
 	
 	private TestFolder testFolder;
 	
 	private List<FolderV1> folders;
-
-	private List<File> files;
 	
 	private static class FolderData {
 		public List<FolderV1> subfolders;
@@ -54,21 +78,25 @@ public class FolderTests {
 	}
 	
 	private Map<FolderV1, FolderData> folderDataMap;
+	
+	private TestFolder buildTestFolder(String path, String name) {
+		TestFolder folder = new TestFolder(path, name);
+		FolderData folderData = new FolderData();
+		folderData.subfolders = new LinkedList<>();
+		folderData.files = new LinkedList<>();
+
+		folder.setFolders(folderData.subfolders);
+		folder.setFiles(folderData.files);
+
+		folderDataMap.put(folder, folderData);
+		return folder;
+	}
 
 	@Before
 	public void setup() {
-		testFolder = new TestFolder("/test", "test");
-		folders = new LinkedList<>();
-		files = new LinkedList<>();
-		testFolder.setFolders(folders);
-		testFolder.setFiles(files);
-
 		folderDataMap = new HashMap<>();
-
-		FolderData folderData = new FolderData();
-		folderData.subfolders = folders;
-		folderData.files = files;
-		folderDataMap.put(testFolder, folderData);
+		testFolder = buildTestFolder("/test", "test");
+		folders = folderDataMap.get(testFolder).subfolders;
 	}
 	
 	public File mockFile(String path, String name) {
@@ -76,20 +104,6 @@ public class FolderTests {
 		when(file.name()).thenReturn(name);
 		when(file.path()).thenReturn(path);
 		return file;
-	}
-	
-	private FolderV1 mockFolder(String path, String name) {
-		FolderV1 folder = mock(FolderV1.class);
-		when(folder.path()).thenReturn(path);
-		when(folder.name()).thenReturn(name);
-
-		FolderData folderData = new FolderData();
-		folderData.files = new LinkedList<>();
-		folderData.subfolders = new LinkedList<>();
-		when(folder.listFiles()).thenReturn(folderData.files);
-		when(folder.listFolders()).thenReturn(folderData.subfolders);
-		folderDataMap.put(folder, folderData);
-		return folder;
 	}
 	
 	public void addFileToFolder(FolderV1 folder, String ... names) {
@@ -191,11 +205,45 @@ public class FolderTests {
 	
 	@Test
 	public void findDepth2File() {
-		FolderV1 depth1 = mockFolder(testFolder.path() + "/depth1", "depth1");
+		FolderV1 depth1 = buildTestFolder(testFolder.path() + "/depth1", "depth1");
 		addFolderToFolder(testFolder, depth1);
 		addFileToFolder(depth1, "file1");
 		File file = testFolder.findFile("depth1/file1");
 		assertTrue(file.name().equals("file1"));
+	}
+	
+
+	@Test
+	public void createDepth1Folder() {
+		FolderV1 folder = buildTestFolder(testFolder.path() + "/hello", "hello");
+		testFolder.createFolderHandler = (String name) -> { 
+			if ("hello".equals(name)) {
+				return folder;
+			}
+			throw new ResourceNotAvailableExeception("error.");
+		};
+		assertTrue(testFolder.createFolder("hello") == folder);
+		List<FolderV1> list = testFolder.listFolders();
+		TestUtil.assertCollectionSizeAndStringsIn(list, 1, folder);
+	}
+	
+	
+	@Test
+	public void createDepth2Folder() {
+		TestFolder depth1 = buildTestFolder(testFolder.path() + "/depth1", "depth1");
+		//First depth should be hit.
+		addFolderToFolder(testFolder, depth1);
+
+		TestFolder depth2 = buildTestFolder(testFolder.path() + "/depth1/depth2", "depth2");
+		depth1.createFolderHandler = (String name) -> { 
+			if ("depth2".equals(name)) {
+				return depth2;
+			}
+			throw new ResourceNotAvailableExeception("error.");
+		};
+		assertTrue(testFolder.createFolder("depth1/depth2") == depth2);
+
+		assertTrue(testFolder.findFolder("depth1/depth2") == depth2);
 	}
 
 }
