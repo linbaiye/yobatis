@@ -285,7 +285,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		newDoc.assertClasspathEntry("oldLocation");
@@ -300,7 +300,7 @@ public class MybatisXmlParserTests {
 				"<classPathEntry location=\"oldLocation\"/>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		newDoc.hasTable("table1", "schema");
@@ -324,7 +324,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		newDoc.assertClasspathEntry("test");
@@ -348,7 +348,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(newDoc.hasJavaModelGenerator("targetPackage1", "targetProject1"));
@@ -373,7 +373,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(newDoc.hasJavaModelGenerator("targetPackage1", "targetProject1"));
@@ -398,7 +398,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(newDoc.hasSingleSqlMapGenerator("targetPackage1", "targetProject1"));
@@ -424,7 +424,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		assertTrue("world/hello".equals(mybatisXmlParser.getXmlMapperDirPath()));
 	}
 	
@@ -446,7 +446,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		assertTrue("/test/dao".equals(mybatisXmlParser.getDaoDirPath()));
 	}
 	
@@ -468,7 +468,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		assertTrue("hello/world/criteria".equals(mybatisXmlParser.getCriteriaDirPath()));
 	}
 	
@@ -491,7 +491,7 @@ public class MybatisXmlParserTests {
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
 		javaModelGenerators.clear();
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		mybatisXmlParser.getDomainDirPath();
 	}
 	
@@ -510,7 +510,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		mybatisXmlParser.getDomainDirPath();
 	}
 	
@@ -532,7 +532,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		assertTrue("targetProject1/targetPackage1".equals(mybatisXmlParser.getDomainDirPath()));
 	}
 	
@@ -554,7 +554,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		assertTrue("targetPackage1".equals(mybatisXmlParser.getPackageNameOfDomains()));
 	}
 	
@@ -578,7 +578,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(newDoc.hasTable("table1", "schema"));
@@ -604,7 +604,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(newDoc.hasTable("table1", "schema"));
@@ -630,7 +630,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(!newDoc.hasTable("table1", "schema"));
@@ -656,7 +656,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisPlugin"));
@@ -683,7 +683,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisPlugin"));
@@ -710,7 +710,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisPlugin", "enableBaseClass", "false"));
@@ -739,7 +739,7 @@ public class MybatisXmlParserTests {
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
 		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
-		mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(mockedGenerator);
+		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisPlugin", "enableBaseClass", "false"));

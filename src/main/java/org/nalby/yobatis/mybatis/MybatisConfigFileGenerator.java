@@ -13,6 +13,8 @@ import org.dom4j.DocumentFactory;
 import org.dom4j.DocumentType;
 import org.dom4j.Element;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
+import org.nalby.yobatis.log.LogFactory;
+import org.nalby.yobatis.log.Logger;
 import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
@@ -57,22 +59,34 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 
 	private Set<Element> tableElemnts = new HashSet<Element>();
 	
+	private Logger logger = LogFactory.getLogger(MybatisConfigFileGenerator.class);
+	
 	public MybatisConfigFileGenerator(PomTree pomTree, Sql sql) {
+		logger.info("Generating MyBatis Generator's configuration file.");
 		this.sql = sql;
 		this.pomTree = pomTree;
 		createDocument();
 		root = factory.createElement("generatorConfiguration");
 		document.setRootElement(root);
 		appendClassPathEntry(root);
+		logger.debug("Appened classpath.");
 		context = appendContext(root);
 		appendYobatisPlugin(context);
+		logger.debug("Appened yobatis plugin.");
 		appendCriteriaPlugin(context);
+		logger.debug("Appened criteria plugin.");
 		appendJdbcConnection(context);
 		appendTypeResolver(context);
+		logger.debug("Appened type resolver.");
 		appendJavaModelGenerator(context);
+		logger.debug("Appened javaModelGenerator.");
 		appendSqlMapGenerator(context);
+		logger.debug("Appened sqlMapGenerator.");
 		appendJavaClientGenerator(context);
+		logger.debug("Appened javaClientGenerator.");
 		appendTables(context);
+		logger.debug("Appened tables.");
+		logger.info("Built MyBatis Generator's configuration file.");
 	}
 	
 	public Element getClassPathEntryElement() {
@@ -243,8 +257,10 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	
 	private void createDocument() {
 		document = factory.createDocument();
+		logger.debug("creating doctype.");
 		DocumentType type = factory.createDocType("generatorConfiguration", "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN", "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd");
 		document.setDocType(type);
+		logger.debug("Created doctype.");
 	}
 	
 	@Override

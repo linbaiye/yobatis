@@ -70,15 +70,16 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		MybatisConfigReader reader = configFileGenerator;
 		try (InputStream inputStream = project.openFile(MybatisConfigReader.CONFIG_FILENAME)) {
 			MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(inputStream);
-			mybatisXmlParser.mergeGeneratedConfigAndGetXmlString(configFileGenerator);
+			mybatisXmlParser.mergeGeneratedConfig(configFileGenerator);
 			reader = mybatisXmlParser;
 		} catch (Exception e) {
-			logger.info("No existent configuration found, will generate a new one.");
+			logger.info("Unable to merge existent file:{}.", e);
 		}
 		return reader;
 	}
 	
 	
+
 	private void generateFromExistentFile(IFile iFile) {
 		IProject iProject = iFile.getProject();
 		EclipseProject project = new EclipseProject(iProject);
@@ -87,7 +88,6 @@ public class YobatisGenerationHandler extends AbstractHandler {
 			MybatisConfigReader configReader = new MybatisXmlParser(inputStream);
 			MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, configReader);
 			filesWriter.writeAll();
-			logger.info("Generated files.");
 		} catch (Exception e) {
 			logger.info("No existent configuration found, will generate a new one.");
 		}
@@ -107,7 +107,6 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 		MybatisFilesWriter filesWriter = new MybatisFilesWriter(eclipseProject, reader);
 		filesWriter.writeAll();
-		logger.info("Generated files.");
 	}
 	
 	

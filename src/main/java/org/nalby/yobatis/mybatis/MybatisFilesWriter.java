@@ -10,6 +10,8 @@ import org.mybatis.generator.api.LibraryRunner;
 import org.mybatis.generator.exception.InvalidConfigurationException;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.exception.ProjectException;
+import org.nalby.yobatis.log.LogFactory;
+import org.nalby.yobatis.log.Logger;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.xml.SqlMapperParser;
@@ -25,6 +27,8 @@ public class MybatisFilesWriter {
 	private MybatisConfigReader reader;
 
 	private Project project;
+	
+	private Logger logger = LogFactory.getLogger(MybatisFilesWriter.class);
 
 	public MybatisFilesWriter(Project project, MybatisConfigReader configReader) {
 		Expect.notNull(project, "project must not be null.");
@@ -91,6 +95,7 @@ public class MybatisFilesWriter {
 			}
 			project.writeFile(path, file.getFormattedContent());
 		}
+		logger.info("Worte java mapper files to :{}.", reader.getDaoDirPath());
 	}
 	
 	private void writeJavaDomains() {
@@ -99,6 +104,7 @@ public class MybatisFilesWriter {
 			String path = reader.getDomainDirPath() + "/" + file.getFileName();
 			project.writeFile(path, file.getFormattedContent());
 		}
+		logger.info("Worte model files to :{}.", reader.getDomainDirPath());
 	}
 	
 	private void writeCriteriaFiles() {
@@ -107,6 +113,7 @@ public class MybatisFilesWriter {
 			String path = reader.getCriteriaDirPath() + "/" + file.getFileName();
 			project.writeFile(path, file.getFormattedContent());
 		}
+		logger.info("Worte criteria files to :{}.", reader.getCriteriaDirPath());
 	}
 	
 	private String mergeManualSqlXml(String path, String content) {
@@ -126,6 +133,7 @@ public class MybatisFilesWriter {
 			String path = reader.getXmlMapperDirPath() + "/" + file.getFileName();
 			project.writeFile(path, mergeManualSqlXml(path, file.getFormattedContent()));
 		}
+		logger.info("Worte xml mapper files to :{}.", reader.getXmlMapperDirPath());
 	}
 
 	public void writeAll() {

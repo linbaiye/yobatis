@@ -72,6 +72,7 @@ public class SpringParser {
 				continue;
 			}
 			parsedPaths.add(path);
+			logger.info("Scanning properties file:{}.", path);
 			Properties properties = fileManager.readProperties(path);
 			if (properties != null) {
 				for (String key : properties.stringPropertyNames()) {
@@ -88,6 +89,7 @@ public class SpringParser {
 			if (parsedSpringFiles.contains(file)) {
 				continue;
 			}
+			logger.info("Scanning spring xml file:{}.", file);
 			parsedSpringFiles.add(file);
 			if (TextUtil.isEmpty(dbPassword)) {
 				dbPassword = fileManager.lookupPropertyOfSpringFile(file, "password");

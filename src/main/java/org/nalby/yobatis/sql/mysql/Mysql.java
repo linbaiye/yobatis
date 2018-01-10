@@ -19,6 +19,8 @@ import java.util.regex.Pattern;
 
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.exception.SqlConfigIncompleteException;
+import org.nalby.yobatis.log.LogFactory;
+import org.nalby.yobatis.log.Logger;
 import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.util.Expect;
@@ -27,6 +29,8 @@ public class Mysql extends Sql {
 	
 	
 	private String timedoutUrl;
+	
+	private Logger logger = LogFactory.getLogger(this.getClass());
 
 	private Mysql(String username, String password, String url, String connectorJarPath, String driverClassName) {
 		try {
@@ -40,6 +44,7 @@ public class Mysql extends Sql {
 			Driver driver = (Driver) Class.forName(driverClassName, true, classLoader).newInstance();
 			DriverWrapper driverWrapper = new DriverWrapper(driver);
 			DriverManager.registerDriver(driverWrapper);
+			logger.info("Detected sql configuration:[username:{}, url:{}].", username, url);
 			timedoutUrl = this.url;
 			if (!this.timedoutUrl.contains("socketTimeout")) {
 				if (this.timedoutUrl.contains("?")) {

@@ -555,7 +555,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	 * Preserve manually edited elements. 
 	 * @param configFileGenerator
 	 */
-	public void mergeGeneratedConfigAndGetXmlString(MybatisConfigFileGenerator configFileGenerator) {
+	public void mergeGeneratedConfig(MybatisConfigFileGenerator configFileGenerator) {
 		mergeClasspathEntry(configFileGenerator);
 		if (mergeContext(configFileGenerator)) {
 			mergePlugins(configFileGenerator);

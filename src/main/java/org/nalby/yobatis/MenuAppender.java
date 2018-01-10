@@ -25,6 +25,7 @@ public class MenuAppender extends ContributionItem {
 	
 	static {
 		LogFactory.setLogger(EclipseLogger.class);
+		//AbstractLogger.defaultLevel = LogLevel.INFO;
 	}
 
 	public MenuAppender() {
