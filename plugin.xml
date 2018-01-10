@@ -11,6 +11,15 @@
       </menuContribution>
    </extension>
    <extension
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            allPopups="false"
+            locationURI="popup:org.eclipse.jdt.ui.PackageExplorer?after=additions">
+         <dynamic class="org.nalby.yobatis.MenuAppender" id="org.nalby.yobatis.menuAppender">
+         </dynamic>
+      </menuContribution>
+   </extension>
+   <extension
          point="org.eclipse.ui.commands">
       <command
             id="org.nalby.yobatis.command.generation"
