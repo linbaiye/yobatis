@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.nalby.yobatis.util.Expect;
+import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.util.TextUtil;
 
 
@@ -64,6 +65,19 @@ public abstract class AbstractFolder implements FolderV1 {
 
 	@Override
 	public File findFile(String filepath) {
+		validatePath(filepath);
+		FolderV1 targetDir = this;
+		String filename = FolderUtil.filename(filepath);
+		if (filepath.contains("/")) {
+			targetDir = findFolder(FolderUtil.folderPath(filepath));
+		}
+		if (targetDir != null) {
+			for (File file : targetDir.listFiles()) {
+				if (file.name().equals(filename)) {
+					return file;
+				}
+			}
+		}
 		return null;
 	}
 
