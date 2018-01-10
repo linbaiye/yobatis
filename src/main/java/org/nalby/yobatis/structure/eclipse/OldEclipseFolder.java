@@ -16,12 +16,12 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.exception.ResourceNotFoundException;
-import org.nalby.yobatis.structure.Folder;
+import org.nalby.yobatis.structure.OldFolder;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.util.TextUtil;
 
-public class EclipseFolder implements Folder {
+public class OldEclipseFolder implements OldFolder {
 
 	private IResource wrappedFolder;
 
@@ -30,12 +30,12 @@ public class EclipseFolder implements Folder {
 	/**
 	 * Subfolders this folder contains directly.
 	 */
-	private List<Folder> subfolders;
+	private List<OldFolder> subfolders;
 
 	/**
 	 * Subfolders this folder contains.
 	 */
-	private Set<Folder> allSubfolders;
+	private Set<OldFolder> allSubfolders;
 	
 	private List<IFile> files;
 	
@@ -50,7 +50,7 @@ public class EclipseFolder implements Folder {
 	 */
 	private Set<String> filepaths;
 
-	public EclipseFolder(String parentPath, IResource wrapped) {
+	public OldEclipseFolder(String parentPath, IResource wrapped) {
 		Expect.notNull(parentPath, "parent path not be null.");
 		Expect.notNull(wrapped, "Folder must not be null.");
 		Expect.asTrue((wrapped instanceof IFolder) || (wrapped instanceof IProject),  "Invalid type.");
@@ -67,7 +67,7 @@ public class EclipseFolder implements Folder {
 	private void listResources()  {
 		filenames = new HashSet<String>();
 		files = new LinkedList<IFile>();
-		subfolders = new LinkedList<Folder>();
+		subfolders = new LinkedList<OldFolder>();
 		try {
 			IResource[] resources = null;
 			if (wrappedFolder instanceof IProject) {
@@ -80,7 +80,7 @@ public class EclipseFolder implements Folder {
 					files.add((IFile)resource);
 					filenames.add(resource.getName());
 				} else if (resource.getType() == IResource.FOLDER) {
-					subfolders.add(new EclipseFolder(this.path, (IFolder) resource));
+					subfolders.add(new OldEclipseFolder(this.path, (IFolder) resource));
 				}
 			}
 		} catch (Exception e) {
@@ -94,7 +94,7 @@ public class EclipseFolder implements Folder {
 	}
 
 	@Override
-	public List<Folder> getSubfolders() {
+	public List<OldFolder> getSubfolders() {
 		return subfolders;
 	}
 
@@ -104,7 +104,7 @@ public class EclipseFolder implements Folder {
 		if (!filepath.contains("/")) {
 			return filenames.contains(filepath);
 		} else {
-			Folder folder = findFolder(FolderUtil.folderPath(filepath));
+			OldFolder folder = findFolder(FolderUtil.folderPath(filepath));
 			if (folder != null) {
 				String name = FolderUtil.filename(filepath);
 				return folder.containsFile(name);
@@ -173,16 +173,16 @@ public class EclipseFolder implements Folder {
 		if (!filepath.contains("/")) {
 			doWriteFile(filepath, content);
 		} else {
-			Folder folder = createFolder(FolderUtil.folderPath(filepath));
+			OldFolder folder = createFolder(FolderUtil.folderPath(filepath));
 			folder.writeFile(FolderUtil.filename(filepath), content);
 		}
 	}
 
 	@Override
-	public Folder findFolder(String folderpath) {
+	public OldFolder findFolder(String folderpath) {
 		validatePath(folderpath);
 		String[] names = folderpath.split("/");
-		for (Folder folder : subfolders) {
+		for (OldFolder folder : subfolders) {
 			if (folder.name().equals(names[0])) {
 				if (names.length == 1) {
 					return folder;
@@ -193,7 +193,7 @@ public class EclipseFolder implements Folder {
 		return null;
 	}
 	
-	private Folder doCreateFolder(String name) {
+	private OldFolder doCreateFolder(String name) {
 		try {
 			IFolder newFolder = null;
 			if (wrappedFolder instanceof IProject) {
@@ -205,7 +205,7 @@ public class EclipseFolder implements Folder {
 				newFolder.create(true, true, null);
 				newFolder.refreshLocal(0, null);
 			}
-			Folder folder = new EclipseFolder(this.path, newFolder);
+			OldFolder folder = new OldEclipseFolder(this.path, newFolder);
 			subfolders.add(folder);
 			allSubfolders = null;
 			filepaths = null;
@@ -216,12 +216,12 @@ public class EclipseFolder implements Folder {
 	}
 
 	@Override
-	public Folder createFolder(String folderpath) {
+	public OldFolder createFolder(String folderpath) {
 		validatePath(folderpath);
 		String tokens[] = folderpath.split("/");
 		String thisName = tokens[0];
-		Folder targetFolder = null;
-		for (Folder folder : subfolders) {
+		OldFolder targetFolder = null;
+		for (OldFolder folder : subfolders) {
 			if (folder.name().equals(thisName)) {
 				targetFolder = folder;
 				break;
@@ -242,17 +242,17 @@ public class EclipseFolder implements Folder {
 	}
 	
 	@Override
-	public Set<Folder> getAllFolders() {
+	public Set<OldFolder> getAllFolders() {
 		if (allSubfolders != null) {
 			return allSubfolders;
 		}
-		allSubfolders = new HashSet<Folder>();
-		Stack<Folder> stack = new Stack<Folder>();
+		allSubfolders = new HashSet<OldFolder>();
+		Stack<OldFolder> stack = new Stack<OldFolder>();
 		stack.push(this);
 		while (!stack.isEmpty()) {
-			Folder folder = stack.pop();
-			List<Folder> folders = folder.getSubfolders();
-			for (Folder item: folders) {
+			OldFolder folder = stack.pop();
+			List<OldFolder> folders = folder.getSubfolders();
+			for (OldFolder item: folders) {
 				allSubfolders.add(item);
 				stack.push(item);
 			}
@@ -264,14 +264,14 @@ public class EclipseFolder implements Folder {
 	public InputStream openFile(String filepath) {
 		validatePath(filepath);
 		try {
-			Folder targetFolder = this;
+			OldFolder targetFolder = this;
 			String filename = filepath;
 			if (filepath.contains("/")) {
 				String basepath = FolderUtil.folderPath(filepath);
 				targetFolder = findFolder(basepath);
 				filename = FolderUtil.filename(filepath);
 			}
-			for (IFile file : ((EclipseFolder) targetFolder).files) {
+			for (IFile file : ((OldEclipseFolder) targetFolder).files) {
 				if (file.getName().equals(filename)) {
 					return file.getContents();
 				}
@@ -292,7 +292,7 @@ public class EclipseFolder implements Folder {
 			filepaths.add(FolderUtil.concatPath(this.path, name));
 		}
 		getAllFolders();
-		for (Folder item: allSubfolders) {
+		for (OldFolder item: allSubfolders) {
 			for (String name: item.getFilenames()) {
 				filepaths.add(FolderUtil.concatPath(item.path(), name));
 			}

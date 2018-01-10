@@ -11,7 +11,7 @@ public class EclipseProject extends Project {
 
 	public EclipseProject(IProject project) {
 		this.wrappedProject = project;
-		this.root = new EclipseFolder("/",  wrappedProject);
+		this.root = new OldEclipseFolder("/",  wrappedProject);
 	}
 	
 	public String concatMavenResitoryPath(String path) {

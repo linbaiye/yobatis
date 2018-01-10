@@ -7,7 +7,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.nalby.yobatis.structure.Folder;
+import org.nalby.yobatis.structure.OldFolder;
 
 import static org.junit.Assert.assertTrue;
 
@@ -59,8 +59,8 @@ public class TestUtil {
 		return set;
 	}
 	
-	public static Folder mockFolder(String path) {
-		Folder folder = mock(Folder.class);
+	public static OldFolder mockFolder(String path) {
+		OldFolder folder = mock(OldFolder.class);
 		when(folder.path()).thenReturn(path);
 		String name = FolderUtil.filename(path);
 		when(folder.name()).thenReturn(name);

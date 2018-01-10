@@ -16,7 +16,7 @@ public class FolderTests {
 	
 	@FunctionalInterface
 	private static interface CreateFolderHandler {
-		FolderV1 handle(String name);
+		Folder handle(String name);
 	}
 
 	@FunctionalInterface
@@ -36,15 +36,15 @@ public class FolderTests {
 		} 
 
 		@Override
-		protected List<FolderV1> doListFolders() {
+		protected List<Folder> doListFolders() {
 			return folders;
 		}
 		
-		public void setFolders(List<FolderV1> list) {
+		public void setFolders(List<Folder> list) {
 			folders = list;
 		}
 		
-		public void addFolder(FolderV1 folder) {
+		public void addFolder(Folder folder) {
 			folders.add(folder);
 		}
 		
@@ -58,7 +58,7 @@ public class FolderTests {
 		}
 
 		@Override
-		protected FolderV1 doCreateFolder(String name) {
+		protected Folder doCreateFolder(String name) {
 			return createFolderHandler.handle(name);
 		}
 
@@ -70,14 +70,15 @@ public class FolderTests {
 	
 	private TestFolder testFolder;
 	
-	private List<FolderV1> folders;
+	private List<Folder> folders;
 	
+	//Just dont want to use map.get("subfolders").
 	private static class FolderData {
-		public List<FolderV1> subfolders;
+		public List<Folder> subfolders;
 		public List<File> files;
 	}
 	
-	private Map<FolderV1, FolderData> folderDataMap;
+	private Map<Folder, FolderData> folderDataMap;
 	
 	private TestFolder buildTestFolder(String path, String name) {
 		TestFolder folder = new TestFolder(path, name);
@@ -106,20 +107,20 @@ public class FolderTests {
 		return file;
 	}
 	
-	public void addFileToFolder(FolderV1 folder, String ... names) {
+	public void addFileToFolder(Folder folder, String ... names) {
 		FolderData folderData = folderDataMap.get(folder);
 		for (String name: names) {
 			folderData.files.add(mockFile(folder.path(), name));
 		}
 	}
 	
-	public void addFileToFolder(FolderV1 folder, File file) {
+	public void addFileToFolder(Folder folder, File file) {
 		FolderData folderData = folderDataMap.get(folder);
 		folderData.files.add(file);
 	}
 	
 	
-	public void addFolderToFolder(FolderV1 dst, FolderV1 src) {
+	public void addFolderToFolder(Folder dst, Folder src) {
 		FolderData folderData = folderDataMap.get(dst);
 		folderData.subfolders.add(src);
 	}
@@ -156,7 +157,7 @@ public class FolderTests {
 	
 	@Test
 	public void findDepthOne() {
-		FolderV1 tmp = new TestFolder("/test/depth1", "depth1");
+		Folder tmp = new TestFolder("/test/depth1", "depth1");
 		testFolder.addFolder(tmp);
 		assertTrue(testFolder.findFolder("depth1") == tmp);
 		assertTrue(tmp.path().equals("/test/depth1"));
@@ -167,8 +168,8 @@ public class FolderTests {
 	public void findDepthTwo() {
 		TestFolder deepth1 = new TestFolder("/test/depth1", "depth1");
 
-		FolderV1 deepth2 = new TestFolder("/test/depth1/depth2", "depth2");
-		List<FolderV1> tmp = new LinkedList<>();
+		Folder deepth2 = new TestFolder("/test/depth1/depth2", "depth2");
+		List<Folder> tmp = new LinkedList<>();
 		tmp.add(deepth2);
 		deepth1.setFolders(tmp);
 		deepth1.addFolder(deepth2);
@@ -211,7 +212,7 @@ public class FolderTests {
 	
 	@Test
 	public void findDepth2File() {
-		FolderV1 depth1 = buildTestFolder(testFolder.path() + "/depth1", "depth1");
+		Folder depth1 = buildTestFolder(testFolder.path() + "/depth1", "depth1");
 		addFolderToFolder(testFolder, depth1);
 		addFileToFolder(depth1, "file1");
 		File file = testFolder.findFile("depth1/file1");
@@ -221,7 +222,7 @@ public class FolderTests {
 
 	@Test
 	public void createDepth1Folder() {
-		FolderV1 folder = buildTestFolder(testFolder.path() + "/hello", "hello");
+		Folder folder = buildTestFolder(testFolder.path() + "/hello", "hello");
 		testFolder.createFolderHandler = (String name) -> { 
 			if ("hello".equals(name)) {
 				return folder;
@@ -229,7 +230,7 @@ public class FolderTests {
 			throw new ResourceNotAvailableExeception("error.");
 		};
 		assertTrue(testFolder.createFolder("hello") == folder);
-		List<FolderV1> list = testFolder.listFolders();
+		List<Folder> list = testFolder.listFolders();
 		TestUtil.assertCollectionSizeAndContains(list, 1, folder);
 	}
 	

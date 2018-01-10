@@ -6,13 +6,13 @@ import org.junit.runner.RunWith;
 import static org.mockito.Mockito.*;
 
 import org.mockito.runners.MockitoJUnitRunner;
-import org.nalby.yobatis.structure.Folder;
+import org.nalby.yobatis.structure.OldFolder;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ProjectTests {
 	
 	private class TestingProject extends Project {
-		public TestingProject(Folder root) {
+		public TestingProject(OldFolder root) {
 			this.root = root;
 		} 
 
@@ -25,7 +25,7 @@ public class ProjectTests {
 	
 	@Test
 	public void writeFileDirectly() {
-		Folder mockedRoot = mock(Folder.class);
+		OldFolder mockedRoot = mock(OldFolder.class);
 		when(mockedRoot.path()).thenReturn("/test");
 		Project project = new TestingProject(mockedRoot);
 		project.writeFile("test.con", "hello");
@@ -34,7 +34,7 @@ public class ProjectTests {
 	
 	@Test
 	public void testWriteFileWithRootPath() {
-		Folder mockedRoot = mock(Folder.class);
+		OldFolder mockedRoot = mock(OldFolder.class);
 		Project project = new TestingProject(mockedRoot);
 		when(mockedRoot.path()).thenReturn("/test");
 		project.writeFile("/test/test.con", "hello");

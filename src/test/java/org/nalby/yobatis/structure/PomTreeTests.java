@@ -18,17 +18,17 @@ public class PomTreeTests {
 	
 	private Project project;
 	
-	private Folder webappFolder;
+	private OldFolder webappFolder;
 	
-	private Folder resourceFolder;
+	private OldFolder resourceFolder;
 	
-	private Folder sourceCodeFolder;
+	private OldFolder sourceCodeFolder;
 	
-	private Set<Folder> sourceCodeFolders;
+	private Set<OldFolder> sourceCodeFolders;
 	
-	private Folder dao;
+	private OldFolder dao;
 
-	private Folder model;
+	private OldFolder model;
 	
 	private String defaultXML = "<project>\n" + 
 			"  <modelVersion>4.0.0</modelVersion>\n" + 
@@ -54,21 +54,21 @@ public class PomTreeTests {
 		when(project.containsFile("pom.xml")).thenReturn(true);
 		when(project.openFile("pom.xml")).thenReturn(new ByteArrayInputStream(defaultXML.getBytes()));
 
-		resourceFolder = mock(Folder.class);
+		resourceFolder = mock(OldFolder.class);
 		when(project.findFolder("src/main/resources")).thenReturn(resourceFolder);
 
-		webappFolder = mock(Folder.class);
+		webappFolder = mock(OldFolder.class);
 		when(project.findFolder("src/main/webapp")).thenReturn(webappFolder);
 
-		sourceCodeFolder = mock(Folder.class);
+		sourceCodeFolder = mock(OldFolder.class);
 		when(project.findFolder("src/main/java")).thenReturn(sourceCodeFolder);
 		
 		sourceCodeFolders = new HashSet<>();
 		
-		dao = mock(Folder.class);
+		dao = mock(OldFolder.class);
 		when(dao.path()).thenReturn("/test/src/main/java/dao");
 
-		model = mock(Folder.class);
+		model = mock(OldFolder.class);
 		when(model.path()).thenReturn("/test/src/main/java/model");
 
 		sourceCodeFolders.add(dao);
@@ -124,7 +124,7 @@ public class PomTreeTests {
 		when(project.findFolder("src/main/webapp")).thenReturn(null);
 		PomTree tree = new PomTree(project);
 		Pom pom = tree.getWarPom();
-		Set<Folder> set = pom.getResourceFolders();
+		Set<OldFolder> set = pom.getResourceFolders();
 		assertTrue(set.size() == 0);
 		assertTrue(pom.getWebappFolder() == null);
 		assertTrue("worldworld".equals(pom.filterPlaceholders("${hello}${hello}")));
@@ -162,16 +162,16 @@ public class PomTreeTests {
 				"    </build>\n" + 
 				"</project>"; 
 		when(project.openFile("pom.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
-		Folder helloFolder = mock(Folder.class);
+		OldFolder helloFolder = mock(OldFolder.class);
 		when(helloFolder.openFile("pom.xml")).thenReturn(new ByteArrayInputStream(helloXml.getBytes()));
 		when(project.findFolder("hello")).thenReturn(helloFolder);
 		when(project.findFolder("missing")).thenReturn(null);
-		when(helloFolder.findFolder("src/main/resources")).thenReturn(mock(Folder.class));
-		when(helloFolder.findFolder("src/main/conf")).thenReturn(mock(Folder.class));
-		when(helloFolder.findFolder("src/main/webapp")).thenReturn(mock(Folder.class));
+		when(helloFolder.findFolder("src/main/resources")).thenReturn(mock(OldFolder.class));
+		when(helloFolder.findFolder("src/main/conf")).thenReturn(mock(OldFolder.class));
+		when(helloFolder.findFolder("src/main/webapp")).thenReturn(mock(OldFolder.class));
 		PomTree pomParser = new PomTree(project);
 		Pom pom = pomParser.getWarPom();
-		Set<Folder> resources = pom.getResourceFolders();
+		Set<OldFolder> resources = pom.getResourceFolders();
 		assertTrue(resources.size() == 2);
 		assertTrue(pom.getWebappFolder() != null);
 		assertTrue("testworld${notfound}".equals(pom.filterPlaceholders("${next}${hello}${notfound}")));
@@ -180,7 +180,7 @@ public class PomTreeTests {
 	@Test
 	public void findDaoFolders() {
 		PomTree tree = new PomTree(project);
-		List<Folder> folders = tree.lookupDaoFolders();
+		List<OldFolder> folders = tree.lookupDaoFolders();
 		assertTrue(folders.size() == 1);
 		assertTrue(dao == folders.get(0));
 	}
@@ -190,7 +190,7 @@ public class PomTreeTests {
 	@Test
 	public void findModelFolders() {
 		PomTree tree = new PomTree(project);
-		List<Folder> folders = tree.lookupModelFolders();
+		List<OldFolder> folders = tree.lookupModelFolders();
 		assertTrue(folders.size() == 1);
 		assertTrue(model == folders.get(0));
 
@@ -201,7 +201,7 @@ public class PomTreeTests {
 	@Test
 	public void findResourceFolders() {
 		PomTree tree = new PomTree(project);
-		List<Folder> folders = tree.lookupResourceFolders();
+		List<OldFolder> folders = tree.lookupResourceFolders();
 		assertTrue(folders.size() == 1);
 		assertTrue(resourceFolder == folders.get(0));
 	}

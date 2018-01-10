@@ -4,9 +4,9 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 import org.nalby.yobatis.util.Expect;
-public abstract class Project implements Folder {
+public abstract class Project implements OldFolder {
 	
-	protected Folder root;
+	protected OldFolder root;
 	
 
 	public abstract String concatMavenResitoryPath(String path);
@@ -19,7 +19,7 @@ public abstract class Project implements Folder {
 	}
 	
 	@Override
-	public List<Folder> getSubfolders() {
+	public List<OldFolder> getSubfolders() {
 		return this.root.getSubfolders();
 	}
 	
@@ -53,14 +53,14 @@ public abstract class Project implements Folder {
 	}
 
 	@Override
-	public Folder createFolder(String folderPath) {
+	public OldFolder createFolder(String folderPath) {
 		Expect.notEmpty(folderPath, "folder path must not be empty.");
 		folderPath = wipeRootFolderPath(folderPath);
 		return root.createFolder(folderPath);
 	}
 
 	@Override
-	public Folder findFolder(String folderpath) {
+	public OldFolder findFolder(String folderpath) {
 		Expect.notEmpty(folderpath, "folderpath must not be null.");
 		folderpath = wipeRootFolderPath(folderpath);
 		return root.findFolder(folderpath);
@@ -72,7 +72,7 @@ public abstract class Project implements Folder {
 	}
 	
 	@Override
-	public Set<Folder> getAllFolders() {
+	public Set<OldFolder> getAllFolders() {
 		return root.getAllFolders();
 	}
 
