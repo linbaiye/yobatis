@@ -12,4 +12,10 @@ public class NullLogger implements Logger {
 		// TODO Auto-generated method stub
 	}
 
+	@Override
+	public void debug(String fomart, Object... args) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

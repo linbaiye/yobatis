@@ -61,6 +61,7 @@ public class EclipseLogger extends AbstractLogger implements IConsoleFactory {
 			openConsole();
 			try (MessageConsoleStream out = yobatisConsole.newMessageStream()) {
 				out.write(msg);
+				out.flush();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
