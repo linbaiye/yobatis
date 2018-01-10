@@ -33,7 +33,7 @@ public class AbstractLoggerTests {
 	public void formatStrings() {
 		logger.info("{}{}", "hello", "world");
 		assertTrue(logger.getLogLine().contains("helloworld"));
-		assertTrue(logger.getLogLine().startsWith("INFO"));
+		assertTrue(logger.getLogLine().contains("INFO"));
 		assertTrue(logger.getLogLine().endsWith("\n"));
 	}
 	
@@ -51,7 +51,7 @@ public class AbstractLoggerTests {
 	public void formatToString() {
 		logger.info("{}{}", 1, 1.2);
 		assertTrue(logger.getLogLine().contains("11.2"));
-		assertTrue(logger.getLogLine().startsWith("INFO"));
+		assertTrue(logger.getLogLine().contains("INFO"));
 	}
 	
 	@Test
@@ -62,7 +62,7 @@ public class AbstractLoggerTests {
 			logger.error("{}", e);
 		}
 		assertTrue(logger.logLine.contains("TestException"));
-		assertTrue(logger.getLogLine().startsWith("ERROR"));
+		assertTrue(logger.getLogLine().contains("ERROR"));
 		assertTrue(logger.getLogLine().endsWith("\n"));
 	}
 	
@@ -79,7 +79,7 @@ public class AbstractLoggerTests {
 	@Test
 	public void nullFormat() {
 		logger.info(null);
-		assertTrue(logger.getLogLine().startsWith("INFO"));
+		assertTrue(logger.getLogLine().contains("INFO"));
 	}
 	
 

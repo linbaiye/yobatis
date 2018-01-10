@@ -22,7 +22,7 @@ import org.nalby.yobatis.xml.PomXmlParser;
  */
 public class PomTree {
 
-	private Project project;
+	private OldProject project;
 
 	private Pom root;
 
@@ -30,7 +30,7 @@ public class PomTree {
 	
 	private Set<Pom> poms;
 	
-	public PomTree(Project project) {
+	public PomTree(OldProject project) {
 		try {
 			this.project = project;
 			this.root = new PomNode(null, this.project);
@@ -47,20 +47,20 @@ public class PomTree {
 
 		private Pom parent;
 
-		private Folder folder;
+		private OldFolder folder;
 		
-		private Folder sourceCodeFolder;
+		private OldFolder sourceCodeFolder;
 		
 		/**
 		 * The webapp folder if exists.
 		 */
-		private Folder webappFolder;
+		private OldFolder webappFolder;
 		/**
 		 * The resource folders in this module.
 		 */
-		private Set<Folder> resourceFolders;
+		private Set<OldFolder> resourceFolders;
 
-		private PomNode(Pom parent, Folder folder) {
+		private PomNode(Pom parent, OldFolder folder) {
 			Expect.notNull(folder, "folder is null.");
 			this.parent = parent;
 			this.folder = folder;
@@ -81,7 +81,7 @@ public class PomTree {
 		private void buildSubtree() {
 			Set<String> moduleNames = pomXmlParser.getModuleNames();
 			for (String module : moduleNames) {
-				Folder subfolder = folder.findFolder(module);
+				OldFolder subfolder = folder.findFolder(module);
 				children.add(new PomNode(this, subfolder));
 			}
 		}
@@ -90,14 +90,14 @@ public class PomTree {
 			if (isWar()) {
 				webappFolder = this.folder.findFolder("src/main/webapp");
 			}
-			resourceFolders = new HashSet<Folder>();
+			resourceFolders = new HashSet<OldFolder>();
 			if (isContainer()) {
 				return;
 			}
 			sourceCodeFolder = this.folder.findFolder("src/main/java");
 			Set<String> paths = pomXmlParser.getResourceDirs();
 			for (String path: paths) {
-				Folder folder = this.folder.findFolder(path);
+				OldFolder folder = this.folder.findFolder(path);
 				if (folder != null) {
 					resourceFolders.add(folder);
 				}
@@ -124,17 +124,17 @@ public class PomTree {
 		}
 
 		@Override
-		public Folder getFolder() {
+		public OldFolder getFolder() {
 			return folder;
 		}
 
 		@Override
-		public Set<Folder> getResourceFolders() {
+		public Set<OldFolder> getResourceFolders() {
 			return resourceFolders;
 		}
 
 		@Override
-		public Folder getWebappFolder() {
+		public OldFolder getWebappFolder() {
 			return webappFolder;
 		}
 
@@ -158,7 +158,7 @@ public class PomTree {
 		}
 
 		@Override
-		public Folder getSourceCodeFolder() {
+		public OldFolder getSourceCodeFolder() {
 			return sourceCodeFolder;
 		}
 	}
@@ -227,15 +227,15 @@ public class PomTree {
 		return null;
 	}
 	
-	private List<Folder> sourceCodeFolders = null;
+	private List<OldFolder> sourceCodeFolders = null;
 
-	private List<Folder> lookupSourceCodeFolders() {
+	private List<OldFolder> lookupSourceCodeFolders() {
 		if (sourceCodeFolders != null) {
 			return sourceCodeFolders;
 		}
-		sourceCodeFolders =  new LinkedList<Folder>();
+		sourceCodeFolders =  new LinkedList<OldFolder>();
 		for (Pom pom : getPoms()) {
-			Folder tmp = pom.getSourceCodeFolder();
+			OldFolder tmp = pom.getSourceCodeFolder();
 			if (tmp != null) {
 				sourceCodeFolders.add(tmp);
 			}
@@ -244,14 +244,14 @@ public class PomTree {
 	}
 
 	private interface FolderSelector {
-		public boolean isSelected(Folder folder);
+		public boolean isSelected(OldFolder folder);
 	}
 	
-	private List<Folder> iterateSourceCodeFolders(FolderSelector selector) {
-		List<Folder> sourceCodeFolders = lookupSourceCodeFolders();
-		List<Folder> folders = new LinkedList<Folder>();
-		for (Folder sourceCodeFolder: sourceCodeFolders) {
-			for (Folder folder: sourceCodeFolder.getAllFolders()) {
+	private List<OldFolder> iterateSourceCodeFolders(FolderSelector selector) {
+		List<OldFolder> sourceCodeFolders = lookupSourceCodeFolders();
+		List<OldFolder> folders = new LinkedList<OldFolder>();
+		for (OldFolder sourceCodeFolder: sourceCodeFolders) {
+			for (OldFolder folder: sourceCodeFolder.getAllFolders()) {
 				if (selector.isSelected(folder)) {
 					folders.add(folder);
 				}
@@ -260,10 +260,10 @@ public class PomTree {
 		return folders;
 	}
 	
-	public List<Folder> lookupDaoFolders() {
+	public List<OldFolder> lookupDaoFolders() {
 		return iterateSourceCodeFolders(new FolderSelector() {
 			@Override
-			public boolean isSelected(Folder folder) {
+			public boolean isSelected(OldFolder folder) {
 				String path = folder.path();
 				if (path.endsWith("dao") || path.endsWith("mapper") || path.endsWith("repository")) {
 					return true;
@@ -273,10 +273,10 @@ public class PomTree {
 		});
 	}
 
-	public List<Folder> lookupModelFolders() {
+	public List<OldFolder> lookupModelFolders() {
 		return iterateSourceCodeFolders(new FolderSelector() {
 			@Override
-			public boolean isSelected(Folder folder) {
+			public boolean isSelected(OldFolder folder) {
 				String path = folder.path();
 				if (path.endsWith("domain") || path.endsWith("entity") || path.endsWith("model")) {
 					return true;
@@ -286,8 +286,8 @@ public class PomTree {
 		});
 	}
 	
-	public List<Folder> lookupResourceFolders() {
-		List<Folder> resourceFolders = new LinkedList<Folder>();
+	public List<OldFolder> lookupResourceFolders() {
+		List<OldFolder> resourceFolders = new LinkedList<OldFolder>();
 		for (Pom pom: poms) {
 			resourceFolders.addAll(pom.getResourceFolders());
 		}
