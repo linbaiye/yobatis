@@ -34,6 +34,8 @@ public interface Folder {
 	 * created, the file will be truncated if already existed.
 	 * @param filepath the file path.
 	 * @return the file created or returned.
+	 * @throws ResourceNotAvalaibleException if any missing folder was unable to create, 
+	 * 	or could not create the file.
 	 */
 	File createFile(String filepath);
 	
@@ -41,6 +43,7 @@ public interface Folder {
 	 * Create a folder recursively under this folder based on the path.
 	 * @param path the folder path.
 	 * @return the folder created.
+	 * @throws ResourceNotAvalaibleException if any missing folder was unable to create.
 	 */
 	Folder createFolder(String folderpath);
 
