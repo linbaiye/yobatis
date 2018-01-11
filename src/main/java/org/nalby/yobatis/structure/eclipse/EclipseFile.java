@@ -2,8 +2,6 @@ package org.nalby.yobatis.structure.eclipse;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.LinkedList;
-import java.util.List;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
@@ -11,7 +9,6 @@ import org.eclipse.core.runtime.CoreException;
 import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
 import org.nalby.yobatis.structure.File;
 import org.nalby.yobatis.util.Expect;
-import org.nalby.yobatis.util.TextUtil;
 
 public final class EclipseFile implements File {
 	
@@ -83,17 +80,4 @@ public final class EclipseFile implements File {
 			throw new ResourceNotAvailableExeception(e);
 		}
 	}
-	
-	public static List<File> iFilesToFiles(String parentPath, IResource[] resources) {
-		List<File> tmp = new LinkedList<>();
-		if (resources != null && !TextUtil.isEmpty(parentPath)) {
-			for (IResource resource : resources) {
-				if (resource.getType() == IResource.FILE) {
-					tmp.add(new EclipseFile(parentPath, (IFile)resource));
-				}
-			}
-		}
-		return tmp;
-	}
-	
 }

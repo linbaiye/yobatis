@@ -31,7 +31,7 @@ public interface Folder {
 	
 	/**
 	 * Create a {@link File} of the path, all missing folder nodes will be 
-	 * created, or the file is returned if already existed.
+	 * created, the file will be truncated if already existed.
 	 * @param filepath the file path.
 	 * @return the file created or returned.
 	 */

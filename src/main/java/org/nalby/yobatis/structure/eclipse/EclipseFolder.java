@@ -41,7 +41,7 @@ public final class EclipseFolder extends AbstractFolder {
 			}
 			return ((IProject)resource).members();
 		} catch (Exception e) {
-			throw new UnsupportedProjectException(e);
+			throw new ResourceNotAvailableExeception(e);
 		}
 	}
 	
@@ -52,7 +52,7 @@ public final class EclipseFolder extends AbstractFolder {
 			}
 			return ((IProject)resource).getFile(name);
 		} catch (Exception e) {
-			throw new UnsupportedProjectException(e);
+			throw new ResourceNotAvailableExeception(e);
 		}
 	}
 	
@@ -64,12 +64,11 @@ public final class EclipseFolder extends AbstractFolder {
 			}
 			return ((IProject)resource).getFolder(name);
 		} catch (Exception e) {
-			throw new UnsupportedProjectException(e);
+			throw new ResourceNotAvailableExeception(e);
 		}
 	}
 	
 
-	
 	private <T> List<T> createList(int type, ObjectCreater<T> objectCreater) {
 		List<T> list = new ArrayList<>();
 		for (IResource resource : getMembers()) {
