@@ -18,7 +18,7 @@ import org.nalby.yobatis.log.Logger;
 import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.OldFolder;
-import org.nalby.yobatis.structure.PomTree;
+import org.nalby.yobatis.structure.OldPomTree;
 import org.nalby.yobatis.xml.AbstractXmlParser;
 import org.nalby.yobatis.xml.MybatisXmlParser;
 
@@ -33,7 +33,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 
 	private Sql sql;
 
-	private PomTree pomTree;
+	private OldPomTree pomTree;
 	
 	private DocumentFactory factory = DocumentFactory.getInstance();
 
@@ -61,7 +61,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	
 	private Logger logger = LogFactory.getLogger(MybatisConfigFileGenerator.class);
 	
-	public MybatisConfigFileGenerator(PomTree pomTree, Sql sql) {
+	public MybatisConfigFileGenerator(OldPomTree pomTree, Sql sql) {
 		logger.info("Generating MyBatis Generator's configuration file.");
 		this.sql = sql;
 		this.pomTree = pomTree;

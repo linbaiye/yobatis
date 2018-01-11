@@ -25,7 +25,7 @@ public class SpringParser {
 	
 	private Logger logger = LogFactory.getLogger(this.getClass());
 	
-	private SpringAntPatternFileManager fileManager;
+	private OldSpringAntPatternFileManager fileManager;
 	
 	private String dbPassword;
 	
@@ -39,11 +39,11 @@ public class SpringParser {
 
 	/**
 	 * Construct a {@code SpringParser} that analyzes the spring files.
-	 * @param fileManager {@link SpringAntPatternFileManager}
+	 * @param fileManager {@link OldSpringAntPatternFileManager}
 	 * @param initParamValues The param-value in web.xml, including servlet and application
 	 * context.
 	 */
-	public SpringParser(SpringAntPatternFileManager fileManager, Set<String> initParamValues) {
+	public SpringParser(OldSpringAntPatternFileManager fileManager, Set<String> initParamValues) {
 		Expect.notNull(fileManager, "pomParser must not be null.");
 		Expect.notNull(initParamValues, "initParamValues must not be null.");
 		Set<String> locations = parseLocationsInInitParamValues(initParamValues);

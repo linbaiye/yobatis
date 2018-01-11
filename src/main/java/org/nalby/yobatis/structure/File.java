@@ -13,5 +13,11 @@ public interface File {
 	void write(InputStream inputStream);
 
 	void write(String content);
+	
+	/**
+	 * Get the folder that contains this file.
+	 * @return parent folder.
+	 */
+	Folder parentFolder();
 
 }

@@ -94,7 +94,7 @@ public final class EclipseFolder extends AbstractFolder {
 		return createList(IResource.FILE, new ObjectCreater<File>() {
 			@Override
 			public File create(IResource resource) {
-				return new EclipseFile(EclipseFolder.this.path, (IFile)resource);
+				return new EclipseFile(EclipseFolder.this, (IFile)resource);
 			}
 		});
 	}
@@ -118,7 +118,7 @@ public final class EclipseFolder extends AbstractFolder {
 	@Override
 	protected File doCreateFile(String name) {
 		IFile iFile = getIFile(name);
-		return EclipseFile.createFile(path, iFile);
+		return EclipseFile.createFile(this, iFile);
 	}
 
 }

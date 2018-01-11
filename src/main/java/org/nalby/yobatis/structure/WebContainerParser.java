@@ -15,7 +15,7 @@ public class WebContainerParser {
 	
 	private Set<String> springInitParamValues;
 	
-	public WebContainerParser(Pom webpom) {
+	public WebContainerParser(OldPom webpom) {
 		Expect.notNull(webpom, "webappFolder must not be null.");
 		InputStream inputStream = null;
 		try {

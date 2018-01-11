@@ -20,9 +20,9 @@ import org.nalby.yobatis.mybatis.MybatisFilesWriter;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.sql.mysql.Mysql;
 import org.nalby.yobatis.sql.mysql.Mysql.Builder;
-import org.nalby.yobatis.structure.PomTree;
+import org.nalby.yobatis.structure.OldPomTree;
 import org.nalby.yobatis.structure.OldProject;
-import org.nalby.yobatis.structure.SpringAntPatternFileManager;
+import org.nalby.yobatis.structure.OldSpringAntPatternFileManager;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.WebContainerParser;
 import org.nalby.yobatis.structure.eclipse.OldEclipseProject;
@@ -36,11 +36,11 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	 *  Build the generator of mybatis-generator's config file according to project config.
 	 */
 	private MybatisConfigFileGenerator buildMybatisGeneratorConfigMaker(OldProject project) {
-		PomTree pomTree = new PomTree(project);
+		OldPomTree pomTree = new OldPomTree(project);
 
 		WebContainerParser webContainerParser = new WebContainerParser(pomTree.getWarPom());
 
-		SpringAntPatternFileManager fileManager = new SpringAntPatternFileManager(pomTree, project);
+		OldSpringAntPatternFileManager fileManager = new OldSpringAntPatternFileManager(pomTree, project);
 
 		SpringParser springParser = new SpringParser(fileManager, webContainerParser.getSpringInitParamValues());
 
@@ -136,11 +136,11 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 
 	private void buildMybatisGeneratorConfigMaker1(OldProject project) {
-		PomTree pomTree = new PomTree(project);
+		OldPomTree pomTree = new OldPomTree(project);
 
 		WebContainerParser webContainerParser = new WebContainerParser(pomTree.getWarPom());
 
-		SpringAntPatternFileManager fileManager = new SpringAntPatternFileManager(pomTree, project);
+		OldSpringAntPatternFileManager fileManager = new OldSpringAntPatternFileManager(pomTree, project);
 
 		SpringParser springParser = new SpringParser(fileManager, webContainerParser.getSpringInitParamValues());
 

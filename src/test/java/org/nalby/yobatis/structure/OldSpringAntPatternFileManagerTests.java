@@ -18,13 +18,13 @@ import java.util.Properties;
 import java.util.Set;
 
 
-public class SpringAntPatternFileManagerTests {
+public class OldSpringAntPatternFileManagerTests {
 	
-	private SpringAntPatternFileManager fileManager;
+	private OldSpringAntPatternFileManager fileManager;
 	
-	private PomTree pomTree;
+	private OldPomTree pomTree;
 	
-	private Pom webpom;
+	private OldPom webpom;
 	
 	/**
 	 * The webapp folder of webpm.
@@ -38,7 +38,7 @@ public class SpringAntPatternFileManagerTests {
 	
 	private OldProject project;
 	
-	private Set<Pom> poms;
+	private Set<OldPom> poms;
 	
 	/**
 	 * used to add files to a folder.
@@ -46,8 +46,8 @@ public class SpringAntPatternFileManagerTests {
 	private Map<OldFolder, Set<String>> folderFiles;
 	
 	
-	private Pom mockPom() {
-		Pom pom = mock(Pom.class);
+	private OldPom mockPom() {
+		OldPom pom = mock(OldPom.class);
 		poms.add(pom);
 		return pom;
 	}
@@ -56,7 +56,7 @@ public class SpringAntPatternFileManagerTests {
 	@Before
 	public void setup() {
 		
-		pomTree = mock(PomTree.class);
+		pomTree = mock(OldPomTree.class);
 		poms = new HashSet<>();
 		when(pomTree.getPoms()).thenReturn(poms);
 		
@@ -69,7 +69,7 @@ public class SpringAntPatternFileManagerTests {
 				return (String)invocation.getArguments()[0];
 			}
 		});
-		webappFolder = TestUtil.mockFolder("/yobatis/src/main/webapp");
+		webappFolder = TestUtil.mockOldFolder("/yobatis/src/main/webapp");
 		when(webpom.getWebappFolder()).thenReturn(webappFolder);
 		resourceFolders = new HashSet<>();
 		when(webpom.getResourceFolders()).thenReturn(resourceFolders);
@@ -79,7 +79,7 @@ public class SpringAntPatternFileManagerTests {
 
 		project = mock(OldProject.class);
 
-		fileManager = new SpringAntPatternFileManager(pomTree, project);
+		fileManager = new OldSpringAntPatternFileManager(pomTree, project);
 		
 		folderFiles = new HashMap<>();
 	}
@@ -131,7 +131,7 @@ public class SpringAntPatternFileManagerTests {
 	
 	@Test
 	public void relativeClasspath() {
-		OldFolder folder = TestUtil.mockFolder("/yobatis/src/main/resources");
+		OldFolder folder = TestUtil.mockOldFolder("/yobatis/src/main/resources");
 		resourceFolders.add(folder);
 		addFileToFolder(folder, "test.xml", "test1.xml");
 		Set<String> files = fileManager.findSpringFiles("classpath:test.xml");
@@ -140,7 +140,7 @@ public class SpringAntPatternFileManagerTests {
 	
 	@Test
 	public void brokenClasspath() {
-		OldFolder folder = TestUtil.mockFolder("/yobatis/src/main/resources");
+		OldFolder folder = TestUtil.mockOldFolder("/yobatis/src/main/resources");
 		resourceFolders.add(folder);
 		addFileToFolder(folder, "test.xml", "test1.xml");
 		Set<String> files = fileManager.findSpringFiles("classpath:");
@@ -149,7 +149,7 @@ public class SpringAntPatternFileManagerTests {
 	
 	@Test
 	public void absoluteClasspath() {
-		OldFolder folder = TestUtil.mockFolder("/yobatis/src/main/resources");
+		OldFolder folder = TestUtil.mockOldFolder("/yobatis/src/main/resources");
 		resourceFolders.add(folder);
 		addFileToFolder(folder, "test.xml", "test1.xml");
 		Set<String> files = fileManager.findSpringFiles("classpath:/test.xml");
@@ -158,7 +158,7 @@ public class SpringAntPatternFileManagerTests {
 	
 	@Test
 	public void relativeAntPatternClasspath() {
-		OldFolder folder = TestUtil.mockFolder("/yobatis/src/main/resources");
+		OldFolder folder = TestUtil.mockOldFolder("/yobatis/src/main/resources");
 		resourceFolders.add(folder);
 		addFileToFolder(folder, "test.xml", "test1.xml");
 		Set<String> files = fileManager.findSpringFiles("classpath:*.xml");
@@ -173,11 +173,11 @@ public class SpringAntPatternFileManagerTests {
 	
 	@Test
 	public void prefixWildcardClasspath() {
-		OldFolder folder = TestUtil.mockFolder("/yobatis/src/main/resources");
+		OldFolder folder = TestUtil.mockOldFolder("/yobatis/src/main/resources");
 		resourceFolders.add(folder);
 		addFileToFolder(folder, "test.xml");
 
-		folder = TestUtil.mockFolder("/yobatis/src/main/resources1");
+		folder = TestUtil.mockOldFolder("/yobatis/src/main/resources1");
 		resourceFolders.add(folder);
 		addFileToFolder(folder, "test1.xml");
 
@@ -192,11 +192,11 @@ public class SpringAntPatternFileManagerTests {
 	
 	@Test
 	public void brokenPrefixWildcardClasspath() {
-		OldFolder folder = TestUtil.mockFolder("/yobatis/src/main/resources");
+		OldFolder folder = TestUtil.mockOldFolder("/yobatis/src/main/resources");
 		resourceFolders.add(folder);
 		addFileToFolder(folder, "test.xml");
 
-		folder = TestUtil.mockFolder("/yobatis/src/main/resources1");
+		folder = TestUtil.mockOldFolder("/yobatis/src/main/resources1");
 		resourceFolders.add(folder);
 		addFileToFolder(folder, "test1.xml");
 
@@ -266,7 +266,7 @@ public class SpringAntPatternFileManagerTests {
 		addFileToFolder(webappFolder, "conf/test1.xml", "test.xml");
 		Set<String> files = fileManager.findSpringFiles("test.xml");
 
-		OldFolder folder = TestUtil.mockFolder("/yobatis/src/main/resources");
+		OldFolder folder = TestUtil.mockOldFolder("/yobatis/src/main/resources");
 		addFileToFolder(folder, "test1.xml", "test2.xml");
 		resourceFolders.add(folder);
 
@@ -283,8 +283,8 @@ public class SpringAntPatternFileManagerTests {
 		addFileToFolder(webappFolder, "conf/test1.xml", "test.xml");
 		Set<String> files = fileManager.findSpringFiles("test.xml");
 
-		Pom pom = mockPom();
-		OldFolder folder = TestUtil.mockFolder("/yobatis/submodule/src/main/resources");
+		OldPom pom = mockPom();
+		OldFolder folder = TestUtil.mockOldFolder("/yobatis/submodule/src/main/resources");
 		Set<OldFolder> resources = new HashSet<>();
 		resources.add(folder);
 		addFileToFolder(folder, "test1.xml", "test2.xml");
@@ -317,7 +317,7 @@ public class SpringAntPatternFileManagerTests {
 		        "<property name=\"systemPropertiesModeName\" value=\"SYSTEM_PROPERTIES_MODE_OVERRIDE\" />" + 
 		        "<property name=\"ignoreResourceNotFound\" value=\"true\" />" +
 		        "<property name=\"locations\"><list><value>/important.properties</value></list></property></bean></beans>";
-		OldFolder folder = TestUtil.mockFolder("/yobatis/src/main/resources");
+		OldFolder folder = TestUtil.mockOldFolder("/yobatis/src/main/resources");
 		addFileToFolder(folder, "test.xml");
 		resourceFolders.add(folder);
 		
