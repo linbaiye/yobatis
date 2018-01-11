@@ -2,24 +2,30 @@ package org.nalby.yobatis.structure.eclipse;
 
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.Platform;
+import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.structure.Project;
-import org.nalby.yobatis.util.Expect;
 
 public class EclipseProject extends Project {
 
 	public EclipseProject(IProject project) {
 		this.root = new EclipseFolder("/", project);
+		open(project);
+	}
+	
+	private void open(IProject project)  {
+		try {
+			if (!project.isOpen()) {
+				project.open(null);
+			}
+		} catch (Exception e) {
+			throw new UnsupportedProjectException(e);
+		}
 	}
 	
 	@Override
-	public String concatMavenResitoryPath(String path) {
-		Expect.notEmpty(path, "Path should not be null.");
+	protected String findMavenRepositoryPath() {
 		String home = Platform.getUserLocation().getURL().getPath();
-		// Not sure why the '/user' suffix is attached.
-		if (home.endsWith("/user/")) {
-			home = home.replaceFirst("/user/$", "/.m2/repository");
-		}
-		return home + (path.startsWith("/")? path : "/" + path);
+		return home.replaceFirst("/user/$", "/.m2/repository");
 	}
 
 }

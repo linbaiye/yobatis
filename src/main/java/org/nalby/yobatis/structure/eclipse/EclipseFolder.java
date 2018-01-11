@@ -8,7 +8,6 @@ import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
-import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.structure.AbstractFolder;
 import org.nalby.yobatis.structure.File;
 import org.nalby.yobatis.structure.Folder;

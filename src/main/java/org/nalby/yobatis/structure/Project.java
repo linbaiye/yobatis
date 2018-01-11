@@ -3,6 +3,7 @@ package org.nalby.yobatis.structure;
 import java.util.List;
 
 import org.nalby.yobatis.util.Expect;
+import org.nalby.yobatis.util.FolderUtil;
 
 public abstract class Project implements Folder {
 
@@ -11,7 +12,11 @@ public abstract class Project implements Folder {
 	 */
 	protected Folder root;
 	
-	public abstract String concatMavenResitoryPath(String path);
+	/**
+	 * It is left to the platform to find out where the maven repository is.
+	 * @return the maven path, null if failed to find.
+	 */
+	abstract protected String findMavenRepositoryPath();
 
 	private String wipeRootFolderPath(String path) {
 		Expect.notEmpty(path, "path must not be empty.");
@@ -19,6 +24,12 @@ public abstract class Project implements Folder {
 			return path.replaceFirst(root.path() + "/", "");
 		}
 		return path;
+	}
+
+
+	public String concatMavenRepositoryPath(String path) {
+		Expect.notEmpty(path, "path must not be null.");
+		return FolderUtil.concatPath(findMavenRepositoryPath(), path);
 	}
 
 	@Override
