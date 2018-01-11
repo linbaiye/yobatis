@@ -1,50 +1,29 @@
 package org.nalby.yobatis.structure;
 
-import java.io.InputStream;
 import java.util.List;
-import java.util.Set;
-import org.nalby.yobatis.util.Expect;
-public abstract class Project implements OldFolder {
-	
-	protected OldFolder root;
-	
 
+import org.nalby.yobatis.util.Expect;
+
+public abstract class Project implements Folder {
+
+	/**
+	 * The folder of the project itself.
+	 */
+	protected Folder root;
+	
 	public abstract String concatMavenResitoryPath(String path);
-	
-	@Override
-	public boolean containsFile(String filepath) {
-		Expect.notEmpty(filepath, "filepath must not be null.");
-		filepath = wipeRootFolderPath(filepath);
-		return root.containsFile(filepath);
-	}
-	
-	@Override
-	public List<OldFolder> getSubfolders() {
-		return this.root.getSubfolders();
-	}
-	
+
 	private String wipeRootFolderPath(String path) {
+		Expect.notEmpty(path, "path must not be empty.");
 		if (path.startsWith(root.path())) {
 			return path.replaceFirst(root.path() + "/", "");
 		}
 		return path;
 	}
-	
-	@Override
-	public void writeFile(String filepath, String content) {
-		Expect.notEmpty(filepath, "filepath must not be null.");
-		filepath = wipeRootFolderPath(filepath);
-		root.writeFile(filepath, content);
-	}
-	
+
 	@Override
 	public String path() {
 		return root.path();
-	}
-
-	@Override
-	public boolean containsFolders() {
-		return root.containsFolders();
 	}
 
 	@Override
@@ -53,38 +32,33 @@ public abstract class Project implements OldFolder {
 	}
 
 	@Override
-	public OldFolder createFolder(String folderPath) {
-		Expect.notEmpty(folderPath, "folder path must not be empty.");
-		folderPath = wipeRootFolderPath(folderPath);
-		return root.createFolder(folderPath);
+	public List<Folder> listFolders() {
+		return root.listFolders();
 	}
 
 	@Override
-	public OldFolder findFolder(String folderpath) {
-		Expect.notEmpty(folderpath, "folderpath must not be null.");
-		folderpath = wipeRootFolderPath(folderpath);
-		return root.findFolder(folderpath);
+	public File findFile(String filepath) {
+		return root.findFile(wipeRootFolderPath(filepath));
 	}
 
 	@Override
-	public Set<String> getFilenames() {
-		return root.getFilenames();
-	}
-	
-	@Override
-	public Set<OldFolder> getAllFolders() {
-		return root.getAllFolders();
+	public File createFile(String filepath) {
+		return root.createFile(wipeRootFolderPath(filepath));
 	}
 
 	@Override
-	public Set<String> getAllFilepaths() {
-		return root.getAllFilepaths();
+	public Folder createFolder(String folderpath) {
+		return root.createFolder(wipeRootFolderPath(folderpath));
 	}
-	
+
 	@Override
-	public InputStream openFile(String filepath) {
-		Expect.notEmpty(filepath, "folderpath must not be null.");
-		filepath = wipeRootFolderPath(filepath);
-		return root.openFile(filepath);
+	public Folder findFolder(String folerpath) {
+		return root.findFolder(wipeRootFolderPath(folerpath));
 	}
+
+	@Override
+	public List<File> listFiles() {
+		return root.listFiles();
+	}
+
 }

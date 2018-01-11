@@ -23,7 +23,7 @@ import org.nalby.yobatis.xml.SpringXmlParser;
  *
  */
 public class SpringAntPatternFileManager {
-	private Project project;
+	private OldProject project;
 	
 	private static class FileMetadata { 
 		private OldFolder folder;
@@ -67,7 +67,7 @@ public class SpringAntPatternFileManager {
 		}
 	}
 	
-	public SpringAntPatternFileManager(PomTree pomTree, Project project) {
+	public SpringAntPatternFileManager(PomTree pomTree, OldProject project) {
 		this.pomTree = pomTree;
 		files = new HashMap<>();
 		parsers = new HashMap<>();

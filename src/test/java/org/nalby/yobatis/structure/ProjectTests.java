@@ -11,7 +11,7 @@ import org.nalby.yobatis.structure.OldFolder;
 @RunWith(MockitoJUnitRunner.class)
 public class ProjectTests {
 	
-	private class TestingProject extends Project {
+	private class TestingProject extends OldProject {
 		public TestingProject(OldFolder root) {
 			this.root = root;
 		} 
@@ -27,7 +27,7 @@ public class ProjectTests {
 	public void writeFileDirectly() {
 		OldFolder mockedRoot = mock(OldFolder.class);
 		when(mockedRoot.path()).thenReturn("/test");
-		Project project = new TestingProject(mockedRoot);
+		OldProject project = new TestingProject(mockedRoot);
 		project.writeFile("test.con", "hello");
 		verify(mockedRoot).writeFile("test.con", "hello");
 	}
@@ -35,7 +35,7 @@ public class ProjectTests {
 	@Test
 	public void testWriteFileWithRootPath() {
 		OldFolder mockedRoot = mock(OldFolder.class);
-		Project project = new TestingProject(mockedRoot);
+		OldProject project = new TestingProject(mockedRoot);
 		when(mockedRoot.path()).thenReturn("/test");
 		project.writeFile("/test/test.con", "hello");
 		verify(mockedRoot).writeFile("test.con", "hello");

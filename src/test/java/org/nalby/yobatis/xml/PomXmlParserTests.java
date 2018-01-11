@@ -8,7 +8,6 @@ import java.util.Set;
 
 import org.dom4j.DocumentException;
 import org.junit.Test;
-import org.nalby.yobatis.exception.UnsupportedProjectException;
 
 public class PomXmlParserTests {
 	

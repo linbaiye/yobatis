@@ -16,7 +16,7 @@ import static org.mockito.Mockito.*;
 
 public class PomTreeTests {
 	
-	private Project project;
+	private OldProject project;
 	
 	private OldFolder webappFolder;
 	
@@ -50,7 +50,7 @@ public class PomTreeTests {
 
 	@Before
 	public void setup() {
-		project = mock(Project.class);
+		project = mock(OldProject.class);
 		when(project.containsFile("pom.xml")).thenReturn(true);
 		when(project.openFile("pom.xml")).thenReturn(new ByteArrayInputStream(defaultXML.getBytes()));
 

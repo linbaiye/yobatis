@@ -36,7 +36,7 @@ public class SpringAntPatternFileManagerTests {
 	 */
 	private Set<OldFolder> resourceFolders;
 	
-	private Project project;
+	private OldProject project;
 	
 	private Set<Pom> poms;
 	
@@ -77,7 +77,7 @@ public class SpringAntPatternFileManagerTests {
 		when(pomTree.getWarPom()).thenReturn(webpom);
 		
 
-		project = mock(Project.class);
+		project = mock(OldProject.class);
 
 		fileManager = new SpringAntPatternFileManager(pomTree, project);
 		

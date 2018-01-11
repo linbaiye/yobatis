@@ -22,7 +22,7 @@ import org.nalby.yobatis.xml.PomXmlParser;
  */
 public class PomTree {
 
-	private Project project;
+	private OldProject project;
 
 	private Pom root;
 
@@ -30,7 +30,7 @@ public class PomTree {
 	
 	private Set<Pom> poms;
 	
-	public PomTree(Project project) {
+	public PomTree(OldProject project) {
 		try {
 			this.project = project;
 			this.root = new PomNode(null, this.project);
