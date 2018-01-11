@@ -119,7 +119,7 @@ public final class EclipseFolder extends AbstractFolder {
 	@Override
 	protected File doCreateFile(String name) {
 		IFile iFile = getIFile(name);
-		return EclipseFile.createIFile(path, iFile);
+		return EclipseFile.createFile(path, iFile);
 	}
 
 }

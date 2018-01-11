@@ -5,10 +5,10 @@ import java.io.InputStream;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.runtime.CoreException;
 import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
 import org.nalby.yobatis.structure.File;
 import org.nalby.yobatis.util.Expect;
+import org.nalby.yobatis.util.FolderUtil;
 
 public final class EclipseFile implements File {
 	
@@ -20,7 +20,7 @@ public final class EclipseFile implements File {
 		Expect.notNull(iFile, "iFile must not be null.");
 		Expect.notEmpty(parentPath, "path must not be null.");
 		this.iFile = iFile;
-		this.path = parentPath + "/" + iFile.getName();
+		this.path = FolderUtil.concatPath(parentPath, iFile.getName());
 	}
 
 	@Override
@@ -37,7 +37,7 @@ public final class EclipseFile implements File {
 	public InputStream open() {
 		try {
 			return iFile.getContents();
-		} catch (CoreException e) {
+		} catch (Exception e) {
 			throw new ResourceNotAvailableExeception(e);
 		}
 	}
@@ -48,7 +48,7 @@ public final class EclipseFile implements File {
 			if (iFile.exists()) {
 				iFile.delete(true, null);
 			}
-			iFile.create(inputStream, IResource.NONE, null);
+			iFile.create(inputStream, IResource.FILE, null);
 			iFile.refreshLocal(0, null);
 		} catch (Exception e) {
 			throw new ResourceNotAvailableExeception(e);
@@ -67,7 +67,7 @@ public final class EclipseFile implements File {
 		}
 	}
 	
-	public static File createIFile(String parentPath, IFile iFile) {
+	public static File createFile(String parentPath, IFile iFile) {
 		try {
 			File file = new EclipseFile(parentPath, iFile);
 			try (InputStream inputStream = new ByteArrayInputStream(new byte[0])) {
