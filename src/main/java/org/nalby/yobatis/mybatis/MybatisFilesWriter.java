@@ -12,7 +12,7 @@ import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
-import org.nalby.yobatis.structure.Project;
+import org.nalby.yobatis.structure.OldProject;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.xml.SqlMapperParser;
 
@@ -26,11 +26,11 @@ public class MybatisFilesWriter {
 
 	private MybatisConfigReader reader;
 
-	private Project project;
+	private OldProject project;
 	
 	private Logger logger = LogFactory.getLogger(MybatisFilesWriter.class);
 
-	public MybatisFilesWriter(Project project, MybatisConfigReader configReader) {
+	public MybatisFilesWriter(OldProject project, MybatisConfigReader configReader) {
 		Expect.notNull(project, "project must not be null.");
 		Expect.notNull(configReader, "configReader must not be null.");
 		this.project = project;

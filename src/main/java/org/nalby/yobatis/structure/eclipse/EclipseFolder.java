@@ -1,303 +1,124 @@
 package org.nalby.yobatis.structure.eclipse;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.Stack;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.runtime.CoreException;
-import org.nalby.yobatis.exception.ProjectException;
-import org.nalby.yobatis.exception.ResourceNotFoundException;
+import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
+import org.nalby.yobatis.structure.AbstractFolder;
+import org.nalby.yobatis.structure.File;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.FolderUtil;
-import org.nalby.yobatis.util.TextUtil;
 
-public class EclipseFolder implements Folder {
 
-	private IResource wrappedFolder;
-
-	private String path;
+public final class EclipseFolder extends AbstractFolder {
 	
-	/**
-	 * Subfolders this folder contains directly.
-	 */
-	private List<Folder> subfolders;
-
-	/**
-	 * Subfolders this folder contains.
-	 */
-	private Set<Folder> allSubfolders;
+	private IResource resource;
 	
-	private List<IFile> files;
-	
-	/**
-	 * Names of the files contained by this folder directly.
-	 */
-	private Set<String> filenames;
-	
-	/**
-	 * Paths of the files contained by this folder, should be absolute paths if contained
-	 * by the project folder, relative paths else.
-	 */
-	private Set<String> filepaths;
-
-	public EclipseFolder(String parentPath, IResource wrapped) {
-		Expect.notNull(parentPath, "parent path not be null.");
-		Expect.notNull(wrapped, "Folder must not be null.");
-		Expect.asTrue((wrapped instanceof IFolder) || (wrapped instanceof IProject),  "Invalid type.");
-		wrappedFolder = wrapped;
-		path = "/".equals(parentPath) ? "/" + wrapped.getName() : parentPath + "/" + wrapped.getName();
-		try {
-			open();
-		} catch (CoreException e) {
-			throw new ProjectException("Failed to open project.");
-		}
-		listResources();
+	public EclipseFolder(String parentPath, IResource resource) {
+		Expect.notNull(parentPath, "parentpath must not be null.");
+		Expect.notNull(resource, "wrapped folder must not be null.");
+		Expect.asTrue(resource instanceof IProject || resource instanceof IFolder, "Invalid resource.");
+		this.resource = resource;
+		this.path = FolderUtil.concatPath(parentPath, resource.getName());
+		this.name = resource.getName();
 	}
 	
-	private void listResources()  {
-		filenames = new HashSet<String>();
-		files = new LinkedList<IFile>();
-		subfolders = new LinkedList<Folder>();
+	
+	private interface ObjectCreater<T> {
+		T create(IResource resource);
+	}
+
+	private IResource[] getMembers() {
 		try {
-			IResource[] resources = null;
-			if (wrappedFolder instanceof IProject) {
-				resources = ((IProject) wrappedFolder).members();
-			} else {
-				resources = ((IFolder) wrappedFolder).members();
+			if (resource instanceof IFolder) {
+				return ((IFolder)resource).members();
 			}
-			for (IResource resource: resources) {
-				if (resource.getType() == IResource.FILE) {
-					files.add((IFile)resource);
-					filenames.add(resource.getName());
-				} else if (resource.getType() == IResource.FOLDER) {
-					subfolders.add(new EclipseFolder(this.path, (IFolder) resource));
-				}
-			}
+			return ((IProject)resource).members();
 		} catch (Exception e) {
-			throw new ProjectException(e);
-		}
-	}
-
-	@Override
-	public boolean containsFolders() {
-		return !subfolders.isEmpty();
-	}
-
-	@Override
-	public List<Folder> getSubfolders() {
-		return subfolders;
-	}
-
-	@Override
-	public boolean containsFile(String filepath) {
-		validatePath(filepath);
-		if (!filepath.contains("/")) {
-			return filenames.contains(filepath);
-		} else {
-			Folder folder = findFolder(FolderUtil.folderPath(filepath));
-			if (folder != null) {
-				String name = FolderUtil.filename(filepath);
-				return folder.containsFile(name);
-			}
-			return false;
-		}
-	}
-
-	@Override
-	public String path() {
-		return this.path;
-	}
-
-	@Override
-	public String name() {
-		return wrappedFolder.getName();
-	}
-	
-	private void open() throws CoreException {
-		if (wrappedFolder instanceof IProject) {
-			IProject iProject = (IProject)wrappedFolder;
-			if (!iProject.isOpen()) {
-				iProject.open(null);
-			}
+			throw new ResourceNotAvailableExeception(e);
 		}
 	}
 	
-	private void doWriteFile(String filename, String content) {
+	private IFile getIFile(String name){
 		try {
-			IFile file = null;
-			if (wrappedFolder instanceof IProject) {
-				file = ((IProject)wrappedFolder).getFile(filename);
-			} else {
-				file = ((IFolder)wrappedFolder).getFile(filename);
+			if (resource instanceof IFolder) {
+				return ((IFolder)resource).getFile(name);
 			}
-			file.refreshLocal(0, null);
-			if (file.exists()) {
-				file.delete(true, false, null);
-				Iterator<IFile> iterator = files.iterator();
-				while (iterator.hasNext()) {
-					IFile iFile = iterator.next();
-					if (filename.equals(iFile.getName())) {
-						iterator.remove();
-					}
-				}
-			}
-			try (InputStream inputStream = new ByteArrayInputStream(content.getBytes())) {
-				file.create(inputStream, IResource.NONE, null);
-				file.refreshLocal(0, null);
-			}
-			filenames.add(filename);
-			files.add(file);
+			return ((IProject)resource).getFile(name);
 		} catch (Exception e) {
-			throw new ProjectException(e);
+			throw new ResourceNotAvailableExeception(e);
 		}
 	}
 	
-	private void validatePath(String path) {
-		Expect.asTrue(!TextUtil.isEmpty(path) && !path.startsWith("/"), "A relative path is expected, but got:" + path);
-	}
-
-	@Override
-	public void writeFile(String filepath, String content) {
-		validatePath(filepath);
-
-		if (!filepath.contains("/")) {
-			doWriteFile(filepath, content);
-		} else {
-			Folder folder = createFolder(FolderUtil.folderPath(filepath));
-			folder.writeFile(FolderUtil.filename(filepath), content);
-		}
-	}
-
-	@Override
-	public Folder findFolder(String folderpath) {
-		validatePath(folderpath);
-		String[] names = folderpath.split("/");
-		for (Folder folder : subfolders) {
-			if (folder.name().equals(names[0])) {
-				if (names.length == 1) {
-					return folder;
-				}
-				return folder.findFolder(folderpath.replaceFirst(names[0] + "/", ""));
-			}
-		}
-		return null;
-	}
 	
-	private Folder doCreateFolder(String name) {
+	private IFolder getIFolder(String name){
 		try {
-			IFolder newFolder = null;
-			if (wrappedFolder instanceof IProject) {
-				newFolder = ((IProject) wrappedFolder).getFolder(name);
-			} else {
-				newFolder = ((IFolder) wrappedFolder).getFolder(name);
+			if (resource instanceof IFolder) {
+				return ((IFolder)resource).getFolder(name);
 			}
-			if (!newFolder.exists()) {
-				newFolder.create(true, true, null);
-				newFolder.refreshLocal(0, null);
-			}
-			Folder folder = new EclipseFolder(this.path, newFolder);
-			subfolders.add(folder);
-			allSubfolders = null;
-			filepaths = null;
-			return folder;
-		} catch (CoreException e) {
-			throw new ProjectException(e);
-		}
-	}
-
-	@Override
-	public Folder createFolder(String folderpath) {
-		validatePath(folderpath);
-		String tokens[] = folderpath.split("/");
-		String thisName = tokens[0];
-		Folder targetFolder = null;
-		for (Folder folder : subfolders) {
-			if (folder.name().equals(thisName)) {
-				targetFolder = folder;
-				break;
-			}
-		}
-		if (targetFolder == null) {
-			targetFolder = doCreateFolder(thisName);
-		}
-		if (tokens.length == 1) {
-			return targetFolder;
-		}
-		return targetFolder.createFolder(folderpath.replaceFirst(thisName + "/", ""));
-	}
-
-	@Override
-	public Set<String> getFilenames() {
-		return filenames;
-	}
-	
-	@Override
-	public Set<Folder> getAllFolders() {
-		if (allSubfolders != null) {
-			return allSubfolders;
-		}
-		allSubfolders = new HashSet<Folder>();
-		Stack<Folder> stack = new Stack<Folder>();
-		stack.push(this);
-		while (!stack.isEmpty()) {
-			Folder folder = stack.pop();
-			List<Folder> folders = folder.getSubfolders();
-			for (Folder item: folders) {
-				allSubfolders.add(item);
-				stack.push(item);
-			}
-		}
-		return allSubfolders;
-	}
-	
-	@Override
-	public InputStream openFile(String filepath) {
-		validatePath(filepath);
-		try {
-			Folder targetFolder = this;
-			String filename = filepath;
-			if (filepath.contains("/")) {
-				String basepath = FolderUtil.folderPath(filepath);
-				targetFolder = findFolder(basepath);
-				filename = FolderUtil.filename(filepath);
-			}
-			for (IFile file : ((EclipseFolder) targetFolder).files) {
-				if (file.getName().equals(filename)) {
-					return file.getContents();
-				}
-			}
+			return ((IProject)resource).getFolder(name);
 		} catch (Exception e) {
-			e.printStackTrace();
+			throw new ResourceNotAvailableExeception(e);
 		}
-		throw new ResourceNotFoundException("Unable to read file: " + filepath);
+	}
+	
+
+	private <T> List<T> createList(int type, ObjectCreater<T> objectCreater) {
+		List<T> list = new ArrayList<>();
+		for (IResource resource : getMembers()) {
+			if (resource.getType() == type) {
+				list.add(objectCreater.create(resource));
+			}
+		}
+		return list;
+	}
+	
+	
+	@Override
+	protected List<Folder> doListFolders() {
+		return createList(IResource.FOLDER, new ObjectCreater<Folder>() {
+			@Override
+			public Folder create(IResource resource) {
+				return new EclipseFolder(EclipseFolder.this.path, (IFolder)resource);
+			}
+		});
 	}
 
 	@Override
-	public Set<String> getAllFilepaths() {
-		if (filepaths != null) {
-			return filepaths;
-		}
-		filepaths = new HashSet<String>();
-		for (String name: getFilenames()) {
-			filepaths.add(FolderUtil.concatPath(this.path, name));
-		}
-		getAllFolders();
-		for (Folder item: allSubfolders) {
-			for (String name: item.getFilenames()) {
-				filepaths.add(FolderUtil.concatPath(item.path(), name));
+	protected List<File> doListFiles() {
+		return createList(IResource.FILE, new ObjectCreater<File>() {
+			@Override
+			public File create(IResource resource) {
+				return new EclipseFile(EclipseFolder.this.path, (IFile)resource);
 			}
+		});
+	}
+
+
+	@Override
+	protected Folder doCreateFolder(String name) {
+		IFolder iFolder = getIFolder(name);
+		try {
+			if (!iFolder.exists()) {
+				iFolder.create(true, true, null);
+				iFolder.refreshLocal(0, null);
+			}
+			return new EclipseFolder(path, iFolder);
+		} catch (Exception e) {
+			throw new ResourceNotAvailableExeception(e);
 		}
-		return filepaths;
+	}
+
+
+	@Override
+	protected File doCreateFile(String name) {
+		IFile iFile = getIFile(name);
+		return EclipseFile.createFile(path, iFile);
 	}
 
 }

@@ -23,18 +23,18 @@ import org.nalby.yobatis.xml.SpringXmlParser;
  *
  */
 public class SpringAntPatternFileManager {
-	private Project project;
+	private OldProject project;
 	
 	private static class FileMetadata { 
-		private Folder folder;
+		private OldFolder folder;
 		private Pom pom;
 		
-		private FileMetadata(Folder folder, Pom pom) {
+		private FileMetadata(OldFolder folder, Pom pom) {
 			this.folder = folder;
 			this.pom = pom;
 		}
 
-		public Folder getFolder() {
+		public OldFolder getFolder() {
 			return folder;
 		}
 
@@ -67,7 +67,7 @@ public class SpringAntPatternFileManager {
 		}
 	}
 	
-	public SpringAntPatternFileManager(PomTree pomTree, Project project) {
+	public SpringAntPatternFileManager(PomTree pomTree, OldProject project) {
 		this.pomTree = pomTree;
 		files = new HashMap<>();
 		parsers = new HashMap<>();
@@ -82,7 +82,7 @@ public class SpringAntPatternFileManager {
 	 * @param antPattern the ant path pattern.
 	 * @param result
 	 */
-	private void matchFilesInFolder(Pom pom, Folder folder, String antPattern, Set<String> result) {
+	private void matchFilesInFolder(Pom pom, OldFolder folder, String antPattern, Set<String> result) {
 		String antpath = FolderUtil.concatPath(folder.path(), antPattern);
 		for (String filepath : folder.getAllFilepaths()) {
 			if (antpath.equals(filepath) || antPathMatcher.match(antpath, filepath)) {
@@ -94,8 +94,8 @@ public class SpringAntPatternFileManager {
 	
 	private Set<String> matchFilesInResourceFolders(Pom pom, String hint) {
 		Set<String> result = new HashSet<>();
-		Set<Folder> folders = pom.getResourceFolders();
-		for (Folder folder : folders) {
+		Set<OldFolder> folders = pom.getResourceFolders();
+		for (OldFolder folder : folders) {
 			matchFilesInFolder(pom, folder, hint, result);
 		}
 		return result;
@@ -111,7 +111,7 @@ public class SpringAntPatternFileManager {
 
 	private Set<String> matchFilesInWebappFolder(String hint) {
 		Pom pom = pomTree.getWarPom();
-		Folder folder = pom.getWebappFolder();
+		OldFolder folder = pom.getWebappFolder();
 		Set<String> result = new HashSet<>();
 		matchFilesInFolder(pom, folder, hint, result);
 		return result;

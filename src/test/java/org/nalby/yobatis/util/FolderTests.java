@@ -26,5 +26,13 @@ public class FolderTests {
 		assertTrue(FolderUtil.folderPath("/hello/test").equals("/hello"));
 	}
 	
+	@Test
+	public void contact() {
+		assertTrue(FolderUtil.concatPath("/", "hello").equals("/hello"));
+		assertTrue(FolderUtil.concatPath("/", "/hello").equals("/hello"));
+		assertTrue(FolderUtil.concatPath("/", "/hello").equals("/hello"));
+		assertTrue(FolderUtil.concatPath("/wolrd/", "/hello").equals("/wolrd/hello"));
+	}
+	
 
 }
