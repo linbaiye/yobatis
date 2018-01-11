@@ -22,14 +22,14 @@ import org.nalby.yobatis.xml.SpringXmlParser;
  * @author Kyle Lin
  *
  */
-public class SpringAntPatternFileManager {
+public class OldSpringAntPatternFileManager {
 	private OldProject project;
 	
 	private static class FileMetadata { 
 		private OldFolder folder;
-		private Pom pom;
+		private OldPom pom;
 		
-		private FileMetadata(OldFolder folder, Pom pom) {
+		private FileMetadata(OldFolder folder, OldPom pom) {
 			this.folder = folder;
 			this.pom = pom;
 		}
@@ -38,12 +38,12 @@ public class SpringAntPatternFileManager {
 			return folder;
 		}
 
-		public Pom getPom() {
+		public OldPom getPom() {
 			return pom;
 		}
 	}
 	
-	private PomTree pomTree;
+	private OldPomTree pomTree;
 	
 	private final static Set<String> EMPTY_FILES = new HashSet<>(0);
 
@@ -67,7 +67,7 @@ public class SpringAntPatternFileManager {
 		}
 	}
 	
-	public SpringAntPatternFileManager(PomTree pomTree, OldProject project) {
+	public OldSpringAntPatternFileManager(OldPomTree pomTree, OldProject project) {
 		this.pomTree = pomTree;
 		files = new HashMap<>();
 		parsers = new HashMap<>();
@@ -82,7 +82,7 @@ public class SpringAntPatternFileManager {
 	 * @param antPattern the ant path pattern.
 	 * @param result
 	 */
-	private void matchFilesInFolder(Pom pom, OldFolder folder, String antPattern, Set<String> result) {
+	private void matchFilesInFolder(OldPom pom, OldFolder folder, String antPattern, Set<String> result) {
 		String antpath = FolderUtil.concatPath(folder.path(), antPattern);
 		for (String filepath : folder.getAllFilepaths()) {
 			if (antpath.equals(filepath) || antPathMatcher.match(antpath, filepath)) {
@@ -92,7 +92,7 @@ public class SpringAntPatternFileManager {
 		}
 	}
 	
-	private Set<String> matchFilesInResourceFolders(Pom pom, String hint) {
+	private Set<String> matchFilesInResourceFolders(OldPom pom, String hint) {
 		Set<String> result = new HashSet<>();
 		Set<OldFolder> folders = pom.getResourceFolders();
 		for (OldFolder folder : folders) {
@@ -103,14 +103,14 @@ public class SpringAntPatternFileManager {
 	
 	private Set<String> matchFilesInAllResourceFolders(String hint) {
 		Set<String> result = new HashSet<>();
-		for (Pom pom : pomTree.getPoms()) {
+		for (OldPom pom : pomTree.getPoms()) {
 			result.addAll(matchFilesInResourceFolders(pom, hint));
 		}
 		return result;
 	}
 
 	private Set<String> matchFilesInWebappFolder(String hint) {
-		Pom pom = pomTree.getWarPom();
+		OldPom pom = pomTree.getWarPom();
 		OldFolder folder = pom.getWebappFolder();
 		Set<String> result = new HashSet<>();
 		matchFilesInFolder(pom, folder, hint, result);
@@ -118,7 +118,7 @@ public class SpringAntPatternFileManager {
 	}
 	
 	
-	private Set<String> getImportedFilesWithClasspath(String hint, Pom pom) {
+	private Set<String> getImportedFilesWithClasspath(String hint, OldPom pom) {
 		String tokens[] = hint.split(":");
 		if (hint.startsWith("classpath:")) {
 			return matchFilesInResourceFolders(pom, tokens[1]);
@@ -138,7 +138,7 @@ public class SpringAntPatternFileManager {
 		if (TextUtil.isEmpty(hint)) {
 			return EMPTY_FILES;
 		}
-		Pom webpom = pomTree.getWarPom();
+		OldPom webpom = pomTree.getWarPom();
 		hint = webpom.filterPlaceholders(hint);
 		if (hint.matches(CLASSPATH_REGEX)) {
 			return getImportedFilesWithClasspath(hint, webpom);
@@ -165,7 +165,7 @@ public class SpringAntPatternFileManager {
 			return EMPTY_FILES;
 		}
 		FileMetadata metadata = files.get(path);
-		Pom pom = metadata.getPom();
+		OldPom pom = metadata.getPom();
 		Set<String> hints = parser.getPropertiesFileLocations();
 		if (isSpringXml) {
 			hints = parser.getImportedLocations();
@@ -200,7 +200,7 @@ public class SpringAntPatternFileManager {
 				if (!hint.startsWith("/")){
 					matchFilesInFolder(fileMetadata.getPom(), fileMetadata.getFolder(), hint, result);
 				} else {
-					Pom webpom = pomTree.getWarPom();
+					OldPom webpom = pomTree.getWarPom();
 					matchFilesInFolder(webpom, webpom.getWebappFolder(), hint, result);
 				}
 			}
@@ -216,7 +216,7 @@ public class SpringAntPatternFileManager {
 			return null;
 		}
 		FileMetadata metadata = files.get(path);
-		Pom pom = metadata.getPom();
+		OldPom pom = metadata.getPom();
 		if ("username".equals(name)) {
 			return pom.filterPlaceholders(parser.getDbUsername());
 		} else if ("password".equals(name)) {
@@ -239,7 +239,7 @@ public class SpringAntPatternFileManager {
 		if (!files.containsKey(path)) {
 			return null;
 		}
-		Pom pom = files.get(path).getPom();
+		OldPom pom = files.get(path).getPom();
 		try (InputStream inputStream = project.openFile(path)) {
 			Properties result = new Properties();
 			Properties properties = new Properties();

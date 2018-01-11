@@ -16,7 +16,7 @@ import static org.mockito.Mockito.*;
 
 public class SpringParserTests {
 	
-	private SpringAntPatternFileManager fileManager;
+	private OldSpringAntPatternFileManager fileManager;
 	
 	private Set<String> locations;
 	
@@ -28,7 +28,7 @@ public class SpringParserTests {
 	
 	@Before
 	public void setup() {
-		fileManager = mock(SpringAntPatternFileManager.class);
+		fileManager = mock(OldSpringAntPatternFileManager.class);
 		locations = new HashSet<>();
 		entryFiles = new HashSet<>();
 		propertiesFiles = new HashSet<>();

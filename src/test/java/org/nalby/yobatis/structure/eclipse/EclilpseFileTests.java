@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
 import org.nalby.yobatis.structure.File;
+import org.nalby.yobatis.structure.Folder;
 
 public class EclilpseFileTests {
 	
@@ -24,17 +25,22 @@ public class EclilpseFileTests {
 	
 	private File file;
 	
+	private Folder mockedParent;
+	
 	@Before
 	public void setup() {
 		mockedIFile = mock(IFile.class);
+		mockedParent = mock(Folder.class);
+		when(mockedParent.path()).thenReturn("/test");
 		when(mockedIFile.getName()).thenReturn("file");
-		file = new EclipseFile("/", mockedIFile);
+		file = new EclipseFile(mockedParent, mockedIFile);
 	}
 
 	@Test
 	public void pathAndName() {
-		assertTrue(file.path().equals("/file"));
+		assertTrue(file.path().equals("/test/file"));
 		assertTrue(file.name().equals("file"));
+		assertTrue(file.parentFolder() == mockedParent);
 	}
 	
 	@Test(expected = ResourceNotAvailableExeception.class)
@@ -84,7 +90,7 @@ public class EclilpseFileTests {
 
 	@Test
 	public void createFile() throws CoreException {
-		File file = EclipseFile.createFile("/", mockedIFile);
+		File file = EclipseFile.createFile(mockedParent, mockedIFile);
 		assertTrue(file.name().equals(mockedIFile.getName()));
 	}
 	

@@ -1,13 +1,8 @@
 package org.nalby.yobatis.structure;
 
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
-import java.util.LinkedList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -16,23 +11,24 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-public class PomTreeTests {
-	
-	private Project project;
-	
-	private Folder webappFolder;
-	
-	private Folder resourceFolder;
-	
-	private Folder sourceCodeFolder;
-	
-	private List<Folder> sourceCodeFolders;
-	
-	private Folder dao;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
-	private Folder model;
+public class OldPomTreeTests {
 	
-	private File pomFile;
+	private OldProject project;
+	
+	private OldFolder webappFolder;
+	
+	private OldFolder resourceFolder;
+	
+	private OldFolder sourceCodeFolder;
+	
+	private Set<OldFolder> sourceCodeFolders;
+	
+	private OldFolder dao;
+
+	private OldFolder model;
 	
 	private String defaultXML = "<project>\n" + 
 			"  <modelVersion>4.0.0</modelVersion>\n" + 
@@ -51,38 +47,34 @@ public class PomTreeTests {
 			" </dependency>\n" +
 			"  </dependencies>\n" +
 			"</project>\n";
-	
+
 	@Before
 	public void setup() {
-		project = mock(Project.class);
-		pomFile = mock(File.class);
-		when(project.findFile("pom.xml")).thenReturn(pomFile);
+		project = mock(OldProject.class);
+		when(project.containsFile("pom.xml")).thenReturn(true);
+		when(project.openFile("pom.xml")).thenReturn(new ByteArrayInputStream(defaultXML.getBytes()));
 
-		when(pomFile.open()).thenReturn(new ByteArrayInputStream(defaultXML.getBytes()));
-
-		resourceFolder = mock(Folder.class);
+		resourceFolder = mock(OldFolder.class);
 		when(project.findFolder("src/main/resources")).thenReturn(resourceFolder);
 
-		webappFolder = mock(Folder.class);
+		webappFolder = mock(OldFolder.class);
 		when(project.findFolder("src/main/webapp")).thenReturn(webappFolder);
 
-		sourceCodeFolder = mock(Folder.class);
+		sourceCodeFolder = mock(OldFolder.class);
 		when(project.findFolder("src/main/java")).thenReturn(sourceCodeFolder);
 		
-		sourceCodeFolders = new LinkedList<>();
+		sourceCodeFolders = new HashSet<>();
 		
-		dao = mock(Folder.class);
+		dao = mock(OldFolder.class);
 		when(dao.path()).thenReturn("/test/src/main/java/dao");
 
-		model = mock(Folder.class);
+		model = mock(OldFolder.class);
 		when(model.path()).thenReturn("/test/src/main/java/model");
 
 		sourceCodeFolders.add(dao);
 		sourceCodeFolders.add(model);
-
-		when(sourceCodeFolder.listFolders()).thenReturn(sourceCodeFolders);
 		
-		when(project.concatMavenRepositoryPath(anyString())).then(new Answer<String>() {
+		when(project.concatMavenResitoryPath(anyString())).then(new Answer<String>() {
 
 			@Override
 			public String answer(InvocationOnMock invocation) throws Throwable {
@@ -93,9 +85,10 @@ public class PomTreeTests {
 				return null;
 			}
 		});
+
+		when(sourceCodeFolder.getAllFolders()).thenReturn(sourceCodeFolders);
 	}
 	
-
 	@Test
 	public void containerPom() {
 		String xml = "<project>\n" + 
@@ -106,11 +99,11 @@ public class PomTreeTests {
 				"  <name>test</name>\n" + 
 				"  <url>test</url>\n" + 
 				"</project>\n";
-		when(pomFile.open()).thenReturn(new ByteArrayInputStream(xml.getBytes()));
-		PomTree tree = new PomTree(project);
-		Pom pom = tree.getWarPom();
+		when(project.openFile("pom.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
+		OldPomTree tree = new OldPomTree(project);
+		OldPom pom = tree.getWarPom();
 		assertTrue(pom == null);
-		Set<Pom> poms = tree.getPoms();
+		Set<OldPom> poms = tree.getPoms();
 		assertTrue(poms.size() == 1);
 	}
 
@@ -126,21 +119,19 @@ public class PomTreeTests {
 				"  <url>test</url>\n" + 
 				"  <properties><hello>world</hello></properties>\n" +
 				"</project>\n";
-		when(pomFile.open()).thenReturn(new ByteArrayInputStream(xml.getBytes()));
+		when(project.openFile("pom.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
 		when(project.findFolder("src/main/resources")).thenReturn(null);
 		when(project.findFolder("src/main/webapp")).thenReturn(null);
-		PomTree tree = new PomTree(project);
-		Pom pom = tree.getWarPom();
-		Set<Folder> set = pom.getResourceFolders();
+		OldPomTree tree = new OldPomTree(project);
+		OldPom pom = tree.getWarPom();
+		Set<OldFolder> set = pom.getResourceFolders();
 		assertTrue(set.size() == 0);
 		assertTrue(pom.getWebappFolder() == null);
 		assertTrue("worldworld".equals(pom.filterPlaceholders("${hello}${hello}")));
-
-		assertTrue(null == pom.filterPlaceholders(null));
 	}
 	
 	@Test
-	public void with1Submodule() throws FileNotFoundException {
+	public void with1Module() throws FileNotFoundException {
 		String xml = "<project>\n" + 
 				"  <modelVersion>4.0.0</modelVersion>\n" + 
 				"  <groupId>test</groupId>\n" + 
@@ -170,22 +161,17 @@ public class PomTreeTests {
 				"      </resources>\n" + 
 				"    </build>\n" + 
 				"</project>"; 
-		when(pomFile.open()).thenReturn(new ByteArrayInputStream(xml.getBytes()));
-
-		File subpom = mock(File.class);
-		when(subpom.open()).thenReturn(new ByteArrayInputStream(helloXml.getBytes()));
-
-		Folder helloFolder = mock(Folder.class);
-		when(helloFolder.findFile("pom.xml")).thenReturn(subpom);
-
+		when(project.openFile("pom.xml")).thenReturn(new ByteArrayInputStream(xml.getBytes()));
+		OldFolder helloFolder = mock(OldFolder.class);
+		when(helloFolder.openFile("pom.xml")).thenReturn(new ByteArrayInputStream(helloXml.getBytes()));
 		when(project.findFolder("hello")).thenReturn(helloFolder);
 		when(project.findFolder("missing")).thenReturn(null);
-		when(helloFolder.findFolder("src/main/resources")).thenReturn(mock(Folder.class));
-		when(helloFolder.findFolder("src/main/conf")).thenReturn(mock(Folder.class));
-		when(helloFolder.findFolder("src/main/webapp")).thenReturn(mock(Folder.class));
-		PomTree pomParser = new PomTree(project);
-		Pom pom = pomParser.getWarPom();
-		Set<Folder> resources = pom.getResourceFolders();
+		when(helloFolder.findFolder("src/main/resources")).thenReturn(mock(OldFolder.class));
+		when(helloFolder.findFolder("src/main/conf")).thenReturn(mock(OldFolder.class));
+		when(helloFolder.findFolder("src/main/webapp")).thenReturn(mock(OldFolder.class));
+		OldPomTree pomParser = new OldPomTree(project);
+		OldPom pom = pomParser.getWarPom();
+		Set<OldFolder> resources = pom.getResourceFolders();
 		assertTrue(resources.size() == 2);
 		assertTrue(pom.getWebappFolder() != null);
 		assertTrue("testworld${notfound}".equals(pom.filterPlaceholders("${next}${hello}${notfound}")));
@@ -193,8 +179,8 @@ public class PomTreeTests {
 	
 	@Test
 	public void findDaoFolders() {
-		PomTree tree = new PomTree(project);
-		List<Folder> folders = tree.lookupDaoFolders();
+		OldPomTree tree = new OldPomTree(project);
+		List<OldFolder> folders = tree.lookupDaoFolders();
 		assertTrue(folders.size() == 1);
 		assertTrue(dao == folders.get(0));
 	}
@@ -203,8 +189,8 @@ public class PomTreeTests {
 	
 	@Test
 	public void findModelFolders() {
-		PomTree tree = new PomTree(project);
-		List<Folder> folders = tree.lookupModelFolders();
+		OldPomTree tree = new OldPomTree(project);
+		List<OldFolder> folders = tree.lookupModelFolders();
 		assertTrue(folders.size() == 1);
 		assertTrue(model == folders.get(0));
 
@@ -214,23 +200,22 @@ public class PomTreeTests {
 	
 	@Test
 	public void findResourceFolders() {
-		PomTree tree = new PomTree(project);
-		List<Folder> folders = tree.lookupResourceFolders();
+		OldPomTree tree = new OldPomTree(project);
+		List<OldFolder> folders = tree.lookupResourceFolders();
 		assertTrue(folders.size() == 1);
 		assertTrue(resourceFolder == folders.get(0));
 	}
 	
 	@Test
 	public void getSqlJar() {
-		PomTree tree = new PomTree(project);
+		OldPomTree tree = new OldPomTree(project);
 		assertTrue(tree.getDatabaseJarPath("com.mysql.jdbc.Driver").startsWith("/m2"));
 	}
 	
 	@Test
 	public void nullSqljar() {
-		PomTree tree = new PomTree(project);
+		OldPomTree tree = new OldPomTree(project);
 		assertTrue(tree.getDatabaseJarPath("com.jdbc.Driver") == null);
 	}
-	
 	
 }
