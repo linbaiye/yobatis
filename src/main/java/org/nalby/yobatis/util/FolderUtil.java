@@ -35,10 +35,9 @@ public final class FolderUtil {
 		Expect.notEmpty(appending, "appending must not be null.");
 		base = base.trim();
 		appending = appending.trim();
-		if (appending.startsWith("/")) {
-			return base + appending;
-		}
-		return base + "/" + appending;
+		String tmp = base + "/" + appending;
+		return tmp.replaceAll("/+", "/");
+		//return base + "/" + appending;
 	}
 	
 	

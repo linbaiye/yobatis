@@ -17,7 +17,7 @@ import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
 import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.sql.Table;
-import org.nalby.yobatis.structure.Folder;
+import org.nalby.yobatis.structure.OldFolder;
 import org.nalby.yobatis.structure.PomTree;
 import org.nalby.yobatis.xml.AbstractXmlParser;
 import org.nalby.yobatis.xml.MybatisXmlParser;
@@ -168,8 +168,8 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	private void appendJavaModelGenerator(Element context) {
-		List<Folder> folders = pomTree.lookupModelFolders();
-		for (Folder folder: folders) {
+		List<OldFolder> folders = pomTree.lookupModelFolders();
+		for (OldFolder folder: folders) {
 			String path = folder.path();
 			String packageName = getPackageName(path);
 			Element javaModelGenerator = context.addElement("javaModelGenerator");
@@ -180,8 +180,8 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	private void appendJavaClientGenerator(Element context) {
-		List<Folder> folders = pomTree.lookupDaoFolders();
-		for (Folder folder: folders) {
+		List<OldFolder> folders = pomTree.lookupDaoFolders();
+		for (OldFolder folder: folders) {
 			String path = folder.path();
 			String packageName = getPackageName(path);
 			Element generator = context.addElement("javaClientGenerator");
@@ -213,8 +213,8 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	private void appendSqlMapGenerator(Element context) {
-		List<Folder> resourceFolders = pomTree.lookupResourceFolders();
-		for (Folder folder: resourceFolders) {
+		List<OldFolder> resourceFolders = pomTree.lookupResourceFolders();
+		for (OldFolder folder: resourceFolders) {
 			String path = folder.path();
 			Element generator = context.addElement("sqlMapGenerator");
 			generator.addAttribute("targetPackage", "mybatis-mappers");
