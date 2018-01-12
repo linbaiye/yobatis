@@ -14,7 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
-import org.nalby.yobatis.sql.Sql;
+import org.nalby.yobatis.sql.DatabaseDetailProvider;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.PomTree;
@@ -25,7 +25,7 @@ public class GeneratorTests {
 	
 	private PomTree mockedPomTree;
 	
-	private Sql mockedSql;
+	private DatabaseDetailProvider mockedSql;
 	
 	private List<Table> tables;
 	
@@ -57,7 +57,7 @@ public class GeneratorTests {
 	@Before
 	public void setup() {
 		mockedPomTree = mock(PomTree.class);
-		mockedSql = mock(Sql.class);
+		mockedSql = mock(DatabaseDetailProvider.class);
 		when(mockedSql.getPassword()).thenReturn("password");
 		when(mockedSql.getUsername()).thenReturn("username");
 		when(mockedSql.getSchema()).thenReturn("schema");

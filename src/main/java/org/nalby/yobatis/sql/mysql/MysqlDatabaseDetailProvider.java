@@ -22,22 +22,24 @@ import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.exception.SqlConfigIncompleteException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
-import org.nalby.yobatis.sql.Sql;
+import org.nalby.yobatis.sql.DatabaseDetailProvider;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.util.Expect;
 
-public class Mysql extends Sql {
+public class MysqlDatabaseDetailProvider extends DatabaseDetailProvider {
 	
 	private String timedoutUrl;
 	
 	private Logger logger = LogFactory.getLogger(this.getClass());
 
-	private Mysql(String username, String password,
-			String url) {
+	private MysqlDatabaseDetailProvider(String username, String password,
+			String url, String driverClassName, String jdbcJarPath) {
 		try {
 			this.username = username;
 			this.password = password;
 			this.url = url;
+			this.driverClassName = driverClassName;
+			this.connectorJarPath = jdbcJarPath;
 			logger.info("Detected sql configuration:[username:{}, url:{}].", username, url);
 			timedoutUrl = this.url;
 			if (!this.timedoutUrl.contains("socketTimeout")) {
@@ -142,7 +144,7 @@ public class Mysql extends Sql {
 			this.driverClassName = driverClassName;
 			return this;
 		}
-		public Mysql build() {
+		public MysqlDatabaseDetailProvider build() {
 			Expect.notEmpty(username, "username must not be null.");
 			Expect.notEmpty(password, "password must not be null.");
 			Expect.notEmpty(url, "url must not be null.");
@@ -151,7 +153,7 @@ public class Mysql extends Sql {
 			try {
 				Driver driver = buildDriver(driverClassName, connectorJarPath);
 				DriverManager.registerDriver(driver);
-				return new Mysql(username, password, url);
+				return new MysqlDatabaseDetailProvider(username, password, url, driverClassName, connectorJarPath);
 			} catch (Exception e) {
 				throw new SqlConfigIncompleteException(e);
 			}

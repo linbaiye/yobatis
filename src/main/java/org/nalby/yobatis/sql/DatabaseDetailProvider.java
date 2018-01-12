@@ -3,7 +3,7 @@ package org.nalby.yobatis.sql;
 import java.util.List;
 
 
-public abstract class Sql {
+public abstract class DatabaseDetailProvider {
 	
 	protected String username;
 	protected String password;
