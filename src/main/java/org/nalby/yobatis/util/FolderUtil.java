@@ -1,7 +1,5 @@
 package org.nalby.yobatis.util;
 
-import java.io.Closeable;
-
 public final class FolderUtil {
 
 	private FolderUtil() {}
@@ -39,17 +37,5 @@ public final class FolderUtil {
 		return tmp.replaceAll("/+", "/");
 		//return base + "/" + appending;
 	}
-	
-	
-	public static void closeStream(Closeable closeable) {
-		try {
-			if (closeable != null) {
-				closeable.close();
-			}
-		} catch (Exception e) {
-			//Nothing we can do.
-		}
-	}
-	
 
 }
