@@ -26,7 +26,7 @@ import org.nalby.yobatis.xml.MybatisGeneratorXmlReader;
  * 
  * @author Kyle Lin
  */
-public class MybatisGeneratorXmlCreator implements MybatiGeneratorAnalyzer {
+public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 
 	private Document document;
 
@@ -205,8 +205,8 @@ public class MybatisGeneratorXmlCreator implements MybatiGeneratorAnalyzer {
 	
 	private Element appendContext(Element root) {
 		context = root.addElement("context");
-		context.addAttribute("id", MybatiGeneratorAnalyzer.DEFAULT_CONTEXT_ID);
-		context.addAttribute("targetRuntime", MybatiGeneratorAnalyzer.TARGET_RUNTIME);
+		context.addAttribute("id", MybatisGeneratorAnalyzer.DEFAULT_CONTEXT_ID);
+		context.addAttribute("targetRuntime", MybatisGeneratorAnalyzer.TARGET_RUNTIME);
 		return context;
 	}
 	
@@ -261,7 +261,6 @@ public class MybatisGeneratorXmlCreator implements MybatiGeneratorAnalyzer {
 		logger.debug("Created doctype.");
 	}
 	
-	@Override
 	public String asXmlText() {
 		try {
 			return AbstractXmlParser.toXmlString(document);
@@ -295,7 +294,7 @@ public class MybatisGeneratorXmlCreator implements MybatiGeneratorAnalyzer {
 	}
 
 	@Override
-	public String getDomainDirPath() {
+	public String getModelDirPath() {
 		return buildPathFromGenerator(javaModelGenerators, "javaModelGenerator");
 	}
 
@@ -306,7 +305,7 @@ public class MybatisGeneratorXmlCreator implements MybatiGeneratorAnalyzer {
 	}
 
 	@Override
-	public String getPackageNameOfDomains() {
+	public String getModelPackageName() {
 		Element element = findActiveElement(javaModelGenerators, "javaModelGenerator");
 		return element.attributeValue("targetPackage");
 	}
@@ -317,7 +316,7 @@ public class MybatisGeneratorXmlCreator implements MybatiGeneratorAnalyzer {
 	}
 
 	@Override
-	public String getPackageNameOfJavaMappers() {
+	public String getDaoPackageName() {
 		Element element = findActiveElement(javaClientGenerators, "javaClientGenerator");
 		return element.attributeValue("targetPackage");
 	}

@@ -1,6 +1,5 @@
 package org.nalby.yobatis.structure.eclipse;
 
-import org.eclipse.core.internal.resources.projectvariables.EclipseHomeProjectVariable;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.Platform;
 import org.nalby.yobatis.exception.UnsupportedProjectException;

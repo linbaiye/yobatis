@@ -1,7 +1,13 @@
 package org.nalby.yobatis.mybatis;
 
 
-public interface MybatiGeneratorAnalyzer {
+/**
+ * Grab various value from MyBatis Generator's configuration file.
+ * 
+ * @author Kyle Lin
+ *
+ */
+public interface MybatisGeneratorAnalyzer {
 	
 	public final static String CONFIG_FILENAME = "mybatisGeneratorConfig.xml";
 	
@@ -25,7 +31,7 @@ public interface MybatiGeneratorAnalyzer {
 	 * @return the path.
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
-	String getDomainDirPath();
+	String getModelDirPath();
 	
 	/**
 	 * The dir path where java criteria files will be saved.
@@ -40,7 +46,7 @@ public interface MybatiGeneratorAnalyzer {
 	 * @return the value
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
-	String getPackageNameOfDomains();
+	String getModelPackageName();
 	
 	
 	/**
@@ -48,7 +54,7 @@ public interface MybatiGeneratorAnalyzer {
 	 * @return the value
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
-	String getPackageNameOfJavaMappers();
+	String getDaoPackageName();
 	
 	/**
 	 * The dir path where xml mapper files will be saved.

@@ -19,12 +19,12 @@ import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
-import org.nalby.yobatis.mybatis.MybatiGeneratorAnalyzer;
+import org.nalby.yobatis.mybatis.MybatisGeneratorAnalyzer;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-public class MybatisGeneratorXmlReader extends AbstractXmlParser implements MybatiGeneratorAnalyzer {
+public class MybatisGeneratorXmlReader extends AbstractXmlParser implements MybatisGeneratorAnalyzer {
 	private static final String DTD = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
 			"<!--\n" + 
 			"\n" + 
@@ -488,8 +488,8 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 			return false;
 		}
 		context = root.addElement("context");
-		context.addAttribute("id", MybatiGeneratorAnalyzer.DEFAULT_CONTEXT_ID);
-		context.addAttribute("targetRuntime", MybatiGeneratorAnalyzer.TARGET_RUNTIME);
+		context.addAttribute("id", MybatisGeneratorAnalyzer.DEFAULT_CONTEXT_ID);
+		context.addAttribute("targetRuntime", MybatisGeneratorAnalyzer.TARGET_RUNTIME);
 		return true;
 	}
 	
@@ -614,13 +614,13 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	}
 
 	@Override
-	public String getDomainDirPath() {
+	public String getModelDirPath() {
 		return buildGeneratorPath(javaModelGenerators, MODEL_GENERATOR_TAG);
 	}
 
 	@Override
 	public String getCriteriaDirPath() {
-		return getDomainDirPath() + "/criteria";
+		return getModelDirPath() + "/criteria";
 	}
 
 
@@ -631,7 +631,7 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	}
 
 	@Override
-	public String getPackageNameOfDomains() {
+	public String getModelPackageName() {
 		return getTargetPackage(javaModelGenerators, MODEL_GENERATOR_TAG);
 	}
 
@@ -641,7 +641,7 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	}
 
 	@Override
-	public String getPackageNameOfJavaMappers() {
+	public String getDaoPackageName() {
 		return getTargetPackage(javaClientGenerators, CLIENT_GENERATOR_TAG);
 	}
 

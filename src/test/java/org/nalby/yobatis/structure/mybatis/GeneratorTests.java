@@ -192,7 +192,7 @@ public class GeneratorTests {
 	public void javaMapperPackageName() {
 		daoFolders.add(TestUtil.mockFolder("/src/main/java/dao1"));
 		build();
-		assertTrue(generator.getPackageNameOfJavaMappers().equals("dao1"));
+		assertTrue(generator.getDaoPackageName().equals("dao1"));
 	}
 	
 	@Test
@@ -200,8 +200,8 @@ public class GeneratorTests {
 		modelFolders.add(TestUtil.mockFolder("/src/main/java/hello/model"));
 		build();
 		assertTrue(generator.getCriteriaDirPath().equals("/src/main/java/hello/model/criteria"));
-		assertTrue(generator.getDomainDirPath().equals("/src/main/java/hello/model"));
-		assertTrue(generator.getPackageNameOfDomains().equals("hello.model"));
+		assertTrue(generator.getModelDirPath().equals("/src/main/java/hello/model"));
+		assertTrue(generator.getModelPackageName().equals("hello.model"));
 	}
 	
 	@Test

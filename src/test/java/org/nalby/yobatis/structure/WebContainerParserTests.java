@@ -1,17 +1,16 @@
 package org.nalby.yobatis.structure;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
-import org.nalby.yobatis.exception.UnsupportedProjectException;
-import org.omg.CosNaming.NamingContextExtPackage.StringNameHelper;
-
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.util.Set;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
+import org.nalby.yobatis.exception.UnsupportedProjectException;
 
 public class WebContainerParserTests {
 	

@@ -1,6 +1,5 @@
 package org.nalby.yobatis.mybatis;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
@@ -8,9 +7,7 @@ import java.util.List;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.GeneratedXmlFile;
 import org.mybatis.generator.api.LibraryRunner;
-import org.mybatis.generator.exception.InvalidConfigurationException;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
-import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
 import org.nalby.yobatis.structure.File;
@@ -26,40 +23,16 @@ public class MybatisFilesWriter {
 
 	private LibraryRunner runner;
 
-	private MybatiGeneratorAnalyzer reader;
+	private MybatisGeneratorAnalyzer mybatiGeneratorAnalyzer;
 
 	private Project project;
 	
 	private Logger logger = LogFactory.getLogger(MybatisFilesWriter.class);
 
-	public MybatisFilesWriter(Project project, MybatiGeneratorAnalyzer configReader) {
-		Expect.notNull(project, "project must not be null.");
-		Expect.notNull(configReader, "configReader must not be null.");
-		this.project = project;
-		this.runner = new LibraryRunner();
-		try {
-			File file = project.findFile(MybatiGeneratorAnalyzer.CONFIG_FILENAME);
-			try (InputStream inputStream = file.open()) {
-				this.runner.parse(inputStream);
-			}
-		} catch (InvalidConfigurationException e) {
-			throw new InvalidMybatisGeneratorConfigException(e);
-		} catch (IOException e) {
-			throw new InvalidMybatisGeneratorConfigException(e);
-		}
-		if (runner.getGeneratedJavaFiles() == null) {
-			throw new ProjectException("No java files generated.");
-		}
-		if (runner.getGeneratedXmlFiles() == null) {
-			throw new ProjectException("No xml files generated.");
-		}
-		this.reader = configReader;
-	}
-	
-	public MybatisFilesWriter(Project project, MybatiGeneratorAnalyzer configReader,
+	public MybatisFilesWriter(Project project, MybatisGeneratorAnalyzer mgAnalyzer,
 			LibraryRunner mybatisRunner) {
 		Expect.notNull(project, "project must not be null.");
-		Expect.notNull(configReader, "configReader must not be null.");
+		Expect.notNull(mgAnalyzer, "mgAnalyzer must not be null.");
 		Expect.notNull(mybatisRunner, "mybatisRunner must not be null.");
 		this.project = project;
 		this.runner = mybatisRunner;
@@ -69,7 +42,7 @@ public class MybatisFilesWriter {
 		if (runner.getGeneratedXmlFiles() == null) {
 			throw new InvalidMybatisGeneratorConfigException("No xml files generated.");
 		}
-		this.reader = configReader;
+		this.mybatiGeneratorAnalyzer = mgAnalyzer;
 	}
 
 	private List<GeneratedJavaFile> listFile(String suffix) {
@@ -112,58 +85,59 @@ public class MybatisFilesWriter {
 	private void writeJavaMappers() {
 		List<GeneratedJavaFile> files = getMapperFiles();
 		for (GeneratedJavaFile javafile : files) {
-			String path = reader.getDaoDirPath() + "/" + javafile.getFileName();
+			String path = mybatiGeneratorAnalyzer.getDaoDirPath() + "/" + javafile.getFileName();
 			if (project.findFile(path) != null) {
 				continue;
 			}
 			File tmp = project.createFile(path);
 			tmp.write(javafile.getFormattedContent());
 		}
-		logger.info("Worte java mapper files to :{}.", reader.getDaoDirPath());
+		logger.info("Wrote java mapper files to :{}.", mybatiGeneratorAnalyzer.getDaoDirPath());
 	}
 	
 	private void writeJavaDomains() {
 		List<GeneratedJavaFile> files = getDomainFiles();
 		for (GeneratedJavaFile javafile : files) {
-			String path = reader.getDomainDirPath() + "/" + javafile.getFileName();
+			String path = mybatiGeneratorAnalyzer.getModelDirPath() + "/" + javafile.getFileName();
 			File tmp = project.createFile(path);
 			tmp.write(javafile.getFormattedContent());
 		}
-		logger.info("Worte model files to :{}.", reader.getDomainDirPath());
+		logger.info("Wrote model files to :{}.", mybatiGeneratorAnalyzer.getModelDirPath());
 	}
 	
 	private void writeCriteriaFiles() {
 		List<GeneratedJavaFile> files = getCriteriaFiles();
 		for (GeneratedJavaFile javafile : files) {
-			String path = reader.getCriteriaDirPath() + "/" + javafile.getFileName();
+			String path = mybatiGeneratorAnalyzer.getCriteriaDirPath() + "/" + javafile.getFileName();
 			File tmp = project.createFile(path);
 			tmp.write(javafile.getFormattedContent());
 		}
-		logger.info("Worte criteria files to :{}.", reader.getCriteriaDirPath());
+		logger.info("Wrote criteria files to :{}.", mybatiGeneratorAnalyzer.getCriteriaDirPath());
 	}
 	
 	private String mergeManualSqlXml(String path, String content) {
-		try {
-			File file = project.findFile(path);
+		File file = project.findFile(path);
+		if (file != null) {
 			try (InputStream inputStream = file.open()) {
 				SqlMapperParser oldXml = new SqlMapperParser(inputStream);
 				SqlMapperParser newXml = SqlMapperParser.fromString(content);
 				newXml.merge(oldXml);
 				return newXml.toXmlString();
+			} catch (Exception e) {
+				//Do nothing.
 			}
-		} catch (Exception e) {
-			return content;
 		}
+		return content;
 	}
 	
 	private void writeXmlFiles() {
 		List<GeneratedXmlFile> xmlFiles = getXmlFiles();
 		for (GeneratedXmlFile xmlfile : xmlFiles) {
-			String path = reader.getXmlMapperDirPath() + "/" + xmlfile.getFileName();
+			String path = mybatiGeneratorAnalyzer.getXmlMapperDirPath() + "/" + xmlfile.getFileName();
 			File tmp = project.createFile(path);
 			tmp.write(mergeManualSqlXml(path, xmlfile.getFormattedContent()));
 		}
-		logger.info("Worte xml mapper files to :{}.", reader.getXmlMapperDirPath());
+		logger.info("Wrote xml mapper files to :{}.", mybatiGeneratorAnalyzer.getXmlMapperDirPath());
 	}
 
 	public void writeAll() {

@@ -20,7 +20,7 @@ import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
 import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
-import org.nalby.yobatis.mybatis.MybatiGeneratorAnalyzer;
+import org.nalby.yobatis.mybatis.MybatisGeneratorAnalyzer;
 import org.nalby.yobatis.mybatis.MybatisFilesWriter;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.sql.mysql.Mysql;
@@ -72,7 +72,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 	private LibraryRunner buildMyBatisRunner(Project project) {
 		try {
-			File file = project.findFile(MybatiGeneratorAnalyzer.CONFIG_FILENAME);
+			File file = project.findFile(MybatisGeneratorAnalyzer.CONFIG_FILENAME);
 			try (InputStream inputStream = file.open()) {
 				LibraryRunner libraryRunner = new LibraryRunner();
 				libraryRunner.parse(inputStream);
@@ -85,7 +85,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	
 	private MybatisGeneratorXmlReader buildGeneratorXmlParser(Project project) {
 		try {
-			File file = project.findFile(MybatiGeneratorAnalyzer.CONFIG_FILENAME);
+			File file = project.findFile(MybatisGeneratorAnalyzer.CONFIG_FILENAME);
 			try (InputStream inputStream = file.open()) {
 				return new MybatisGeneratorXmlReader(inputStream);
 			}
@@ -97,8 +97,8 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	/*
 	 * Merge the new file into the existent one if exists.
 	 */
-	private MybatiGeneratorAnalyzer mergeIntoExistentConfig(MybatisGeneratorXmlCreator configFileGenerator, Project project) {
-		MybatiGeneratorAnalyzer configReader = configFileGenerator;
+	private MybatisGeneratorAnalyzer mergeIntoExistentConfig(MybatisGeneratorXmlCreator configFileGenerator, Project project) {
+		MybatisGeneratorAnalyzer configReader = configFileGenerator;
 		File file = project.findFile(MybatisGeneratorXmlCreator.CONFIG_FILENAME);
 		if (file != null) {
 			try (InputStream inputStream = file.open()) {
@@ -119,7 +119,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		EclipseProject project = new EclipseProject(iProject);
 		logger.info("Trying to generate files from existent config file.");
 		LibraryRunner mybatisRunner = buildMyBatisRunner(project);
-		MybatiGeneratorAnalyzer configReader = buildGeneratorXmlParser(project);
+		MybatisGeneratorAnalyzer configReader = buildGeneratorXmlParser(project);
 		MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, configReader, mybatisRunner);
 		filesWriter.writeAll();
 	}
@@ -131,10 +131,10 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		Project project = new EclipseProject(iProject);
 		MybatisGeneratorXmlCreator configFileGenerator = buildMybatisGeneratorConfigMaker(project);
 
-		MybatiGeneratorAnalyzer reader = mergeIntoExistentConfig(configFileGenerator, project);
+		MybatisGeneratorAnalyzer reader = mergeIntoExistentConfig(configFileGenerator, project);
 
 		// Write mybatis-generator's config file to the project's root dir.
-		File file = project.createFile(MybatiGeneratorAnalyzer.CONFIG_FILENAME);
+		File file = project.createFile(MybatisGeneratorAnalyzer.CONFIG_FILENAME);
 		file.write(reader.asXmlText());
 
 		LibraryRunner mybatisRunner = buildMyBatisRunner(project);

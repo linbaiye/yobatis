@@ -492,7 +492,7 @@ public class MybatisXmlParserTests {
 		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		javaModelGenerators.clear();
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
-		mybatisXmlParser.getDomainDirPath();
+		mybatisXmlParser.getModelDirPath();
 	}
 	
 	@Test(expected = InvalidMybatisGeneratorConfigException.class)
@@ -511,7 +511,7 @@ public class MybatisXmlParserTests {
 				"</generatorConfiguration>\n";
 		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
-		mybatisXmlParser.getDomainDirPath();
+		mybatisXmlParser.getModelDirPath();
 	}
 	
 	@Test
@@ -533,7 +533,7 @@ public class MybatisXmlParserTests {
 				"</generatorConfiguration>\n";
 		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
-		assertTrue("targetProject1/targetPackage1".equals(mybatisXmlParser.getDomainDirPath()));
+		assertTrue("targetProject1/targetPackage1".equals(mybatisXmlParser.getModelDirPath()));
 	}
 	
 	@Test
@@ -555,7 +555,7 @@ public class MybatisXmlParserTests {
 				"</generatorConfiguration>\n";
 		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
-		assertTrue("targetPackage1".equals(mybatisXmlParser.getPackageNameOfDomains()));
+		assertTrue("targetPackage1".equals(mybatisXmlParser.getModelPackageName()));
 	}
 	
 	
