@@ -33,7 +33,7 @@ public interface Folder {
 	 * Create a {@link File} of the path, all missing folder nodes will be 
 	 * created, the file will be truncated if already existed.
 	 * @param filepath the file path.
-	 * @return the file created or returned.
+	 * @return the file created.
 	 * @throws ResourceNotAvalaibleException if any missing folder was unable to create, 
 	 * 	or could not create the file.
 	 */

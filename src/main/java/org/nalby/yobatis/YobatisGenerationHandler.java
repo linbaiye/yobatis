@@ -20,12 +20,13 @@ import org.nalby.yobatis.mybatis.MybatisFilesWriter;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.sql.mysql.Mysql;
 import org.nalby.yobatis.sql.mysql.Mysql.Builder;
-import org.nalby.yobatis.structure.OldPomTree;
-import org.nalby.yobatis.structure.OldProject;
-import org.nalby.yobatis.structure.OldSpringAntPatternFileManager;
+import org.nalby.yobatis.structure.File;
+import org.nalby.yobatis.structure.PomTree;
+import org.nalby.yobatis.structure.Project;
+import org.nalby.yobatis.structure.SpringAntPathFileManager;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.WebContainerParser;
-import org.nalby.yobatis.structure.eclipse.OldEclipseProject;
+import org.nalby.yobatis.structure.eclipse.EclipseProject;
 import org.nalby.yobatis.xml.MybatisXmlParser;
 
 public class YobatisGenerationHandler extends AbstractHandler {
@@ -35,12 +36,12 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	/**
 	 *  Build the generator of mybatis-generator's config file according to project config.
 	 */
-	private MybatisConfigFileGenerator buildMybatisGeneratorConfigMaker(OldProject project) {
-		OldPomTree pomTree = new OldPomTree(project);
+	private MybatisConfigFileGenerator buildMybatisGeneratorConfigMaker(Project project) {
+		PomTree pomTree = new PomTree(project);
 
 		WebContainerParser webContainerParser = new WebContainerParser(pomTree.getWarPom());
 
-		OldSpringAntPatternFileManager fileManager = new OldSpringAntPatternFileManager(pomTree, project);
+		SpringAntPathFileManager fileManager = new SpringAntPathFileManager(pomTree);
 
 		SpringParser springParser = new SpringParser(fileManager, webContainerParser.getSpringInitParamValues());
 
@@ -64,48 +65,56 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	}
 	
 	/*
-	 * Merge the new file generator into the existent one if exists.
+	 * Merge the new file into the existent one if exists.
 	 */
-	private MybatisConfigReader mergeIntoExistentConfig(MybatisConfigFileGenerator configFileGenerator, OldProject project) {
-		MybatisConfigReader reader = configFileGenerator;
-		try (InputStream inputStream = project.openFile(MybatisConfigReader.CONFIG_FILENAME)) {
+	private MybatisConfigReader mergeIntoExistentConfig(MybatisConfigFileGenerator configFileGenerator, Project project) {
+		MybatisConfigReader configReader = configFileGenerator;
+		File file = project.findFile(MybatisConfigFileGenerator.CONFIG_FILENAME);
+		if (file == null) {
+			return configReader;
+		}
+		try (InputStream inputStream = file.open()) {
 			MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(inputStream);
 			mybatisXmlParser.mergeGeneratedConfig(configFileGenerator);
-			reader = mybatisXmlParser;
+			configReader = mybatisXmlParser;
 		} catch (Exception e) {
 			logger.info("Unable to merge existent file:{}.", e);
 		}
-		return reader;
+		return configReader;
 	}
 	
 	
 
 	private void generateFromExistentFile(IFile iFile) {
 		IProject iProject = iFile.getProject();
-		OldEclipseProject project = new OldEclipseProject(iProject);
-		try (InputStream inputStream = project.openFile(MybatisConfigFileGenerator.CONFIG_FILENAME)) {
+		EclipseProject project = new EclipseProject(iProject);
+		try {
+			File file = project.findFile(MybatisConfigFileGenerator.CONFIG_FILENAME);
 			logger.info("Trying to generate files from existent config file.");
-			MybatisConfigReader configReader = new MybatisXmlParser(inputStream);
-			MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, configReader);
-			filesWriter.writeAll();
+			try (InputStream inputStream = file.open()) {
+				MybatisConfigReader configReader = new MybatisXmlParser(inputStream);
+				MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, configReader);
+				filesWriter.writeAll();
+			}
 		} catch (Exception e) {
 			logger.info("No existent configuration found, will generate a new one.");
 		}
 	}
 	
 
-	private void generateFromProject(IProject project) {
-		logger.info("Scaning project:{}.", project.getName());
-		OldEclipseProject eclipseProject = new OldEclipseProject(project);
+	private void generateFromProject(IProject iProject) {
+		logger.info("Scaning project:{}.", iProject.getName());
+		Project project = new EclipseProject(iProject);
 
-		MybatisConfigFileGenerator configFileGenerator = buildMybatisGeneratorConfigMaker(eclipseProject);
+		MybatisConfigFileGenerator configFileGenerator = buildMybatisGeneratorConfigMaker(project);
 
-		MybatisConfigReader reader = mergeIntoExistentConfig(configFileGenerator, eclipseProject);
+		MybatisConfigReader reader = mergeIntoExistentConfig(configFileGenerator, project);
 
 		// Write mybatis-generator's config file to the project's root dir.
-		eclipseProject.writeFile(MybatisConfigReader.CONFIG_FILENAME, reader.asXmlText());
+		File file = project.createFile(MybatisConfigReader.CONFIG_FILENAME);
+		file.write(reader.asXmlText());
 
-		MybatisFilesWriter filesWriter = new MybatisFilesWriter(eclipseProject, reader);
+		MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, reader);
 		filesWriter.writeAll();
 	}
 	
@@ -135,12 +144,12 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	}
 
 
-	private void buildMybatisGeneratorConfigMaker1(OldProject project) {
-		OldPomTree pomTree = new OldPomTree(project);
+	private void buildMybatisGeneratorConfigMaker1(Project project) {
+		PomTree pomTree = new PomTree(project);
 
 		WebContainerParser webContainerParser = new WebContainerParser(pomTree.getWarPom());
 
-		OldSpringAntPatternFileManager fileManager = new OldSpringAntPatternFileManager(pomTree, project);
+		SpringAntPathFileManager fileManager = new SpringAntPathFileManager(pomTree);
 
 		SpringParser springParser = new SpringParser(fileManager, webContainerParser.getSpringInitParamValues());
 
