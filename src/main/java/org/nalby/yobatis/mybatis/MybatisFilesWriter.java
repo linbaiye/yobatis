@@ -26,19 +26,19 @@ public class MybatisFilesWriter {
 
 	private LibraryRunner runner;
 
-	private MybatisConfigReader reader;
+	private MybatiGeneratorAnalyzer reader;
 
 	private Project project;
 	
 	private Logger logger = LogFactory.getLogger(MybatisFilesWriter.class);
 
-	public MybatisFilesWriter(Project project, MybatisConfigReader configReader) {
+	public MybatisFilesWriter(Project project, MybatiGeneratorAnalyzer configReader) {
 		Expect.notNull(project, "project must not be null.");
 		Expect.notNull(configReader, "configReader must not be null.");
 		this.project = project;
 		this.runner = new LibraryRunner();
 		try {
-			File file = project.findFile(MybatisConfigReader.CONFIG_FILENAME);
+			File file = project.findFile(MybatiGeneratorAnalyzer.CONFIG_FILENAME);
 			try (InputStream inputStream = file.open()) {
 				this.runner.parse(inputStream);
 			}
@@ -52,6 +52,22 @@ public class MybatisFilesWriter {
 		}
 		if (runner.getGeneratedXmlFiles() == null) {
 			throw new ProjectException("No xml files generated.");
+		}
+		this.reader = configReader;
+	}
+	
+	public MybatisFilesWriter(Project project, MybatiGeneratorAnalyzer configReader,
+			LibraryRunner mybatisRunner) {
+		Expect.notNull(project, "project must not be null.");
+		Expect.notNull(configReader, "configReader must not be null.");
+		Expect.notNull(mybatisRunner, "mybatisRunner must not be null.");
+		this.project = project;
+		this.runner = mybatisRunner;
+		if (runner.getGeneratedJavaFiles() == null) {
+			throw new InvalidMybatisGeneratorConfigException("No java files generated.");
+		}
+		if (runner.getGeneratedXmlFiles() == null) {
+			throw new InvalidMybatisGeneratorConfigException("No xml files generated.");
 		}
 		this.reader = configReader;
 	}

@@ -1,7 +1,7 @@
 package org.nalby.yobatis.mybatis;
 
 
-public interface MybatisConfigReader {
+public interface MybatiGeneratorAnalyzer {
 	
 	public final static String CONFIG_FILENAME = "mybatisGeneratorConfig.xml";
 	
@@ -18,21 +18,21 @@ public interface MybatisConfigReader {
 	 * @return the path.
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
-	public String getDaoDirPath();
+	String getDaoDirPath();
 	
 	/**
 	 * The dir path where java domain/model files will be saved.
 	 * @return the path.
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
-	public String getDomainDirPath();
+	String getDomainDirPath();
 	
 	/**
 	 * The dir path where java criteria files will be saved.
 	 * @return the path.
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
-	public String getCriteriaDirPath();
+	String getCriteriaDirPath();
 	
 	
 	/**
@@ -40,7 +40,7 @@ public interface MybatisConfigReader {
 	 * @return the value
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
-	public String getPackageNameOfDomains();
+	String getPackageNameOfDomains();
 	
 	
 	/**
@@ -48,19 +48,19 @@ public interface MybatisConfigReader {
 	 * @return the value
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
-	public String getPackageNameOfJavaMappers();
+	String getPackageNameOfJavaMappers();
 	
 	/**
 	 * The dir path where xml mapper files will be saved.
 	 * @return the dir path.
 	 * @throws InvalidMybatisGeneratorConfigException if not configured properly.
 	 */
-	public String getXmlMapperDirPath();
+	String getXmlMapperDirPath();
 	
 	/**
 	 * Turn this config into a text string.
 	 * @return this content string.
 	 */
-	public String asXmlText();
+	String asXmlText();
 
 }

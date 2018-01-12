@@ -16,14 +16,14 @@ import org.dom4j.Node;
 import org.junit.Before;
 import org.junit.Test;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
-import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
+import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class MybatisXmlParserTests {
 	
-	private MybatisConfigFileGenerator mockedGenerator;
+	private MybatisGeneratorXmlCreator mockedGenerator;
 
 	private DocumentFactory documentFactory = DocumentFactory.getInstance();
 	
@@ -120,7 +120,7 @@ public class MybatisXmlParserTests {
 	}
 	
 	public void resetGenerator() {
-		mockedGenerator = mock(MybatisConfigFileGenerator.class);
+		mockedGenerator = mock(MybatisGeneratorXmlCreator.class);
 		when(mockedGenerator.getClassPathEntryElement()).thenReturn(classpath);
 		when(mockedGenerator.getContext()).thenReturn(context);
 		when(mockedGenerator.getJavaTypeResolverElement()).thenReturn(javaTypeResolver);
@@ -284,7 +284,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -299,7 +299,7 @@ public class MybatisXmlParserTests {
 				"<generatorConfiguration>\n" + 
 				"<classPathEntry location=\"oldLocation\"/>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -323,7 +323,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -347,7 +347,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -372,7 +372,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -397,7 +397,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -423,7 +423,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		assertTrue("world/hello".equals(mybatisXmlParser.getXmlMapperDirPath()));
 	}
@@ -445,7 +445,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"dao\" targetProject=\"/test\"/>\n" + 
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		assertTrue("/test/dao".equals(mybatisXmlParser.getDaoDirPath()));
 	}
@@ -467,7 +467,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		assertTrue("hello/world/criteria".equals(mybatisXmlParser.getCriteriaDirPath()));
 	}
@@ -489,7 +489,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		javaModelGenerators.clear();
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		mybatisXmlParser.getDomainDirPath();
@@ -509,7 +509,7 @@ public class MybatisXmlParserTests {
 				"    </javaTypeResolver>\n" + 
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		mybatisXmlParser.getDomainDirPath();
 	}
@@ -531,7 +531,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		assertTrue("targetProject1/targetPackage1".equals(mybatisXmlParser.getDomainDirPath()));
 	}
@@ -553,7 +553,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		assertTrue("targetPackage1".equals(mybatisXmlParser.getPackageNameOfDomains()));
 	}
@@ -577,7 +577,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" + 
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -603,7 +603,7 @@ public class MybatisXmlParserTests {
 				"    <!--table tableName=\"table2\" schema=\"schema\" /-->\n" +
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -629,7 +629,7 @@ public class MybatisXmlParserTests {
 				"    <table tableName=\"table2\" schema=\"schema\" /-->\n" +
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -655,7 +655,7 @@ public class MybatisXmlParserTests {
 				"    <table tableName=\"table2\" schema=\"schema\" /-->\n" +
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -682,7 +682,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -709,7 +709,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
@@ -738,7 +738,7 @@ public class MybatisXmlParserTests {
 				"    <javaClientGenerator type=\"XMLMAPPER\" targetPackage=\"targetPackage1\" targetProject=\"targetProject1\"/>\n" + 
 				"  </context>\n" +
 				"</generatorConfiguration>\n";
-		MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(new ByteArrayInputStream(xmldoc.getBytes()));
+		MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(new ByteArrayInputStream(xmldoc.getBytes()));
 		mybatisXmlParser.mergeGeneratedConfig(mockedGenerator);
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));

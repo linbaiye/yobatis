@@ -1,8 +1,10 @@
 package org.nalby.yobatis;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
+import org.dom4j.DocumentException;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -12,10 +14,13 @@ import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.PlatformUI;
+import org.mybatis.generator.api.LibraryRunner;
+import org.mybatis.generator.exception.InvalidConfigurationException;
+import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
-import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
-import org.nalby.yobatis.mybatis.MybatisConfigReader;
+import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
+import org.nalby.yobatis.mybatis.MybatiGeneratorAnalyzer;
 import org.nalby.yobatis.mybatis.MybatisFilesWriter;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.sql.mysql.Mysql;
@@ -27,7 +32,7 @@ import org.nalby.yobatis.structure.SpringAntPathFileManager;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.WebContainerParser;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
-import org.nalby.yobatis.xml.MybatisXmlParser;
+import org.nalby.yobatis.xml.MybatisGeneratorXmlReader;
 
 public class YobatisGenerationHandler extends AbstractHandler {
 	
@@ -36,7 +41,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 	/**
 	 *  Build the generator of mybatis-generator's config file according to project config.
 	 */
-	private MybatisConfigFileGenerator buildMybatisGeneratorConfigMaker(Project project) {
+	private MybatisGeneratorXmlCreator buildMybatisGeneratorConfigMaker(Project project) {
 		PomTree pomTree = new PomTree(project);
 
 		WebContainerParser webContainerParser = new WebContainerParser(pomTree.getWarPom());
@@ -61,60 +66,79 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		.setUsername(username)
 		.setPassword(password)
 		.setUrl(url);
-		return new MybatisConfigFileGenerator(pomTree, builder.build());
+		return new MybatisGeneratorXmlCreator(pomTree, builder.build());
+	}
+	
+
+	private LibraryRunner buildMyBatisRunner(Project project) {
+		try {
+			File file = project.findFile(MybatiGeneratorAnalyzer.CONFIG_FILENAME);
+			try (InputStream inputStream = file.open()) {
+				LibraryRunner libraryRunner = new LibraryRunner();
+				libraryRunner.parse(inputStream);
+				return libraryRunner;
+			}
+		} catch (Exception e) {
+			throw new InvalidMybatisGeneratorConfigException(e);
+		}
+	}
+	
+	private MybatisGeneratorXmlReader buildGeneratorXmlParser(Project project) {
+		try {
+			File file = project.findFile(MybatiGeneratorAnalyzer.CONFIG_FILENAME);
+			try (InputStream inputStream = file.open()) {
+				return new MybatisGeneratorXmlReader(inputStream);
+			}
+		} catch (IOException | DocumentException e) {
+			throw new InvalidMybatisGeneratorConfigException(e);
+		}
 	}
 	
 	/*
 	 * Merge the new file into the existent one if exists.
 	 */
-	private MybatisConfigReader mergeIntoExistentConfig(MybatisConfigFileGenerator configFileGenerator, Project project) {
-		MybatisConfigReader configReader = configFileGenerator;
-		File file = project.findFile(MybatisConfigFileGenerator.CONFIG_FILENAME);
-		if (file == null) {
-			return configReader;
-		}
-		try (InputStream inputStream = file.open()) {
-			MybatisXmlParser mybatisXmlParser = new MybatisXmlParser(inputStream);
-			mybatisXmlParser.mergeGeneratedConfig(configFileGenerator);
-			configReader = mybatisXmlParser;
-		} catch (Exception e) {
-			logger.info("Unable to merge existent file:{}.", e);
+	private MybatiGeneratorAnalyzer mergeIntoExistentConfig(MybatisGeneratorXmlCreator configFileGenerator, Project project) {
+		MybatiGeneratorAnalyzer configReader = configFileGenerator;
+		File file = project.findFile(MybatisGeneratorXmlCreator.CONFIG_FILENAME);
+		if (file != null) {
+			try (InputStream inputStream = file.open()) {
+				MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(inputStream);
+				mybatisXmlParser.mergeGeneratedConfig(configFileGenerator);
+				configReader = mybatisXmlParser;
+			} catch (IOException | DocumentException e) {
+				logger.info("Unable to merge existent file:{}.", e);
+			}
 		}
 		return configReader;
 	}
 	
-	
 
+	// When clicked
 	private void generateFromExistentFile(IFile iFile) {
 		IProject iProject = iFile.getProject();
 		EclipseProject project = new EclipseProject(iProject);
-		try {
-			File file = project.findFile(MybatisConfigFileGenerator.CONFIG_FILENAME);
-			logger.info("Trying to generate files from existent config file.");
-			try (InputStream inputStream = file.open()) {
-				MybatisConfigReader configReader = new MybatisXmlParser(inputStream);
-				MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, configReader);
-				filesWriter.writeAll();
-			}
-		} catch (Exception e) {
-			logger.info("No existent configuration found, will generate a new one.");
-		}
+		logger.info("Trying to generate files from existent config file.");
+		LibraryRunner mybatisRunner = buildMyBatisRunner(project);
+		MybatiGeneratorAnalyzer configReader = buildGeneratorXmlParser(project);
+		MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, configReader, mybatisRunner);
+		filesWriter.writeAll();
 	}
 	
 
 	private void generateFromProject(IProject iProject) {
-		logger.info("Scaning project:{}.", iProject.getName());
+		logger.info("Scanning project:{}.", iProject.getName());
+
 		Project project = new EclipseProject(iProject);
+		MybatisGeneratorXmlCreator configFileGenerator = buildMybatisGeneratorConfigMaker(project);
 
-		MybatisConfigFileGenerator configFileGenerator = buildMybatisGeneratorConfigMaker(project);
-
-		MybatisConfigReader reader = mergeIntoExistentConfig(configFileGenerator, project);
+		MybatiGeneratorAnalyzer reader = mergeIntoExistentConfig(configFileGenerator, project);
 
 		// Write mybatis-generator's config file to the project's root dir.
-		File file = project.createFile(MybatisConfigReader.CONFIG_FILENAME);
+		File file = project.createFile(MybatiGeneratorAnalyzer.CONFIG_FILENAME);
 		file.write(reader.asXmlText());
 
-		MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, reader);
+		LibraryRunner mybatisRunner = buildMyBatisRunner(project);
+		MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, reader, mybatisRunner);
 		filesWriter.writeAll();
 	}
 	
@@ -133,7 +157,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		}
 		if (element instanceof IFile) {
 			IFile iFile = (IFile)element;
-			if (!MybatisConfigFileGenerator.CONFIG_FILENAME.equals(iFile.getName())) {
+			if (!MybatisGeneratorXmlCreator.CONFIG_FILENAME.equals(iFile.getName())) {
 				return null;
 			}
 			generateFromExistentFile(iFile);
@@ -184,38 +208,6 @@ public class YobatisGenerationHandler extends AbstractHandler {
 		} catch (Exception e) {
 			logger.error("Caught exception:{}.", e);
 		}
-/*		ISelectionService selectionService = PlatformUI.getWorkbench()
-				.getActiveWorkbenchWindow().getSelectionService();
-		ISelection selection = selectionService.getSelection();
-		if (!(selection instanceof IStructuredSelection)) {
-			return null;
-		}
-		Object element = ((IStructuredSelection) selection).getFirstElement();
-		if (element == null ||
-			(!(element instanceof IProject) && !(element instanceof IFile))) {
-			return null;
-		}
-		if (element instanceof IProject) {
-			IProject iProject = (IProject) element;
-			EclipseProject project = new EclipseProject(iProject);
-			PomTree pomTree = new PomTree(project);
-			Pom pom = pomTree.getWarPom();
-			WebContainerParser webContainerParser = new WebContainerParser(pom);
-			SpringParser springParser = new SpringParser(pomTree, 
-					webContainerParser.getSpringInitParamValues());
-			System.out.println(springParser.getDatabasePassword());
-
-			String driverClassName = springParser.getDatabaseDriverClassName();
-
-			String dbJarPath = pomTree.getDatabaseJarPath(driverClassName);
-
-			try {
-			buildMybatisGeneratorConfigMaker1(project);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-			System.out.println(dbJarPath);
-		}*/
 		return null;
 	}
 }

@@ -18,13 +18,13 @@ import org.dom4j.Element;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
-import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
-import org.nalby.yobatis.mybatis.MybatisConfigReader;
+import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
+import org.nalby.yobatis.mybatis.MybatiGeneratorAnalyzer;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfigReader {
+public class MybatisGeneratorXmlReader extends AbstractXmlParser implements MybatiGeneratorAnalyzer {
 	private static final String DTD = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
 			"<!--\n" + 
 			"\n" + 
@@ -308,7 +308,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	public final static String PLUGIN_TAG = "plugin";
 	public final static String TARGET_RUNTIME = "MyBatis3";
 
-	public MybatisXmlParser(InputStream inputStream) throws DocumentException, IOException {
+	public MybatisGeneratorXmlReader(InputStream inputStream) throws DocumentException, IOException {
 		super(inputStream, ROOT_TAG);
 		root = document.getRootElement();
 		loadClasspathEntry();
@@ -462,19 +462,19 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		}
 	}
 	
-	private void mergeSqlMapGenerators(MybatisConfigFileGenerator configFileGenerator) {
+	private void mergeSqlMapGenerators(MybatisGeneratorXmlCreator configFileGenerator) {
 		mergeGenerators(configFileGenerator.getSqlMapGeneratorElements(), sqlMapGenerators);
 	}
 	
-	private void mergeJavaModelGenerators(MybatisConfigFileGenerator configFileGenerator) {
+	private void mergeJavaModelGenerators(MybatisGeneratorXmlCreator configFileGenerator) {
 		mergeGenerators(configFileGenerator.getJavaModelGeneratorElements(), javaModelGenerators);
 	}
 	
-	private void mergeJavaClientGenerators(MybatisConfigFileGenerator configFileGenerator) {
+	private void mergeJavaClientGenerators(MybatisGeneratorXmlCreator configFileGenerator) {
 		mergeGenerators(configFileGenerator.getJavaClientGeneratorElements(), javaClientGenerators);
 	}
 	
-	private void mergeClasspathEntry(MybatisConfigFileGenerator configFileGenerator) {
+	private void mergeClasspathEntry(MybatisGeneratorXmlCreator configFileGenerator) {
 		if (classPathEntry == null) {
 			root.add(configFileGenerator.getClassPathEntryElement().createCopy());
 		} else {
@@ -482,18 +482,18 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		}
 	}
 
-	private boolean mergeContext(MybatisConfigFileGenerator configFileGenerator) {
+	private boolean mergeContext(MybatisGeneratorXmlCreator configFileGenerator) {
 		if (context == null) {
 			root.add(configFileGenerator.getContext().createCopy());
 			return false;
 		}
 		context = root.addElement("context");
-		context.addAttribute("id", MybatisConfigReader.DEFAULT_CONTEXT_ID);
-		context.addAttribute("targetRuntime", MybatisConfigReader.TARGET_RUNTIME);
+		context.addAttribute("id", MybatiGeneratorAnalyzer.DEFAULT_CONTEXT_ID);
+		context.addAttribute("targetRuntime", MybatiGeneratorAnalyzer.TARGET_RUNTIME);
 		return true;
 	}
 	
-	private void mergeJavaTypeResolver(MybatisConfigFileGenerator configFileGenerator) {
+	private void mergeJavaTypeResolver(MybatisGeneratorXmlCreator configFileGenerator) {
 		if (javaTypeResolver == null) {
 			context.add(configFileGenerator.getJavaTypeResolverElement().createCopy());
 		} else {
@@ -501,7 +501,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 		}
 	}
 	
-	private void mergeJdbcConnection(MybatisConfigFileGenerator configFileGenerator) {
+	private void mergeJdbcConnection(MybatisGeneratorXmlCreator configFileGenerator) {
 		if (jdbcConnection == null) {
 			context.add(configFileGenerator.getJdbConnectionElement().createCopy());
 		} else {
@@ -510,7 +510,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	}
 
 	
-	private void mergeTables(MybatisConfigFileGenerator configFileGenerator) {
+	private void mergeTables(MybatisGeneratorXmlCreator configFileGenerator) {
 		for (Element current: tables) {
 			context.add(current);
 		}
@@ -528,7 +528,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	}
 	
 	//TODO: Still need to cope with artificially added plug-ins.
-	private void mergePlugins(MybatisConfigFileGenerator configFileGenerator) {
+	private void mergePlugins(MybatisGeneratorXmlCreator configFileGenerator) {
 		Element pluginElement = configFileGenerator.getPluginElement();
 		Element currentPlugin = findPluginElement(plugins, pluginElement);
 		if (currentPlugin == null) {
@@ -555,7 +555,7 @@ public class MybatisXmlParser extends AbstractXmlParser implements MybatisConfig
 	 * Preserve manually edited elements. 
 	 * @param configFileGenerator
 	 */
-	public void mergeGeneratedConfig(MybatisConfigFileGenerator configFileGenerator) {
+	public void mergeGeneratedConfig(MybatisGeneratorXmlCreator configFileGenerator) {
 		mergeClasspathEntry(configFileGenerator);
 		if (mergeContext(configFileGenerator)) {
 			mergePlugins(configFileGenerator);

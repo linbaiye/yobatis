@@ -13,13 +13,13 @@ import org.dom4j.Element;
 import org.junit.Before;
 import org.junit.Test;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
-import org.nalby.yobatis.mybatis.MybatisConfigFileGenerator;
+import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
 import org.nalby.yobatis.sql.Sql;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.PomTree;
 import org.nalby.yobatis.util.TestUtil;
-import org.nalby.yobatis.xml.MybatisXmlParser;
+import org.nalby.yobatis.xml.MybatisGeneratorXmlReader;
 
 public class GeneratorTests {
 	
@@ -35,7 +35,7 @@ public class GeneratorTests {
 
 	private List<Folder> modelFolders;
 	
-	private MybatisConfigFileGenerator generator;
+	private MybatisGeneratorXmlCreator generator;
 
 	private static class Attribute {
 		public String name;
@@ -79,7 +79,7 @@ public class GeneratorTests {
 	
 	
 	private void build() {
-		generator = new MybatisConfigFileGenerator(mockedPomTree, mockedSql);
+		generator = new MybatisGeneratorXmlCreator(mockedPomTree, mockedSql);
 	}
 	
 	
@@ -94,7 +94,7 @@ public class GeneratorTests {
 	public void classpath() {
 		build();
 		Element element = generator.getClassPathEntryElement();
-		assertElement(element, MybatisXmlParser.CLASS_PATH_ENTRY_TAG, new Attribute("location", "mysql.jar"));
+		assertElement(element, MybatisGeneratorXmlReader.CLASS_PATH_ENTRY_TAG, new Attribute("location", "mysql.jar"));
 	}
 	
 	@Test

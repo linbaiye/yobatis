@@ -1,5 +1,6 @@
 package org.nalby.yobatis.structure.eclipse;
 
+import org.eclipse.core.internal.resources.projectvariables.EclipseHomeProjectVariable;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.Platform;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
@@ -25,7 +26,10 @@ public class EclipseProject extends Project {
 	@Override
 	protected String findMavenRepositoryPath() {
 		String home = Platform.getUserLocation().getURL().getPath();
-		return home.replaceFirst("/user/$", "/.m2/repository");
+		if (home != null) {
+			home = home.replaceFirst("/user/$", "/.m2/repository");
+		}
+		return home;
 	}
 
 }

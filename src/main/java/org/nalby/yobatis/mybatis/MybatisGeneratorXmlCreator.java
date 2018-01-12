@@ -19,14 +19,14 @@ import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.PomTree;
 import org.nalby.yobatis.xml.AbstractXmlParser;
-import org.nalby.yobatis.xml.MybatisXmlParser;
+import org.nalby.yobatis.xml.MybatisGeneratorXmlReader;
 
 /**
  * Generate MyBaits Generator's configuration file according to current project structure.
  * 
  * @author Kyle Lin
  */
-public class MybatisConfigFileGenerator implements MybatisConfigReader {
+public class MybatisGeneratorXmlCreator implements MybatiGeneratorAnalyzer {
 
 	private Document document;
 
@@ -58,9 +58,9 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 
 	private Set<Element> tableElemnts = new HashSet<Element>();
 	
-	private Logger logger = LogFactory.getLogger(MybatisConfigFileGenerator.class);
+	private Logger logger = LogFactory.getLogger(MybatisGeneratorXmlCreator.class);
 	
-	public MybatisConfigFileGenerator(PomTree pomTree, Sql sql) {
+	public MybatisGeneratorXmlCreator(PomTree pomTree, Sql sql) {
 		logger.info("Generating MyBatis Generator's configuration file.");
 		this.sql = sql;
 		this.pomTree = pomTree;
@@ -129,7 +129,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	private void appendClassPathEntry(Element root) {
-		classPathEntry = root.addElement(MybatisXmlParser.CLASS_PATH_ENTRY_TAG);
+		classPathEntry = root.addElement(MybatisGeneratorXmlReader.CLASS_PATH_ENTRY_TAG);
 		classPathEntry.addAttribute("location", sql.getConnectorJarPath());
 	}
 	
@@ -205,8 +205,8 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	
 	private Element appendContext(Element root) {
 		context = root.addElement("context");
-		context.addAttribute("id", MybatisConfigReader.DEFAULT_CONTEXT_ID);
-		context.addAttribute("targetRuntime", MybatisConfigReader.TARGET_RUNTIME);
+		context.addAttribute("id", MybatiGeneratorAnalyzer.DEFAULT_CONTEXT_ID);
+		context.addAttribute("targetRuntime", MybatiGeneratorAnalyzer.TARGET_RUNTIME);
 		return context;
 	}
 	
