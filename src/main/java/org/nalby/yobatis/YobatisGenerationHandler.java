@@ -43,7 +43,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 		SpringAntPathFileManager fileManager = new SpringAntPathFileManager(pomTree);
 
-		SpringParser springParser = new SpringParser(fileManager, webContainerParser.getSpringInitParamValues());
+		SpringParser springParser = new SpringParser(fileManager, webContainerParser.searchInitParamValues());
 
 		String username = springParser.getDatabaseUsername();
 
@@ -151,7 +151,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 		SpringAntPathFileManager fileManager = new SpringAntPathFileManager(pomTree);
 
-		SpringParser springParser = new SpringParser(fileManager, webContainerParser.getSpringInitParamValues());
+		SpringParser springParser = new SpringParser(fileManager, webContainerParser.searchInitParamValues());
 
 		String username = springParser.getDatabaseUsername();
 
