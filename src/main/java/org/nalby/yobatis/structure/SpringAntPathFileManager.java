@@ -1,10 +1,12 @@
 package org.nalby.yobatis.structure;
 
 
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.nalby.yobatis.util.AntPathMatcher;
@@ -25,37 +27,35 @@ import org.nalby.yobatis.xml.SpringXmlParser;
  */
 public class SpringAntPathFileManager {
 
-	private Project project;
-	
 	private PomTree pomTree;
 	
 	private AntPathMatcher antPathMatcher;
 
-	private Map<File, Pom> files;
+	private Map<File, Pom> fileToPom;
 	
 	private Map<File, SpringXmlParser> parsers;
 	
-	/*private SpringXmlParser getXmlParser(String path) {
-		if (parsers.containsKey(path)) {
-			return parsers.get(path);
+	
+	public SpringAntPathFileManager(PomTree pomTree) {
+		Expect.notNull(pomTree, "pomTree must not be null.");
+		this.pomTree = pomTree;
+		fileToPom = new HashMap<>();
+		parsers = new HashMap<>();
+		antPathMatcher = new AntPathMatcher();
+	}
+	
+
+	private SpringXmlParser getXmlParser(File file) {
+		if (parsers.containsKey(file)) {
+			return parsers.get(file);
 		}
-		try (InputStream inputStream = project.openFile(path)){
+		try (InputStream inputStream = file.open()){
 			SpringXmlParser parser = new SpringXmlParser(inputStream);
-			parsers.put(path, parser);
+			parsers.put(file, parser);
 			return parser;
 		} catch (Exception e) {
 			return null;
 		}
-	}*/
-	
-	public SpringAntPathFileManager(PomTree pomTree, Project project) {
-		Expect.notNull(pomTree, "pomTree must not be null.");
-		Expect.notNull(project, "project must not be null.");
-		this.pomTree = pomTree;
-		this.project = project;
-		files = new HashMap<>();
-		parsers = new HashMap<>();
-		antPathMatcher = new AntPathMatcher();
 	}
 	
 	/**
@@ -69,7 +69,7 @@ public class SpringAntPathFileManager {
 		String antpath = FolderUtil.concatPath(folder.path(), antPattern);
 		for (File file: Project.listAllFiles(folder)) {
 			if (antpath.equals(file.path()) || antPathMatcher.match(antpath, file.path())) {
-				files.put(file, pom);
+				fileToPom.put(file, pom);
 				result.add(file);
 			}
 		}
@@ -148,54 +148,72 @@ public class SpringAntPathFileManager {
 	/*
 	 * There is a difference on importing relative paths between spring files and properties files.
 	 */
-	/*private interface NonclasspathHandler {
-		void handle(String hint, FileMetadata fileMetadata, Set<String> result);
+	private interface NonclasspathHandler {
+		void handle(String hint, Set<File> result);
 	}
 	
-	private Set<String> findImportedFiles(String path, boolean isSpringXml,
+	/**
+	 * Find imported files in the file. The isSpringXml tells which kind of files we will search,
+	 * Spring xml files if true, properties files if false.
+	 * @param file
+	 * @param isSpringXml
+	 * @param nonclasspathHandler 
+	 * @return the files found.
+	 */
+	@SuppressWarnings("unchecked")
+	private Set<File> findImportedFiles(File file, boolean isSpringXml,
 			NonclasspathHandler nonclasspathHandler) {
-		if (!files.containsKey(path)) {
-			return EMPTY_FILES;
+		if (!fileToPom.containsKey(file)) {
+			return Collections.EMPTY_SET;
 		}
-		SpringXmlParser parser = getXmlParser(path);
+		//Not a valid spring xml file.
+		SpringXmlParser parser = getXmlParser(file);
 		if (parser == null) {
-			return EMPTY_FILES;
+			return Collections.EMPTY_SET;
 		}
-		FileMetadata metadata = files.get(path);
-		Pom pom = metadata.getPom();
+		Pom pom = fileToPom.get(file);
 		Set<String> hints = parser.getPropertiesFileLocations();
 		if (isSpringXml) {
 			hints = parser.getImportedLocations();
 		}
-
-		Set<String> result = new HashSet<>();
+		Set<File> result = new HashSet<>();
 		for (String hint : hints) {
 			hint = pom.filterPlaceholders(hint);
 			if (hint.matches(CLASSPATH_REGEX)) {
 				result.addAll(getImportedFilesWithClasspath(hint, pom));
 			} else {
-				nonclasspathHandler.handle(hint, metadata, result);
+				nonclasspathHandler.handle(hint, result);
 			}
 		}
 		return result;
 	}
 	
-	public Set<String> findImportSpringXmlFiles(String path) {
-		return findImportedFiles(path, true, new NonclasspathHandler() {
+	/**
+	 * Find all spring files configured in the file, currently files imported in xml.
+	 * @param file
+	 * @return other spring xml files if found.
+	 */
+	public Set<File> findSpringFiles(File file) {
+		return findImportedFiles(file, true, new NonclasspathHandler() {
 			@Override
-			public void handle(String hint, FileMetadata fileMetadata, Set<String> result) {
-				matchFilesInFolder(fileMetadata.getPom(), fileMetadata.getFolder(), hint, result);
+			public void handle(String hint, Set<File> result) {
+				matchFilesInFolder(fileToPom.get(file), file.parentFolder(), hint, result);
 			}
 		});
 	}
 
 	
-	public Set<String> findPropertiesFiles(String path) {
-		return findImportedFiles(path, false, new NonclasspathHandler() {
+	/**
+	 * Find all spring files configured in the file.
+	 * @param file
+	 * @return other spring xml files if found.
+	 */
+	public Set<File> findPropertiesFiles(File file) {
+		return findImportedFiles(file, false, new NonclasspathHandler() {
 			@Override
-			public void handle(String hint, FileMetadata fileMetadata, Set<String> result) {
+			public void handle(String hint, Set<File> result) {
 				if (!hint.startsWith("/")){
-					matchFilesInFolder(fileMetadata.getPom(), fileMetadata.getFolder(), hint, result);
+					matchFilesInFolder(fileToPom.get(file), file.parentFolder(), hint, result);
 				} else {
 					Pom webpom = pomTree.getWarPom();
 					matchFilesInFolder(webpom, webpom.getWebappFolder(), hint, result);
@@ -204,16 +222,23 @@ public class SpringAntPathFileManager {
 		});
 	}
 	
-	public String lookupPropertyOfSpringFile(String path, String name) {
-		if (!files.containsKey(path)) {
+	
+	/**
+	 * Search for database property in the datasource bean of the spring file, and filter 
+	 * out placeholders configured in the pom if possible.
+	 * @param file the properties file to search.
+	 * @param name the property name.
+	 * @return the value which may contains placeholders, or null if not configured in this db.
+	 */
+	public String lookupDbProperty(File file, String name) {
+		if (!fileToPom.containsKey(file)) {
 			return null;
 		}
-		SpringXmlParser parser = getXmlParser(path);
+		SpringXmlParser parser = getXmlParser(file);
 		if (parser == null) {
 			return null;
 		}
-		FileMetadata metadata = files.get(path);
-		Pom pom = metadata.getPom();
+		Pom pom = fileToPom.get(file);
 		if ("username".equals(name)) {
 			return pom.filterPlaceholders(parser.getDbUsername());
 		} else if ("password".equals(name)) {
@@ -224,20 +249,20 @@ public class SpringAntPathFileManager {
 			return pom.filterPlaceholders(parser.getDbUrl());
 		}
 		return null;
-	}*/
+	}
 	
 	
 	/**
-	 * Read properties file, and filter all placeholders if possible.
+	 * Read properties file, and filter all placeholders if the are defined in pom.
 	 * @param path the properties file path.
-	 * @return properties properties filtered, null if not a valid path.
+	 * @return properties properties filtered, null if not a valid file.
 	 */
-	/*public Properties readProperties(String path) {
-		if (!files.containsKey(path)) {
+	public Properties readProperties(File file) {
+		if (!fileToPom.containsKey(file)) {
 			return null;
 		}
-		Pom pom = files.get(path).getPom();
-		try (InputStream inputStream = project.openFile(path)) {
+		Pom pom = fileToPom.get(file);
+		try (InputStream inputStream = file.open()) {
 			Properties result = new Properties();
 			Properties properties = new Properties();
 			properties.load(inputStream);
@@ -252,6 +277,6 @@ public class SpringAntPathFileManager {
 		} catch (Exception e) {
 			return null;
 		}
-	}*/
+	}
 	
 }
