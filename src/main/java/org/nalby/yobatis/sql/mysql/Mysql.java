@@ -1,6 +1,7 @@
 package org.nalby.yobatis.sql.mysql;
 
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.sql.Connection;
@@ -27,23 +28,16 @@ import org.nalby.yobatis.util.Expect;
 
 public class Mysql extends Sql {
 	
-	
 	private String timedoutUrl;
 	
 	private Logger logger = LogFactory.getLogger(this.getClass());
 
-	private Mysql(String username, String password, String url, String connectorJarPath, String driverClassName) {
+	private Mysql(String username, String password,
+			String url) {
 		try {
 			this.username = username;
 			this.password = password;
 			this.url = url;
-			this.connectorJarPath = connectorJarPath;
-			this.driverClassName = driverClassName;
-			URL jarurl = new URL("file://" + connectorJarPath);
-			URLClassLoader classLoader = new URLClassLoader(new URL[] { jarurl });
-			Driver driver = (Driver) Class.forName(driverClassName, true, classLoader).newInstance();
-			DriverWrapper driverWrapper = new DriverWrapper(driver);
-			DriverManager.registerDriver(driverWrapper);
 			logger.info("Detected sql configuration:[username:{}, url:{}].", username, url);
 			timedoutUrl = this.url;
 			if (!this.timedoutUrl.contains("socketTimeout")) {
@@ -113,6 +107,14 @@ public class Mysql extends Sql {
 	}
 	
 	
+	private static Driver buildDriver(String driverClassName, String jarPath) throws MalformedURLException, InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException {
+		URL jarurl = new URL("file://" + jarPath);
+		URLClassLoader classLoader = new URLClassLoader(new URL[] { jarurl });
+		Driver driver = (Driver) Class.forName(driverClassName, true, classLoader).newInstance();
+		return new DriverWrapper(driver);
+	}
+	
+	
 	public static class Builder {
 		private String username;
 		private String password;
@@ -146,7 +148,13 @@ public class Mysql extends Sql {
 			Expect.notEmpty(url, "url must not be null.");
 			Expect.notEmpty(connectorJarPath, "connectorJarPath must not be null.");
 			Expect.notEmpty(driverClassName, "driverClassName must not be null.");
-			return new Mysql(username, password, url, connectorJarPath, driverClassName);
+			try {
+				Driver driver = buildDriver(driverClassName, connectorJarPath);
+				DriverManager.registerDriver(driver);
+				return new Mysql(username, password, url);
+			} catch (Exception e) {
+				throw new SqlConfigIncompleteException(e);
+			}
 		}
 	}
 	
