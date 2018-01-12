@@ -46,8 +46,10 @@ public abstract class AbstractLogger implements Logger {
 				} catch (Exception e) {
 				}
 				strings[i] = tmp;
-			} else {
+			} else if (arg != null ){
 				strings[i] = arg.toString();
+			} else {
+				strings[i] = "null";
 			}
 		}
 		for (int i = 0; i < args.length; i++) {
