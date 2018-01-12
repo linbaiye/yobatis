@@ -2,7 +2,6 @@ package org.nalby.yobatis.mybatis;
 
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -142,8 +141,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	private void appendTables(Element context)  {
-		List<Table> tables = sql.getTables();
-		for (Table table: tables) {
+		for (Table table: sql.getTables()) {
 			Element element = context.addElement("table");
 			element.addAttribute("tableName", table.getName());
 			element.addAttribute("schema", sql.getSchema());
@@ -276,20 +274,15 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		if (generators == null || generators.isEmpty()) {
 			throw new InvalidMybatisGeneratorConfigException(
 					String.format("There is no %s configured, please set the element and re-run.", name));
-		}
-		if (generators.size() > 1) {
+		} else if (generators.size() > 1) {
 			throw new InvalidMybatisGeneratorConfigException(
 					String.format("More than one %s configured, please remove unintentional ones and re-run.", name));
+		} else {
+			return generators.iterator().next();
 		}
-		Iterator<Element> iterator =  generators.iterator();
-		while (iterator.hasNext()) {
-			Element element = iterator.next();
-			return element;
-		}
-		throw new InvalidMybatisGeneratorConfigException("Should not happen.");
 	}
 
-	private String glueTargetPackageToTargetProject(Set<Element> generators, String name) {
+	private String buildPathFromGenerator(Set<Element> generators, String name) {
 		Element element = findActiveElement(generators, name);
 		String packageName = element.attributeValue("targetPackage");
 		String targetProject = element.attributeValue("targetProject");
@@ -298,17 +291,17 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 
 	@Override
 	public String getDaoDirPath() {
-		return glueTargetPackageToTargetProject(javaClientGenerators, "javaClientGenerator");
+		return buildPathFromGenerator(javaClientGenerators, "javaClientGenerator");
 	}
 
 	@Override
 	public String getDomainDirPath() {
-		return glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
+		return buildPathFromGenerator(javaModelGenerators, "javaModelGenerator");
 	}
 
 	@Override
 	public String getCriteriaDirPath() {
-		String daoPath =  glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
+		String daoPath =  buildPathFromGenerator(javaModelGenerators, "javaModelGenerator");
 		return daoPath + "/criteria";
 	}
 
@@ -320,7 +313,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 
 	@Override
 	public String getXmlMapperDirPath() {
-		return glueTargetPackageToTargetProject(sqlMapGenerators, "sqlMapGenerator");
+		return buildPathFromGenerator(sqlMapGenerators, "sqlMapGenerator");
 	}
 
 	@Override
