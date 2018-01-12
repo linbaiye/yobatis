@@ -1,5 +1,9 @@
 package org.nalby.yobatis.structure;
 
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.HashSet;
@@ -10,47 +14,45 @@ import org.junit.Before;
 import org.junit.Test;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
-
 public class SpringParserTests {
 	
-	private OldSpringAntPatternFileManager fileManager;
+	private SpringAntPathFileManager fileManager;
 	
 	private Set<String> locations;
 	
-	private Set<String> entryFiles;
+	private Set<File> entryFiles;
 	
-	private Set<String> propertiesFiles;
+	private Set<File> propertiesFiles;
 	
 	private SpringParser springParser;
 	
 	@Before
 	public void setup() {
-		fileManager = mock(OldSpringAntPatternFileManager.class);
+		fileManager = mock(SpringAntPathFileManager.class);
 		locations = new HashSet<>();
 		entryFiles = new HashSet<>();
 		propertiesFiles = new HashSet<>();
 	}
 	
+	
 	@Test
 	public void singlePomSpring() throws IOException {
 		locations.add("test.xml");
-		entryFiles.add("/test/test.xml");
+		File file = mock(File.class);
+		entryFiles.add(file);
 		when(fileManager.findSpringFiles("test.xml")).thenReturn(entryFiles);
-		when(fileManager.lookupPropertyOfSpringFile("/test/test.xml", "username")).thenReturn("username");
-		when(fileManager.lookupPropertyOfSpringFile("/test/test.xml", "password")).thenReturn("${password}");
-		when(fileManager.lookupPropertyOfSpringFile("/test/test.xml", "driverClassName")).thenReturn("className");
-		when(fileManager.lookupPropertyOfSpringFile("/test/test.xml", "url")).thenReturn("url");
+		when(fileManager.lookupDbProperty(file, "username")).thenReturn("username");
+		when(fileManager.lookupDbProperty(file, "password")).thenReturn("${password}");
+		when(fileManager.lookupDbProperty(file, "driverClassName")).thenReturn("className");
+		when(fileManager.lookupDbProperty(file, "url")).thenReturn("url");
 		
 		Properties properties = new Properties();
-		
-		propertiesFiles.add("/test/test.properties");
+		File propertyFile = mock(File.class);
+		propertiesFiles.add(propertyFile);
 		properties.load(new ByteArrayInputStream("password=123".getBytes()));
+		when(fileManager.findPropertiesFiles(file)).thenReturn(propertiesFiles);
+		when(fileManager.readProperties(propertyFile)).thenReturn(properties);
 
-		when(fileManager.findPropertiesFiles("/test/test.xml")).thenReturn(propertiesFiles);
-		when(fileManager.readProperties("/test/test.properties")).thenReturn(properties);
 		springParser = new SpringParser(fileManager, locations);
 		assertTrue(springParser.getDatabaseUsername().equals("username"));
 		assertTrue(springParser.getDatabasePassword().equals("123"));
@@ -69,5 +71,5 @@ public class SpringParserTests {
 		locations.add("classpath*:");
 		new SpringParser(fileManager, locations);
 	}
-	
+
 }

@@ -13,19 +13,18 @@ import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.PropertyUtil;
 import org.nalby.yobatis.util.TextUtil;
 /**
- * Used to parse spring configuration files. The main purpose is to locate
- * database's properties by parsing imported spring xml files and properties
- * files. It's poorly designed for now and should be optimized in future.
+ * The main purpose is to search database's properties by parsing imported spring xml 
+ * files and properties files. 
  * 
  * @author Kyle Lin
  */
-public class SpringParser {
+public final class SpringParser {
 
 	private Map<String, String> valuedProperties;
 	
 	private Logger logger = LogFactory.getLogger(this.getClass());
 	
-	private OldSpringAntPatternFileManager fileManager;
+	private SpringAntPathFileManager fileManager;
 	
 	private String dbPassword;
 	
@@ -36,14 +35,13 @@ public class SpringParser {
 	private String dbDriverClassName;
 	
 
-
 	/**
 	 * Construct a {@code SpringParser} that analyzes the spring files.
-	 * @param fileManager {@link OldSpringAntPatternFileManager}
+	 * @param fileManager {@link SpringAntPathFileManager}
 	 * @param initParamValues The param-value in web.xml, including servlet and application
 	 * context.
 	 */
-	public SpringParser(OldSpringAntPatternFileManager fileManager, Set<String> initParamValues) {
+	public SpringParser(SpringAntPathFileManager fileManager, Set<String> initParamValues) {
 		Expect.notNull(fileManager, "pomParser must not be null.");
 		Expect.notNull(initParamValues, "initParamValues must not be null.");
 		Set<String> locations = parseLocationsInInitParamValues(initParamValues);
@@ -51,14 +49,14 @@ public class SpringParser {
 			throw new UnsupportedProjectException("Failed to find spring config files.");
 		}
 		this.fileManager = fileManager;
-		Set<String> files = findSpringFilesConfiguredInWebxml(locations);
+		Set<File> files = findSpringFilesConfiguredInWebxml(locations);
 		valuedProperties = new HashMap<>();
-		iterateFiles(files, new HashSet<String>(), new HashSet<String>());
+		iterateFiles(files, new HashSet<File>(), new HashSet<File>());
 	}
 	
 	
-	private Set<String> findSpringFilesConfiguredInWebxml(Set<String> hints) {
-		Set<String> paths = new HashSet<>();
+	private Set<File> findSpringFilesConfiguredInWebxml(Set<String> hints) {
+		Set<File> paths = new HashSet<>();
 		for (String hint: hints) {
 			paths.addAll(fileManager.findSpringFiles(hint));
 		}
@@ -66,14 +64,14 @@ public class SpringParser {
 	}
 	
 	
-	private void addProperties(Set<String> paths, Set<String> parsedPaths) {
-		for (String path: paths) {
-			if (parsedPaths.contains(path)) {
+	private void addProperties(Set<File> files, Set<File> parsedFiles) {
+		for (File file: files) {
+			if (parsedFiles.contains(file)) {
 				continue;
 			}
-			parsedPaths.add(path);
-			logger.info("Scanning properties file:{}.", path);
-			Properties properties = fileManager.readProperties(path);
+			parsedFiles.add(file);
+			logger.info("Scanning properties file:{}.", file.path());
+			Properties properties = fileManager.readProperties(file);
 			if (properties != null) {
 				for (String key : properties.stringPropertyNames()) {
 					valuedProperties.put(key, properties.getProperty(key));
@@ -83,29 +81,29 @@ public class SpringParser {
 	}
 	
 	
-	private void iterateFiles(Set<String> files, Set<String> parsedSpringFiles,
-			Set<String> parsedPropertiesFiles) {
-		for (String file : files) {
+	private void iterateFiles(Set<File> files, Set<File> parsedSpringFiles,
+			Set<File> parsedPropertiesFiles) {
+		for (File file : files) {
 			if (parsedSpringFiles.contains(file)) {
 				continue;
 			}
-			logger.info("Scanning spring xml file:{}.", file);
+			logger.info("Scanning spring xml file:{}.", file.path());
 			parsedSpringFiles.add(file);
 			if (TextUtil.isEmpty(dbPassword)) {
-				dbPassword = fileManager.lookupPropertyOfSpringFile(file, "password");
+				dbPassword = fileManager.lookupDbProperty(file, "password");
 			}
 			if (TextUtil.isEmpty(dbUsername)) {
-				dbUsername = fileManager.lookupPropertyOfSpringFile(file, "username");
+				dbUsername = fileManager.lookupDbProperty(file, "username");
 			}
 			if (TextUtil.isEmpty(dbDriverClassName)) {
-				dbDriverClassName = fileManager.lookupPropertyOfSpringFile(file, "driverClassName");
+				dbDriverClassName = fileManager.lookupDbProperty(file, "driverClassName");
 			}
 			if (TextUtil.isEmpty(dbUrl)) {
-				dbUrl = fileManager.lookupPropertyOfSpringFile(file, "url");
+				dbUrl = fileManager.lookupDbProperty(file, "url");
 			}
-			Set<String> proprtiesPaths = fileManager.findPropertiesFiles(file);
-			addProperties(proprtiesPaths, parsedPropertiesFiles);
-			Set<String> newFiles = fileManager.findImportSpringXmlFiles(file);
+			Set<File> proprtiesFiles = fileManager.findPropertiesFiles(file);
+			addProperties(proprtiesFiles, parsedPropertiesFiles);
+			Set<File> newFiles = fileManager.findSpringFiles(file);
 			iterateFiles(newFiles, parsedSpringFiles, parsedPropertiesFiles);
 		}
 	}
@@ -133,6 +131,12 @@ public class SpringParser {
 	}
 	
 	
+	/**
+	 * Properties configured in spring files are likely to be placeholders, so checking in
+	 * properties files is necessary.
+	 * @param text
+	 * @return
+	 */
 	private String filterPlaceholders(String text) {
 		List<String> placeholders = PropertyUtil.placeholdersFrom(text);
 		for (String placeholder : placeholders) {

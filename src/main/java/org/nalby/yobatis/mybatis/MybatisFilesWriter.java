@@ -1,5 +1,6 @@
 package org.nalby.yobatis.mybatis;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,7 +13,8 @@ import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
-import org.nalby.yobatis.structure.OldProject;
+import org.nalby.yobatis.structure.File;
+import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.xml.SqlMapperParser;
 
@@ -26,18 +28,23 @@ public class MybatisFilesWriter {
 
 	private MybatisConfigReader reader;
 
-	private OldProject project;
+	private Project project;
 	
 	private Logger logger = LogFactory.getLogger(MybatisFilesWriter.class);
 
-	public MybatisFilesWriter(OldProject project, MybatisConfigReader configReader) {
+	public MybatisFilesWriter(Project project, MybatisConfigReader configReader) {
 		Expect.notNull(project, "project must not be null.");
 		Expect.notNull(configReader, "configReader must not be null.");
 		this.project = project;
 		this.runner = new LibraryRunner();
 		try {
-			this.runner.parse(project.openFile(MybatisConfigReader.CONFIG_FILENAME));
+			File file = project.findFile(MybatisConfigReader.CONFIG_FILENAME);
+			try (InputStream inputStream = file.open()) {
+				this.runner.parse(inputStream);
+			}
 		} catch (InvalidConfigurationException e) {
+			throw new InvalidMybatisGeneratorConfigException(e);
+		} catch (IOException e) {
 			throw new InvalidMybatisGeneratorConfigException(e);
 		}
 		if (runner.getGeneratedJavaFiles() == null) {
@@ -88,40 +95,46 @@ public class MybatisFilesWriter {
 	
 	private void writeJavaMappers() {
 		List<GeneratedJavaFile> files = getMapperFiles();
-		for (GeneratedJavaFile file : files) {
-			String path = reader.getDaoDirPath() + "/" + file.getFileName();
-			if (project.containsFile(path)) {
+		for (GeneratedJavaFile javafile : files) {
+			String path = reader.getDaoDirPath() + "/" + javafile.getFileName();
+			if (project.findFile(path) != null) {
 				continue;
 			}
-			project.writeFile(path, file.getFormattedContent());
+			File tmp = project.createFile(path);
+			tmp.write(javafile.getFormattedContent());
 		}
 		logger.info("Worte java mapper files to :{}.", reader.getDaoDirPath());
 	}
 	
 	private void writeJavaDomains() {
 		List<GeneratedJavaFile> files = getDomainFiles();
-		for (GeneratedJavaFile file : files) {
-			String path = reader.getDomainDirPath() + "/" + file.getFileName();
-			project.writeFile(path, file.getFormattedContent());
+		for (GeneratedJavaFile javafile : files) {
+			String path = reader.getDomainDirPath() + "/" + javafile.getFileName();
+			File tmp = project.createFile(path);
+			tmp.write(javafile.getFormattedContent());
 		}
 		logger.info("Worte model files to :{}.", reader.getDomainDirPath());
 	}
 	
 	private void writeCriteriaFiles() {
 		List<GeneratedJavaFile> files = getCriteriaFiles();
-		for (GeneratedJavaFile file : files) {
-			String path = reader.getCriteriaDirPath() + "/" + file.getFileName();
-			project.writeFile(path, file.getFormattedContent());
+		for (GeneratedJavaFile javafile : files) {
+			String path = reader.getCriteriaDirPath() + "/" + javafile.getFileName();
+			File tmp = project.createFile(path);
+			tmp.write(javafile.getFormattedContent());
 		}
 		logger.info("Worte criteria files to :{}.", reader.getCriteriaDirPath());
 	}
 	
 	private String mergeManualSqlXml(String path, String content) {
-		try (InputStream inputStream = project.openFile(path)) {
-			SqlMapperParser oldXml = new SqlMapperParser(inputStream);
-			SqlMapperParser newXml = SqlMapperParser.fromString(content);
-			newXml.merge(oldXml);
-			return newXml.toXmlString();
+		try {
+			File file = project.findFile(path);
+			try (InputStream inputStream = file.open()) {
+				SqlMapperParser oldXml = new SqlMapperParser(inputStream);
+				SqlMapperParser newXml = SqlMapperParser.fromString(content);
+				newXml.merge(oldXml);
+				return newXml.toXmlString();
+			}
 		} catch (Exception e) {
 			return content;
 		}
@@ -129,9 +142,10 @@ public class MybatisFilesWriter {
 	
 	private void writeXmlFiles() {
 		List<GeneratedXmlFile> xmlFiles = getXmlFiles();
-		for (GeneratedXmlFile file : xmlFiles) {
-			String path = reader.getXmlMapperDirPath() + "/" + file.getFileName();
-			project.writeFile(path, mergeManualSqlXml(path, file.getFormattedContent()));
+		for (GeneratedXmlFile xmlfile : xmlFiles) {
+			String path = reader.getXmlMapperDirPath() + "/" + xmlfile.getFileName();
+			File tmp = project.createFile(path);
+			tmp.write(mergeManualSqlXml(path, xmlfile.getFormattedContent()));
 		}
 		logger.info("Worte xml mapper files to :{}.", reader.getXmlMapperDirPath());
 	}
