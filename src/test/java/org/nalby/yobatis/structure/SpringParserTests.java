@@ -1,6 +1,6 @@
 package org.nalby.yobatis.structure;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -70,6 +70,62 @@ public class SpringParserTests {
 		}
 		locations.add("classpath*:");
 		new SpringParser(fileManager, locations);
+	}
+	
+
+	@Test
+	public void missingOnlyDriverClass() throws IOException {
+		locations.add("test.xml");
+		File file = mock(File.class);
+		entryFiles.add(file);
+		when(fileManager.findSpringFiles("test.xml")).thenReturn(entryFiles);
+		when(fileManager.lookupDbProperty(file, "driverClassName")).thenReturn(null);
+		when(fileManager.lookupDbProperty(file, "url")).thenReturn("jdbc:mysql://localhost:3306/test");
+		
+
+		springParser = new SpringParser(fileManager, locations);
+		assertTrue(springParser.getDatabaseDriverClassName().equals("com.mysql.jdbc.Driver"));
+	}
+	
+	
+
+	@Test
+	public void bothNull() throws IOException {
+		locations.add("test.xml");
+		File file = mock(File.class);
+		entryFiles.add(file);
+		when(fileManager.findSpringFiles("test.xml")).thenReturn(entryFiles);
+		when(fileManager.lookupDbProperty(file, "driverClassName")).thenReturn(null);
+		when(fileManager.lookupDbProperty(file, "url")).thenReturn(null);
+		
+		springParser = new SpringParser(fileManager, locations);
+		assertNull(springParser.getDatabaseDriverClassName());
+	}
+	
+
+	@Test
+	public void unrecognizableUrl() throws IOException {
+		locations.add("test.xml");
+		File file = mock(File.class);
+		entryFiles.add(file);
+		when(fileManager.findSpringFiles("test.xml")).thenReturn(entryFiles);
+		when(fileManager.lookupDbProperty(file, "driverClassName")).thenReturn(null);
+		when(fileManager.lookupDbProperty(file, "url")).thenReturn("jdbc:invalid://localhost:3306/test");
+		springParser = new SpringParser(fileManager, locations);
+		assertNull(springParser.getDatabaseDriverClassName());
+	}
+	
+
+	@Test
+	public void badUrl() throws IOException {
+		locations.add("test.xml");
+		File file = mock(File.class);
+		entryFiles.add(file);
+		when(fileManager.findSpringFiles("test.xml")).thenReturn(entryFiles);
+		when(fileManager.lookupDbProperty(file, "driverClassName")).thenReturn(null);
+		when(fileManager.lookupDbProperty(file, "url")).thenReturn("://localhost:3306/test");
+		springParser = new SpringParser(fileManager, locations);
+		assertNull(springParser.getDatabaseDriverClassName());
 	}
 
 }

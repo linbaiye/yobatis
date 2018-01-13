@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
@@ -33,6 +36,23 @@ public final class SpringParser {
 	private String dbUrl;
 	
 	private String dbDriverClassName;
+	
+	private static final Map<String, String> DRIVERS;
+
+	static {
+		DRIVERS = new HashMap<>();
+		DRIVERS.put("mysql", "com.mysql.jdbc.Driver");
+	}
+	
+	private static String figureDriverType(String url) {
+		Pattern pattern = Pattern.compile("jdbc:(.+)://.*");
+		Matcher matcher = pattern.matcher(url);
+		if (matcher.find()) {
+			String key = matcher.group(1);
+			return DRIVERS.get(key);
+		}
+		return null;
+	}
 	
 
 	/**
@@ -187,6 +207,13 @@ public final class SpringParser {
 	 * @return The value if configured, null otherwise.
 	 */
 	public String getDatabaseDriverClassName() {
-		return filterPlaceholders(dbDriverClassName);
+		String tmp = filterPlaceholders(dbDriverClassName);
+		if (tmp == null) {
+			String url = getDatabaseUrl();
+			if (url != null) {
+				tmp = figureDriverType(url);
+			}
+		}
+		return tmp;
 	}
 }
