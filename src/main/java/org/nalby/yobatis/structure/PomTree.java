@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 
-import org.nalby.yobatis.exception.InvalidConfigurationException;
+import org.nalby.yobatis.exception.InvalidPomException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.PropertyUtil;
@@ -111,7 +111,7 @@ public class PomTree {
 					pomXmlParser = new PomXmlParser(inputStream);
 				}
 			} catch (Exception e) {
-				throw new InvalidConfigurationException(e);
+				throw new InvalidPomException(e);
 			}
 		}
 

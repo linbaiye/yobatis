@@ -6,7 +6,7 @@
       <menuContribution
             allPopups="false"
             locationURI="popup:org.eclipse.ui.navigator.ProjectExplorer#PopupMenu?after=additions">
-         <dynamic class="org.nalby.yobatis.MenuAppender" id="org.nalby.yobatis.menuAppender">
+         <dynamic class="org.nalby.yobatis.structure.eclipse.MenuAppender" id="org.nalby.yobatis.menuAppender">
          </dynamic>
       </menuContribution>
    </extension>
@@ -15,7 +15,7 @@
       <menuContribution
             allPopups="false"
             locationURI="popup:org.eclipse.jdt.ui.PackageExplorer?after=additions">
-         <dynamic class="org.nalby.yobatis.MenuAppender" id="org.nalby.yobatis.menuAppender">
+         <dynamic class="org.nalby.yobatis.structure.eclipse.MenuAppender" id="org.nalby.yobatis.menuAppender">
          </dynamic>
       </menuContribution>
    </extension>
@@ -29,7 +29,7 @@
    <extension
          point="org.eclipse.ui.handlers">
       <handler
-            class="org.nalby.yobatis.GenerationCommandHandler"
+            class="org.nalby.yobatis.structure.eclipse.GenerationCommandHandler"
             commandId="org.nalby.yobatis.command.generation">
       </handler>
    </extension>

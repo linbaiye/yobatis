@@ -2,7 +2,7 @@ package org.nalby.yobatis.mybatis;
 
 
 /**
- * Grab various value from MyBatis Generator's configuration file.
+ * Grab paths and package names from MyBatis Generator's configuration file.
  * 
  * @author Kyle Lin
  *

@@ -19,7 +19,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.nalby.yobatis.exception.ProjectException;
-import org.nalby.yobatis.exception.SqlConfigIncompleteException;
+import org.nalby.yobatis.exception.InvalidSqlConfigException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
 import org.nalby.yobatis.sql.DatabaseMetadataProvider;
@@ -154,7 +154,7 @@ public class MysqlDatabaseMetadataProvider extends DatabaseMetadataProvider {
 				DriverManager.registerDriver(driver);
 				return new MysqlDatabaseMetadataProvider(username, password, url, driverClassName, connectorJarPath);
 			} catch (Exception e) {
-				throw new SqlConfigIncompleteException(e);
+				throw new InvalidSqlConfigException(e);
 			}
 		}
 	}
