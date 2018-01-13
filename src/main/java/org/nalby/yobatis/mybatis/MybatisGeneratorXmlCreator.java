@@ -19,7 +19,6 @@ import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.PomTree;
 import org.nalby.yobatis.xml.AbstractXmlParser;
-import org.nalby.yobatis.xml.MybatisGeneratorXmlReader;
 
 /**
  * Generate MyBaits Generator's configuration file according to current project structure.
@@ -61,31 +60,22 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 	private Logger logger = LogFactory.getLogger(MybatisGeneratorXmlCreator.class);
 	
 	public MybatisGeneratorXmlCreator(PomTree pomTree, DatabaseMetadataProvider sql) {
-		logger.info("Generating MyBatis Generator's configuration file.");
 		this.sql = sql;
 		this.pomTree = pomTree;
 		createDocument();
-		root = factory.createElement("generatorConfiguration");
+		root = factory.createElement(ROOT_TAG);
 		document.setRootElement(root);
 		appendClassPathEntry(root);
-		logger.debug("Appened classpath.");
 		context = appendContext(root);
 		appendYobatisPlugin(context);
-		logger.debug("Appened yobatis plugin.");
 		appendCriteriaPlugin(context);
-		logger.debug("Appened criteria plugin.");
 		appendJdbcConnection(context);
 		appendTypeResolver(context);
-		logger.debug("Appened type resolver.");
 		appendJavaModelGenerator(context);
-		logger.debug("Appened javaModelGenerator.");
 		appendSqlMapGenerator(context);
-		logger.debug("Appened sqlMapGenerator.");
 		appendJavaClientGenerator(context);
-		logger.debug("Appened javaClientGenerator.");
 		appendTables(context);
-		logger.debug("Appened tables.");
-		logger.info("Built MyBatis Generator's configuration file.");
+		logger.info("Generated MyBatis Generator's configuration file.");
 	}
 	
 	public Element getClassPathEntryElement() {
@@ -170,7 +160,7 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 		for (Folder folder: folders) {
 			String path = folder.path();
 			String packageName = getPackageName(path);
-			Element javaModelGenerator = context.addElement("javaModelGenerator");
+			Element javaModelGenerator = context.addElement(MODEL_GENERATOR_TAG);
 			javaModelGenerator.addAttribute("targetPackage", packageName == null? "": packageName);
 			javaModelGenerator.addAttribute("targetProject", eliminatePackagePath(path));
 			javaModelGenerators.add(javaModelGenerator);
@@ -182,7 +172,7 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 		for (Folder folder: folders) {
 			String path = folder.path();
 			String packageName = getPackageName(path);
-			Element generator = context.addElement("javaClientGenerator");
+			Element generator = context.addElement(CLIENT_GENERATOR_TAG);
 			generator.addAttribute("type", "XMLMAPPER");
 			generator.addAttribute("targetPackage", packageName == null ? "" : packageName);
 			generator.addAttribute("targetProject", eliminatePackagePath(path));
@@ -214,7 +204,7 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 		List<Folder> resourceFolders = pomTree.lookupResourceFolders();
 		for (Folder folder: resourceFolders) {
 			String path = folder.path();
-			Element generator = context.addElement("sqlMapGenerator");
+			Element generator = context.addElement(SQLMAP_GENERATOR_TAG);
 			generator.addAttribute("targetPackage", "mybatis-mappers");
 			generator.addAttribute("targetProject", path);
 			sqlMapGenerators.add(generator);
@@ -255,10 +245,8 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 	
 	private void createDocument() {
 		document = factory.createDocument();
-		logger.debug("creating doctype.");
-		DocumentType type = factory.createDocType("generatorConfiguration", "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN", "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd");
+		DocumentType type = factory.createDocType(ROOT_TAG, "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN", "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd");
 		document.setDocType(type);
-		logger.debug("Created doctype.");
 	}
 	
 	public String asXmlText() {
@@ -290,34 +278,34 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 
 	@Override
 	public String getDaoDirPath() {
-		return buildPathFromGenerator(javaClientGenerators, "javaClientGenerator");
+		return buildPathFromGenerator(javaClientGenerators, CLIENT_GENERATOR_TAG);
 	}
 
 	@Override
 	public String getModelDirPath() {
-		return buildPathFromGenerator(javaModelGenerators, "javaModelGenerator");
+		return buildPathFromGenerator(javaModelGenerators, MODEL_GENERATOR_TAG);
 	}
 
 	@Override
 	public String getCriteriaDirPath() {
-		String daoPath =  buildPathFromGenerator(javaModelGenerators, "javaModelGenerator");
+		String daoPath =  buildPathFromGenerator(javaModelGenerators, MODEL_GENERATOR_TAG);
 		return daoPath + "/criteria";
 	}
 
 	@Override
 	public String getModelPackageName() {
-		Element element = findActiveElement(javaModelGenerators, "javaModelGenerator");
+		Element element = findActiveElement(javaModelGenerators, MODEL_GENERATOR_TAG);
 		return element.attributeValue("targetPackage");
 	}
 
 	@Override
 	public String getXmlMapperDirPath() {
-		return buildPathFromGenerator(sqlMapGenerators, "sqlMapGenerator");
+		return buildPathFromGenerator(sqlMapGenerators, SQLMAP_GENERATOR_TAG);
 	}
 
 	@Override
 	public String getDaoPackageName() {
-		Element element = findActiveElement(javaClientGenerators, "javaClientGenerator");
+		Element element = findActiveElement(javaClientGenerators, CLIENT_GENERATOR_TAG);
 		return element.attributeValue("targetPackage");
 	}
 	

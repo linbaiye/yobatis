@@ -1,4 +1,4 @@
-package org.nalby.yobatis.xml;
+package org.nalby.yobatis.structure.mybatis;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -17,6 +17,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
+import org.nalby.yobatis.mybatis.MybatisGeneratorXmlReader;
+import org.nalby.yobatis.xml.AbstractXmlParser;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -660,7 +662,7 @@ public class MybatisXmlParserTests {
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisPlugin"));
-		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisCriteriaPlugin"));
+		assertTrue(!newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisCriteriaPlugin"));
 	}
 	
 	@Test

@@ -14,12 +14,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
+import org.nalby.yobatis.mybatis.MybatisGeneratorXmlReader;
 import org.nalby.yobatis.sql.DatabaseMetadataProvider;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.PomTree;
 import org.nalby.yobatis.util.TestUtil;
-import org.nalby.yobatis.xml.MybatisGeneratorXmlReader;
 
 public class GeneratorTests {
 	

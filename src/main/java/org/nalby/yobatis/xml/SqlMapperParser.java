@@ -352,7 +352,7 @@ public class SqlMapperParser extends AbstractXmlParser {
 	}
 
 	@Override
-	void  customSAXReader(SAXReader saxReader ) {
+	protected void customSAXReader(SAXReader saxReader ) {
 		saxReader.setEntityResolver(new EntityResolver() {
 			@Override
 			public InputSource resolveEntity(String publicId, String systemId)
