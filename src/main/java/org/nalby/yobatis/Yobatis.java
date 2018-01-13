@@ -2,27 +2,15 @@ package org.nalby.yobatis;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 
 import org.dom4j.DocumentException;
-import org.eclipse.core.commands.AbstractHandler;
-import org.eclipse.core.commands.ExecutionEvent;
-import org.eclipse.core.commands.ExecutionException;
-import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IProject;
-import org.eclipse.jface.viewers.ISelection;
-import org.eclipse.jface.viewers.IStructuredSelection;
-import org.eclipse.ui.ISelectionService;
-import org.eclipse.ui.PlatformUI;
 import org.mybatis.generator.api.LibraryRunner;
-import org.mybatis.generator.exception.InvalidConfigurationException;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
-import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
-import org.nalby.yobatis.mybatis.MybatisGeneratorAnalyzer;
 import org.nalby.yobatis.mybatis.MybatisFilesWriter;
-import org.nalby.yobatis.sql.Table;
+import org.nalby.yobatis.mybatis.MybatisGeneratorAnalyzer;
+import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
 import org.nalby.yobatis.sql.mysql.MysqlDatabaseMetadataProvider;
 import org.nalby.yobatis.sql.mysql.MysqlDatabaseMetadataProvider.Builder;
 import org.nalby.yobatis.structure.File;
@@ -31,17 +19,16 @@ import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SpringAntPathFileManager;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.WebContainerParser;
-import org.nalby.yobatis.structure.eclipse.EclipseProject;
 import org.nalby.yobatis.xml.MybatisGeneratorXmlReader;
 
-public class GenerationCommandHandler extends AbstractHandler {
-	
-	private Logger logger = LogFactory.getLogger(this.getClass());
+public class Yobatis {
+
+	private static Logger logger = LogFactory.getLogger(Yobatis.class);
 	
 	/**
 	 *  Build the generator of mybatis-generator's config file according to project config.
 	 */
-	private MybatisGeneratorXmlCreator buildMybatisGeneratorConfigMaker(Project project) {
+	private static MybatisGeneratorXmlCreator buildMybatisGeneratorXmlCreator(Project project) {
 		PomTree pomTree = new PomTree(project);
 
 		WebContainerParser webContainerParser = new WebContainerParser(pomTree.getWarPom());
@@ -70,7 +57,7 @@ public class GenerationCommandHandler extends AbstractHandler {
 	}
 	
 
-	private LibraryRunner buildMyBatisRunner(Project project) {
+	private static LibraryRunner buildMyBatisRunner(Project project) {
 		try {
 			File file = project.findFile(MybatisGeneratorAnalyzer.CONFIG_FILENAME);
 			try (InputStream inputStream = file.open()) {
@@ -83,7 +70,7 @@ public class GenerationCommandHandler extends AbstractHandler {
 		}
 	}
 	
-	private MybatisGeneratorXmlReader buildGeneratorXmlParser(Project project) {
+	private static MybatisGeneratorXmlReader buildGeneratorXmlParser(Project project) {
 		try {
 			File file = project.findFile(MybatisGeneratorAnalyzer.CONFIG_FILENAME);
 			try (InputStream inputStream = file.open()) {
@@ -97,7 +84,7 @@ public class GenerationCommandHandler extends AbstractHandler {
 	/*
 	 * Merge the new file into the existent one if exists.
 	 */
-	private MybatisGeneratorAnalyzer mergeIntoExistentConfig(MybatisGeneratorXmlCreator configFileGenerator, Project project) {
+	private static MybatisGeneratorAnalyzer mergeIntoExistentConfig(MybatisGeneratorXmlCreator configFileGenerator, Project project) {
 		MybatisGeneratorAnalyzer configReader = configFileGenerator;
 		File file = project.findFile(MybatisGeneratorXmlCreator.CONFIG_FILENAME);
 		if (file != null) {
@@ -113,10 +100,8 @@ public class GenerationCommandHandler extends AbstractHandler {
 	}
 	
 
-	// When clicked
-	private void generateFromExistentFile(IFile iFile) {
-		IProject iProject = iFile.getProject();
-		EclipseProject project = new EclipseProject(iProject);
+	// When the config file is clicked.
+	public static void onClickFile(Project project) {
 		logger.info("Trying to generate files from existent config file.");
 		LibraryRunner mybatisRunner = buildMyBatisRunner(project);
 		MybatisGeneratorAnalyzer configReader = buildGeneratorXmlParser(project);
@@ -125,14 +110,11 @@ public class GenerationCommandHandler extends AbstractHandler {
 	}
 	
 
-	private void generateFromProject(IProject iProject) {
-		logger.info("Scanning project:{}.", iProject.getName());
+	public static void onClickProject(Project project) {
+		logger.info("Scanning project:{}.", project.name());
 
-		Project project = new EclipseProject(iProject);
-		MybatisGeneratorXmlCreator configFileGenerator = buildMybatisGeneratorConfigMaker(project);
-
+		MybatisGeneratorXmlCreator configFileGenerator = buildMybatisGeneratorXmlCreator(project);
 		MybatisGeneratorAnalyzer reader = mergeIntoExistentConfig(configFileGenerator, project);
-
 		// Write mybatis-generator's config file to the project's root dir.
 		File file = project.createFile(MybatisGeneratorAnalyzer.CONFIG_FILENAME);
 		file.write(reader.asXmlText());
@@ -141,73 +123,5 @@ public class GenerationCommandHandler extends AbstractHandler {
 		MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, reader, mybatisRunner);
 		filesWriter.writeAll();
 	}
-	
-	
-	private Object start() {
-		ISelectionService selectionService = PlatformUI.getWorkbench()
-				.getActiveWorkbenchWindow().getSelectionService();
-		ISelection selection = selectionService.getSelection();
-		if (!(selection instanceof IStructuredSelection)) {
-			return null;
-		}
-		Object element = ((IStructuredSelection) selection).getFirstElement();
-		if (element == null ||
-			(!(element instanceof IProject) && !(element instanceof IFile))) {
-			return null;
-		}
-		if (element instanceof IFile) {
-			IFile iFile = (IFile)element;
-			if (!MybatisGeneratorXmlCreator.CONFIG_FILENAME.equals(iFile.getName())) {
-				return null;
-			}
-			generateFromExistentFile(iFile);
-		} else {
-			generateFromProject((IProject)element);
-		}
-		return null;
-	}
 
-
-	private void buildMybatisGeneratorConfigMaker1(Project project) {
-		PomTree pomTree = new PomTree(project);
-
-		WebContainerParser webContainerParser = new WebContainerParser(pomTree.getWarPom());
-
-		SpringAntPathFileManager fileManager = new SpringAntPathFileManager(pomTree);
-
-		SpringParser springParser = new SpringParser(fileManager, webContainerParser.searchInitParamValues());
-
-		String username = springParser.getDatabaseUsername();
-
-		String password = springParser.getDatabasePassword();
-
-		String url = springParser.getDatabaseUrl();
-
-		String driverClassName = springParser.getDatabaseDriverClassName();
-
-		String dbJarPath = pomTree.getDatabaseJarPath(driverClassName);
-
-		Builder builder = MysqlDatabaseMetadataProvider.builder();
-		builder.setConnectorJarPath(dbJarPath)
-		.setDriverClassName(driverClassName)
-		.setUsername(username)
-		.setPassword(password)
-		.setUrl(url);
-		List<Table> tables = builder.build().getTables();
-		for (Table table : tables) {
-			System.out.println(table.getName() + ":");
-		}
-		//MybatisConfigFileGenerator generator = new MybatisConfigFileGenerator(pomTree, builder.build());
-		//System.out.println(generator.asXmlText());
-	}
-
-	@Override
-	public Object execute(ExecutionEvent event) throws ExecutionException {
-		try {
-			start();
-		} catch (Exception e) {
-			logger.error("Caught exception:{}.", e);
-		}
-		return null;
-	}
 }

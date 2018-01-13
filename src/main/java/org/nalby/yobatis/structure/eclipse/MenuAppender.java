@@ -1,4 +1,4 @@
-package org.nalby.yobatis;
+package org.nalby.yobatis.structure.eclipse;
 
 import org.eclipse.core.commands.Command;
 import org.eclipse.core.commands.ExecutionEvent;
@@ -19,13 +19,11 @@ import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.handlers.IHandlerService;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
-import org.nalby.yobatis.structure.eclipse.EclipseLogger;
 
 public class MenuAppender extends ContributionItem {
 	
 	static {
 		LogFactory.setLogger(EclipseLogger.class);
-		//AbstractLogger.defaultLevel = LogLevel.INFO;
 	}
 
 	public MenuAppender() {

@@ -1,6 +1,5 @@
 package org.nalby.yobatis.log;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
