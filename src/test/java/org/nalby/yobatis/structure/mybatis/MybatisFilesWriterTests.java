@@ -205,6 +205,34 @@ public class MybatisFilesWriterTests {
 		}).when(file).write(anyString());
 		filesWriter.writeAll();
 	}
+	
+	@Test
+	public void notOverwriteModelFile() {
+		mockJavaFile("Test.java", "test content");
+		when(project.findFile(anyString())).thenReturn(file);
+		build();
+		filesWriter.writeAll();
+		verify(project, times(0)).createFile(MODEL_PATH + "/Test.java");
+		verify(file, times(0)).write("test content");
+	}
+	
+	@Test
+	public void overwriteBaseModelClass() {
+		String content = "package org.nalby.yobatis.mybatis;\n" + 
+				"\n" + 
+				"import java.io.InputStream;\n" + 
+				"import java.util.LinkedList;\n" + 
+				"import java.util.List;\n" + 
+				"import java.util.regex.Matcher;\n" + 
+				"import java.util.regex.Pattern;\n" + 
+				"public abstract class MybatisFilesWriter {";
+		mockJavaFile("Test.java", content);
+		when(project.findFile(anyString())).thenReturn(file);
+		build();
+		filesWriter.writeAll();
+		verify(project, times(1)).createFile(MODEL_PATH + "/Test.java");
+		verify(file, times(1)).write(content);
+	}
 
 
 }
