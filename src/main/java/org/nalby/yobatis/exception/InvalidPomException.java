@@ -1,14 +1,14 @@
 package org.nalby.yobatis.exception;
 
-public class InvalidConfigurationException extends RuntimeException {
+public class InvalidPomException extends RuntimeException {
 
 	private static final long serialVersionUID = 1L;
 	
-	public InvalidConfigurationException(String msg) {
+	public InvalidPomException(String msg) {
 		super(msg == null? "Invalid configuration exception." : msg);
 	}
 	
-	public InvalidConfigurationException(Throwable e) {
+	public InvalidPomException(Throwable e) {
 		super(e);
 	}
 
