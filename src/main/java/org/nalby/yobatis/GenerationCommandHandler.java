@@ -34,7 +34,7 @@ import org.nalby.yobatis.structure.WebContainerParser;
 import org.nalby.yobatis.structure.eclipse.EclipseProject;
 import org.nalby.yobatis.xml.MybatisGeneratorXmlReader;
 
-public class YobatisGenerationHandler extends AbstractHandler {
+public class GenerationCommandHandler extends AbstractHandler {
 	
 	private Logger logger = LogFactory.getLogger(this.getClass());
 	

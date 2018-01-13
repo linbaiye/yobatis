@@ -4,7 +4,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -40,7 +39,7 @@ public class MysqlDetailProviderTests {
 	private DatabaseMetaData metaData;
 	
 	private ResultSet resultSet;
-	
+
 	private void buildInstance() {
 		Constructor<?>[] constructors = MysqlDatabaseMetadataProvider.class.getDeclaredConstructors();
 		for (Constructor<?> constructor : constructors) {
@@ -61,16 +60,16 @@ public class MysqlDetailProviderTests {
 	public void setup() throws SQLException {
         connection = mock(Connection.class);
 		PowerMockito.mockStatic(DriverManager.class);
-        when(DriverManager.getConnection(anyString(), any())).thenReturn(connection);
-        when(DriverManager.getConnection("ss")).thenReturn(connection);
-        when(DriverManager.getConnection(anyString(), anyString(), anyString())).thenReturn(connection);
+        BDDMockito.given((DriverManager.getConnection(anyString(), any()))).willReturn(connection);
+        BDDMockito.given(DriverManager.getConnection(anyString())).willReturn(connection);
+        BDDMockito.given(DriverManager.getConnection(anyString(), anyString(), anyString())).willReturn(connection);
     	username = "username";
     	password = "password";
     	url = "jdbc:mysql://localhost:3306/yobatis";
     	driver = "driver";
     	jarPath = "mysql.jar";
-        metaData = mock(DatabaseMetaData.class);
-        resultSet = mock(ResultSet.class);
+        metaData = PowerMockito.mock(DatabaseMetaData.class);
+        resultSet = PowerMockito.mock(ResultSet.class);
         BDDMockito.given(connection.getMetaData()).willReturn(metaData);
         buildInstance();
 	}
@@ -87,9 +86,9 @@ public class MysqlDetailProviderTests {
 	
 	@Test
 	public void emtpyTables() throws SQLException {
-		when(resultSet.next()).thenReturn(false);
-		when(metaData.getTables(anyString(), anyString(), anyString(), any(String[].class)))
-		.thenReturn(resultSet);
+		BDDMockito.given(resultSet.next()).willReturn(false);
+		BDDMockito.given(metaData.getTables(anyString(), anyString(), anyString(), any(String[].class)))
+		.willReturn(resultSet);
 		assertTrue(provider.getTables().isEmpty());
 	}
 
