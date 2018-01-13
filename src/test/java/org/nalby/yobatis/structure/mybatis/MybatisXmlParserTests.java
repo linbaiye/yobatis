@@ -662,7 +662,7 @@ public class MybatisXmlParserTests {
 		String tmp = mybatisXmlParser.asXmlText();
 		DocXml newDoc = new DocXml(new ByteArrayInputStream(tmp.getBytes()));
 		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisPlugin"));
-		assertTrue(newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisCriteriaPlugin"));
+		assertTrue(!newDoc.hasSinglePlugin("org.mybatis.generator.plugins.YobatisCriteriaPlugin"));
 	}
 	
 	@Test

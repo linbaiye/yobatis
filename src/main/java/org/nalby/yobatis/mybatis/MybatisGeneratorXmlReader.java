@@ -336,14 +336,12 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 		}
 	}
 	
-	private Element findPluginElement(List<Element> elements, Element target) {
+	private Element findPluginElement(List<Element> elements, String type) {
 		for (Element element : elements) {
 			if (!PLUGIN_TAG.equals(element.getName())) {
 				continue;
 			}
-			String typeAttr = target.attributeValue("type");
-			if (typeAttr != null && 
-				typeAttr.equals(element.attributeValue("type"))) {
+			if (type.equals(element.attributeValue("type"))) {
 				return element;
 			}
 		}
@@ -507,6 +505,9 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	}
 
 	
+	/*
+	 * Tables commented will just remain the same.
+	 */
 	private void mergeTables(MybatisGeneratorXmlCreator configFileGenerator) {
 		for (Element current: tables) {
 			context.add(current);
@@ -524,27 +525,29 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 		}
 	}
 	
-	//TODO: Still need to cope with artificially added plug-ins.
+	
 	private void mergePlugins(MybatisGeneratorXmlCreator configFileGenerator) {
 		Element pluginElement = configFileGenerator.getPluginElement();
-		Element currentPlugin = findPluginElement(plugins, pluginElement);
+		Element currentPlugin = findPluginElement(plugins, YOBATIS_PLUGIN);
+		// This one is mandatory.
 		if (currentPlugin == null) {
 			context.add(pluginElement.createCopy());
 		} else {
 			context.add(currentPlugin.createCopy());
 		}
-
-		pluginElement = configFileGenerator.getCriteriaPluginElement();
-		currentPlugin = findPluginElement(plugins, pluginElement);
-		if (currentPlugin == null) {
-			Element commentedPlugin = findPluginElement(commentedElements, pluginElement);
-			if (commentedPlugin == null) {
-				context.add(pluginElement.createCopy());
-			} else {
-				context.add(commentElement(commentedPlugin));
+		
+		// Preserve active plug-ins.
+		for (Element element : plugins) {
+			if (PLUGIN_TAG.equals(element.getName()) &&
+				!YOBATIS_PLUGIN.equals(element.attributeValue("type"))) {
+				context.add(element);
 			}
-		} else {
-			context.add(currentPlugin.createCopy());
+		}
+		// Keep commented plug-ins, still as commented.
+		for (Element element : commentedElements) {
+			if (PLUGIN_TAG.equals(element.getName())) {
+				context.add(commentElement(element));
+			}
 		}
 	}
 	
