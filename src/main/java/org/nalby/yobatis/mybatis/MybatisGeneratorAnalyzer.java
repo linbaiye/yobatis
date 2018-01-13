@@ -19,6 +19,20 @@ public interface MybatisGeneratorAnalyzer {
 
 	public final static String TARGET_RUNTIME = "MyBatis3";
 	
+	public final static String CLASS_PATH_ENTRY_TAG = "classPathEntry";
+
+	public final static String MODEL_GENERATOR_TAG = "javaModelGenerator";
+
+	public final static String SQLMAP_GENERATOR_TAG = "sqlMapGenerator";
+
+	public final static String CLIENT_GENERATOR_TAG = "javaClientGenerator";
+
+	public final static String TABLE_TAG = "table";
+
+	public final static String ROOT_TAG = "generatorConfiguration";
+
+	public final static String PLUGIN_TAG = "plugin";
+	
 	/**
 	 * The dir path where java mapper files will be saved.
 	 * @return the path.

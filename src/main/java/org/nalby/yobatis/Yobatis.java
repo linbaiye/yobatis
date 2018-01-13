@@ -11,6 +11,7 @@ import org.nalby.yobatis.log.Logger;
 import org.nalby.yobatis.mybatis.MybatisFilesWriter;
 import org.nalby.yobatis.mybatis.MybatisGeneratorAnalyzer;
 import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
+import org.nalby.yobatis.mybatis.MybatisGeneratorXmlReader;
 import org.nalby.yobatis.sql.mysql.MysqlDatabaseMetadataProvider;
 import org.nalby.yobatis.sql.mysql.MysqlDatabaseMetadataProvider.Builder;
 import org.nalby.yobatis.structure.File;
@@ -19,7 +20,6 @@ import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SpringAntPathFileManager;
 import org.nalby.yobatis.structure.SpringParser;
 import org.nalby.yobatis.structure.WebContainerParser;
-import org.nalby.yobatis.xml.MybatisGeneratorXmlReader;
 
 public class Yobatis {
 
@@ -70,17 +70,6 @@ public class Yobatis {
 		}
 	}
 	
-	private static MybatisGeneratorXmlReader buildGeneratorXmlParser(Project project) {
-		try {
-			File file = project.findFile(MybatisGeneratorAnalyzer.CONFIG_FILENAME);
-			try (InputStream inputStream = file.open()) {
-				return new MybatisGeneratorXmlReader(inputStream);
-			}
-		} catch (IOException | DocumentException e) {
-			throw new InvalidMybatisGeneratorConfigException(e);
-		}
-	}
-	
 	/*
 	 * Merge the new file into the existent one if exists.
 	 */
@@ -98,29 +87,20 @@ public class Yobatis {
 		}
 		return configReader;
 	}
-	
 
-	// When the config file is clicked.
-	public static void onClickFile(Project project) {
-		logger.info("Trying to generate files from existent config file.");
-		LibraryRunner mybatisRunner = buildMyBatisRunner(project);
-		MybatisGeneratorAnalyzer configReader = buildGeneratorXmlParser(project);
-		MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, configReader, mybatisRunner);
-		filesWriter.writeAll();
-	}
-	
 
-	public static void onClickProject(Project project) {
+	public static void generate(Project project) {
 		logger.info("Scanning project:{}.", project.name());
 
 		MybatisGeneratorXmlCreator configFileGenerator = buildMybatisGeneratorXmlCreator(project);
-		MybatisGeneratorAnalyzer reader = mergeIntoExistentConfig(configFileGenerator, project);
+		MybatisGeneratorAnalyzer analyzer = mergeIntoExistentConfig(configFileGenerator, project);
 		// Write mybatis-generator's config file to the project's root dir.
 		File file = project.createFile(MybatisGeneratorAnalyzer.CONFIG_FILENAME);
-		file.write(reader.asXmlText());
-
+		file.write(analyzer.asXmlText());
+		
+		// And now run MyBatis Generator.
 		LibraryRunner mybatisRunner = buildMyBatisRunner(project);
-		MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, reader, mybatisRunner);
+		MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, analyzer, mybatisRunner);
 		filesWriter.writeAll();
 	}
 

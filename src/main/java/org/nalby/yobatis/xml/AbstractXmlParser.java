@@ -18,7 +18,7 @@ public abstract class AbstractXmlParser {
 	
 	private static final int MAX_STREAM_SIZE = 5 * 1024 * 1024;
 
-	Document document;
+	protected Document document;
 
 	public AbstractXmlParser(InputStream inputStream, String rootElmentTag) throws DocumentException, IOException {
 		Expect.asTrue(inputStream != null
@@ -37,7 +37,7 @@ public abstract class AbstractXmlParser {
 		}
 	}
 	
-	void customSAXReader(SAXReader saxReader) {}
+	protected void customSAXReader(SAXReader saxReader) {}
 	
 	public static String toXmlString(Document document) throws IOException {
 		OutputFormat format = OutputFormat.createPrettyPrint();

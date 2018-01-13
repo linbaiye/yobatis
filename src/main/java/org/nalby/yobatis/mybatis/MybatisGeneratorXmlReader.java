@@ -1,4 +1,4 @@
-package org.nalby.yobatis.xml;
+package org.nalby.yobatis.mybatis;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -18,12 +18,18 @@ import org.dom4j.Element;
 import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
-import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
-import org.nalby.yobatis.mybatis.MybatisGeneratorAnalyzer;
+import org.nalby.yobatis.xml.AbstractXmlParser;
 import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
+/**
+ * MybatisGeneratorXmlReader reads the existent configuration file of MyBatis Generator
+ * and merges newly generated one. Also it fixes the Yobatis plug-in if it's deleted.
+ * 
+ * @author Kyle Lin
+ *
+ */
 public class MybatisGeneratorXmlReader extends AbstractXmlParser implements MybatisGeneratorAnalyzer {
 	private static final String DTD = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
 			"<!--\n" + 
@@ -297,16 +303,7 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	private List<Element> tables = new LinkedList<>();
 	
 	private List<Element> commentedElements;
-	
-	public final static String CLASS_PATH_ENTRY_TAG = "classPathEntry";
-	public final static String MODEL_GENERATOR_TAG = "javaModelGenerator";
-	public final static String SQLMAP_GENERATOR_TAG = "sqlMapGenerator";
-	public final static String CLIENT_GENERATOR_TAG = "javaClientGenerator";
-	public final static String TABLE_TAG = "table";
-	public final static String ROOT_TAG = "generatorConfiguration";
-	public final static String CONTEXT_ID = "yobatis";
-	public final static String PLUGIN_TAG = "plugin";
-	public final static String TARGET_RUNTIME = "MyBatis3";
+
 
 	public MybatisGeneratorXmlReader(InputStream inputStream) throws DocumentException, IOException {
 		super(inputStream, ROOT_TAG);
@@ -570,7 +567,7 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 
 	
 	@Override
-	void  customSAXReader(SAXReader saxReader ) {
+	protected void customSAXReader(SAXReader saxReader ) {
 		saxReader.setEntityResolver(new EntityResolver() {
 			@Override
 			public InputSource resolveEntity(String publicId, String systemId)
@@ -606,8 +603,8 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 		String targetProject = element.attributeValue("targetProject");
 		return targetProject + "/" + packageName.replace(".", "/");
 	}
-
-
+	
+	
 	@Override
 	public String getDaoDirPath() {
 		return buildGeneratorPath(javaClientGenerators, CLIENT_GENERATOR_TAG);
@@ -622,7 +619,6 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	public String getCriteriaDirPath() {
 		return getModelDirPath() + "/criteria";
 	}
-
 
 	private String getTargetPackage(List<Element> elements, String tag) {
 		assertHasSingleElement(elements, tag);
