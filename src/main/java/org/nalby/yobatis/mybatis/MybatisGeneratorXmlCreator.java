@@ -14,7 +14,7 @@ import org.dom4j.Element;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
-import org.nalby.yobatis.sql.DatabaseDetailProvider;
+import org.nalby.yobatis.sql.DatabaseMetadataProvider;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.PomTree;
@@ -30,7 +30,7 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 
 	private Document document;
 
-	private DatabaseDetailProvider sql;
+	private DatabaseMetadataProvider sql;
 
 	private PomTree pomTree;
 	
@@ -60,7 +60,7 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 	
 	private Logger logger = LogFactory.getLogger(MybatisGeneratorXmlCreator.class);
 	
-	public MybatisGeneratorXmlCreator(PomTree pomTree, DatabaseDetailProvider sql) {
+	public MybatisGeneratorXmlCreator(PomTree pomTree, DatabaseMetadataProvider sql) {
 		logger.info("Generating MyBatis Generator's configuration file.");
 		this.sql = sql;
 		this.pomTree = pomTree;

@@ -22,17 +22,17 @@ import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.exception.SqlConfigIncompleteException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
-import org.nalby.yobatis.sql.DatabaseDetailProvider;
+import org.nalby.yobatis.sql.DatabaseMetadataProvider;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.util.Expect;
 
-public class MysqlDatabaseDetailProvider extends DatabaseDetailProvider {
+public class MysqlDatabaseMetadataProvider extends DatabaseMetadataProvider {
 	
 	private String timedoutUrl;
 	
 	private Logger logger = LogFactory.getLogger(this.getClass());
 
-	private MysqlDatabaseDetailProvider(String username, String password,
+	private MysqlDatabaseMetadataProvider(String username, String password,
 			String url, String driverClassName, String jdbcJarPath) {
 		try {
 			this.username = username;
@@ -57,14 +57,9 @@ public class MysqlDatabaseDetailProvider extends DatabaseDetailProvider {
 		}
 	}
 	
-	private Connection getConnection() throws SQLException {
-		return DriverManager.getConnection(this.timedoutUrl, username, password);
-	}
-	
-	private Table makeTable(String name) {
+	private Table makeTable(String name, DatabaseMetaData metaData) {
 		Table table = new Table(name);
-		try (Connection connection = getConnection()) {
-			DatabaseMetaData metaData = connection.getMetaData();
+		try {
 			ResultSet resultSet = metaData.getColumns(null, null, name, null);
 			while (resultSet.next()) {
 				String columnName = resultSet.getString("COLUMN_NAME");
@@ -93,19 +88,23 @@ public class MysqlDatabaseDetailProvider extends DatabaseDetailProvider {
 	 */
 	@Override
 	public List<Table> getTables() {
-		List<Table> result = new ArrayList<>();
-		try (Connection connection = getConnection()) {
+		try (Connection connection = DriverManager.getConnection(this.timedoutUrl, username, password)) {
 			DatabaseMetaData meta = connection.getMetaData();
 			ResultSet res = meta.getTables(null, null, null, new String[] {"TABLE"});
+			List<Table> result = new ArrayList<>();
 			while (res.next()) {
 				String tmp = res.getString("TABLE_NAME");
-				result.add(makeTable(tmp));
+				result.add(makeTable(tmp, meta));
 			}
 			res.close();
 			return result;
 		} catch (Exception e) {
 			throw new ProjectException(e);
 		}
+	}
+	
+	public Connection getConnection() throws SQLException {
+		return DriverManager.getConnection(timedoutUrl);
 	}
 	
 	
@@ -144,7 +143,7 @@ public class MysqlDatabaseDetailProvider extends DatabaseDetailProvider {
 			this.driverClassName = driverClassName;
 			return this;
 		}
-		public MysqlDatabaseDetailProvider build() {
+		public MysqlDatabaseMetadataProvider build() {
 			Expect.notEmpty(username, "username must not be null.");
 			Expect.notEmpty(password, "password must not be null.");
 			Expect.notEmpty(url, "url must not be null.");
@@ -153,7 +152,7 @@ public class MysqlDatabaseDetailProvider extends DatabaseDetailProvider {
 			try {
 				Driver driver = buildDriver(driverClassName, connectorJarPath);
 				DriverManager.registerDriver(driver);
-				return new MysqlDatabaseDetailProvider(username, password, url, driverClassName, connectorJarPath);
+				return new MysqlDatabaseMetadataProvider(username, password, url, driverClassName, connectorJarPath);
 			} catch (Exception e) {
 				throw new SqlConfigIncompleteException(e);
 			}
@@ -166,13 +165,9 @@ public class MysqlDatabaseDetailProvider extends DatabaseDetailProvider {
 	
 	@Override
 	public String getSchema() {
-		try {
-			Pattern pattern = Pattern.compile("jdbc:mysql://[^/]+/([^?]+).*");
-			Matcher matcher = pattern.matcher(url);
-			return matcher.find() ? matcher.group(1) : null;
-		} catch (SqlConfigIncompleteException e) {
-			return null;
-		}
+		Pattern pattern = Pattern.compile("jdbc:mysql://[^/]+/([^?]+).*");
+		Matcher matcher = pattern.matcher(url);
+		return matcher.find() ? matcher.group(1) : null;
 	}
 	
 	// See http://www.kfu.com/~nsayer/Java/dyn-jdbc.html

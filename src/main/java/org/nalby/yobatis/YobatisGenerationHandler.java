@@ -23,8 +23,8 @@ import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
 import org.nalby.yobatis.mybatis.MybatisGeneratorAnalyzer;
 import org.nalby.yobatis.mybatis.MybatisFilesWriter;
 import org.nalby.yobatis.sql.Table;
-import org.nalby.yobatis.sql.mysql.MysqlDatabaseDetailProvider;
-import org.nalby.yobatis.sql.mysql.MysqlDatabaseDetailProvider.Builder;
+import org.nalby.yobatis.sql.mysql.MysqlDatabaseMetadataProvider;
+import org.nalby.yobatis.sql.mysql.MysqlDatabaseMetadataProvider.Builder;
 import org.nalby.yobatis.structure.File;
 import org.nalby.yobatis.structure.PomTree;
 import org.nalby.yobatis.structure.Project;
@@ -60,7 +60,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 		String dbJarPath = pomTree.getDatabaseJarPath(driverClassName);
 
-		Builder builder = MysqlDatabaseDetailProvider.builder();
+		Builder builder = MysqlDatabaseMetadataProvider.builder();
 		builder.setConnectorJarPath(dbJarPath)
 		.setDriverClassName(driverClassName)
 		.setUsername(username)
@@ -187,7 +187,7 @@ public class YobatisGenerationHandler extends AbstractHandler {
 
 		String dbJarPath = pomTree.getDatabaseJarPath(driverClassName);
 
-		Builder builder = MysqlDatabaseDetailProvider.builder();
+		Builder builder = MysqlDatabaseMetadataProvider.builder();
 		builder.setConnectorJarPath(dbJarPath)
 		.setDriverClassName(driverClassName)
 		.setUsername(username)
