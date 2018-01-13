@@ -1,15 +1,20 @@
 package org.nalby.yobatis.structure;
 
 import java.io.InputStream;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Set;
 
-import org.nalby.yobatis.exception.ResourceNotAvailableExeception;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.xml.WebXmlParser;
 
-public class WebContainerParser {
+/**
+ * Search for init param-values defined in web.xml, both in application context and 
+ * Servlet context.
+ * @author Kyle Lin
+ *
+ */
+public final class WebContainerParser {
 	
 	private File file;
 	
@@ -27,19 +32,27 @@ public class WebContainerParser {
 		}
 	}
 	
-	public Set<String> getSpringInitParamValues() {
+	/**
+	 * Search init param values in web.xml, which imply the locations of spring's 
+	 * configuration files.
+	 * 
+	 * @return the values, or an empty set (immutable) if not found.
+	 */
+	@SuppressWarnings("unchecked")
+	public Set<String> searchInitParamValues() {
 		if (springInitParamValues != null) {
 			return springInitParamValues;
 		}
 		try (InputStream inputStream = file.open()) {
-			springInitParamValues = new HashSet<String>();
 			WebXmlParser parser = new WebXmlParser(inputStream);
-			Set<String> values = parser.getSpringInitParamValues();
-			springInitParamValues.addAll(values);
-			return springInitParamValues;
+			springInitParamValues = parser.getSpringInitParamValues();
 		} catch (Exception e) {
-			throw new ResourceNotAvailableExeception(e);
+			//Do nothing.
 		}
+		if (springInitParamValues == null) {
+			springInitParamValues = Collections.EMPTY_SET;
+		}
+		return springInitParamValues;
 	}
 
 }

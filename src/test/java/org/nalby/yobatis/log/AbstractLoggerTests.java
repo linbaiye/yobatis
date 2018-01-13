@@ -1,9 +1,12 @@
 package org.nalby.yobatis.log;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.nalby.yobatis.log.AbstractLogger.LogLevel;
 
 public class AbstractLoggerTests {
 	
@@ -80,6 +83,16 @@ public class AbstractLoggerTests {
 	public void nullFormat() {
 		logger.info(null);
 		assertTrue(logger.getLogLine().contains("INFO"));
+	}
+	
+	@Test
+	@SuppressWarnings("static-access")
+	public void debugLog() {
+		logger.debug("test");
+		assertNull(logger.getLogLine());
+		logger.defaultLevel = LogLevel.DEBUG;
+		logger.debug("test");
+		assertTrue(logger.getLogLine().contains("test"));
 	}
 	
 

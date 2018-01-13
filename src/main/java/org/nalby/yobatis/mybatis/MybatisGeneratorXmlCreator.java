@@ -2,7 +2,6 @@ package org.nalby.yobatis.mybatis;
 
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -15,23 +14,23 @@ import org.dom4j.Element;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
-import org.nalby.yobatis.sql.Sql;
+import org.nalby.yobatis.sql.DatabaseMetadataProvider;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.PomTree;
 import org.nalby.yobatis.xml.AbstractXmlParser;
-import org.nalby.yobatis.xml.MybatisXmlParser;
+import org.nalby.yobatis.xml.MybatisGeneratorXmlReader;
 
 /**
  * Generate MyBaits Generator's configuration file according to current project structure.
  * 
  * @author Kyle Lin
  */
-public class MybatisConfigFileGenerator implements MybatisConfigReader {
+public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 
 	private Document document;
 
-	private Sql sql;
+	private DatabaseMetadataProvider sql;
 
 	private PomTree pomTree;
 	
@@ -59,9 +58,9 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 
 	private Set<Element> tableElemnts = new HashSet<Element>();
 	
-	private Logger logger = LogFactory.getLogger(MybatisConfigFileGenerator.class);
+	private Logger logger = LogFactory.getLogger(MybatisGeneratorXmlCreator.class);
 	
-	public MybatisConfigFileGenerator(PomTree pomTree, Sql sql) {
+	public MybatisGeneratorXmlCreator(PomTree pomTree, DatabaseMetadataProvider sql) {
 		logger.info("Generating MyBatis Generator's configuration file.");
 		this.sql = sql;
 		this.pomTree = pomTree;
@@ -130,7 +129,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	private void appendClassPathEntry(Element root) {
-		classPathEntry = root.addElement(MybatisXmlParser.CLASS_PATH_ENTRY_TAG);
+		classPathEntry = root.addElement(MybatisGeneratorXmlReader.CLASS_PATH_ENTRY_TAG);
 		classPathEntry.addAttribute("location", sql.getConnectorJarPath());
 	}
 	
@@ -142,8 +141,7 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	}
 	
 	private void appendTables(Element context)  {
-		List<Table> tables = sql.getTables();
-		for (Table table: tables) {
+		for (Table table: sql.getTables()) {
 			Element element = context.addElement("table");
 			element.addAttribute("tableName", table.getName());
 			element.addAttribute("schema", sql.getSchema());
@@ -207,8 +205,8 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 	
 	private Element appendContext(Element root) {
 		context = root.addElement("context");
-		context.addAttribute("id", MybatisConfigReader.DEFAULT_CONTEXT_ID);
-		context.addAttribute("targetRuntime", MybatisConfigReader.TARGET_RUNTIME);
+		context.addAttribute("id", MybatisGeneratorAnalyzer.DEFAULT_CONTEXT_ID);
+		context.addAttribute("targetRuntime", MybatisGeneratorAnalyzer.TARGET_RUNTIME);
 		return context;
 	}
 	
@@ -263,7 +261,6 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		logger.debug("Created doctype.");
 	}
 	
-	@Override
 	public String asXmlText() {
 		try {
 			return AbstractXmlParser.toXmlString(document);
@@ -276,20 +273,15 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 		if (generators == null || generators.isEmpty()) {
 			throw new InvalidMybatisGeneratorConfigException(
 					String.format("There is no %s configured, please set the element and re-run.", name));
-		}
-		if (generators.size() > 1) {
+		} else if (generators.size() > 1) {
 			throw new InvalidMybatisGeneratorConfigException(
 					String.format("More than one %s configured, please remove unintentional ones and re-run.", name));
+		} else {
+			return generators.iterator().next();
 		}
-		Iterator<Element> iterator =  generators.iterator();
-		while (iterator.hasNext()) {
-			Element element = iterator.next();
-			return element;
-		}
-		throw new InvalidMybatisGeneratorConfigException("Should not happen.");
 	}
 
-	private String glueTargetPackageToTargetProject(Set<Element> generators, String name) {
+	private String buildPathFromGenerator(Set<Element> generators, String name) {
 		Element element = findActiveElement(generators, name);
 		String packageName = element.attributeValue("targetPackage");
 		String targetProject = element.attributeValue("targetProject");
@@ -298,33 +290,33 @@ public class MybatisConfigFileGenerator implements MybatisConfigReader {
 
 	@Override
 	public String getDaoDirPath() {
-		return glueTargetPackageToTargetProject(javaClientGenerators, "javaClientGenerator");
+		return buildPathFromGenerator(javaClientGenerators, "javaClientGenerator");
 	}
 
 	@Override
-	public String getDomainDirPath() {
-		return glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
+	public String getModelDirPath() {
+		return buildPathFromGenerator(javaModelGenerators, "javaModelGenerator");
 	}
 
 	@Override
 	public String getCriteriaDirPath() {
-		String daoPath =  glueTargetPackageToTargetProject(javaModelGenerators, "javaModelGenerator");
+		String daoPath =  buildPathFromGenerator(javaModelGenerators, "javaModelGenerator");
 		return daoPath + "/criteria";
 	}
 
 	@Override
-	public String getPackageNameOfDomains() {
+	public String getModelPackageName() {
 		Element element = findActiveElement(javaModelGenerators, "javaModelGenerator");
 		return element.attributeValue("targetPackage");
 	}
 
 	@Override
 	public String getXmlMapperDirPath() {
-		return glueTargetPackageToTargetProject(sqlMapGenerators, "sqlMapGenerator");
+		return buildPathFromGenerator(sqlMapGenerators, "sqlMapGenerator");
 	}
 
 	@Override
-	public String getPackageNameOfJavaMappers() {
+	public String getDaoPackageName() {
 		Element element = findActiveElement(javaClientGenerators, "javaClientGenerator");
 		return element.attributeValue("targetPackage");
 	}

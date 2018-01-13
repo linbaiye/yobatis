@@ -25,7 +25,10 @@ public class EclipseProject extends Project {
 	@Override
 	protected String findMavenRepositoryPath() {
 		String home = Platform.getUserLocation().getURL().getPath();
-		return home.replaceFirst("/user/$", "/.m2/repository");
+		if (home != null) {
+			home = home.replaceFirst("/user/$", "/.m2/repository");
+		}
+		return home;
 	}
 
 }

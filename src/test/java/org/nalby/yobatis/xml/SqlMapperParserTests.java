@@ -49,7 +49,7 @@ public class SqlMapperParserTests {
 		parser1.merge(parser2);
 	}
 	
-	private static class SqlMapper extends AbstractXmlParser {
+	public static class SqlMapper extends AbstractXmlParser {
 		public SqlMapper(InputStream inputStream)
 				throws DocumentException, IOException {
 			super(inputStream, "mapper");

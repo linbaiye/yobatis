@@ -1,6 +1,7 @@
 package org.nalby.yobatis.sql.mysql;
 
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.sql.Connection;
@@ -21,29 +22,24 @@ import org.nalby.yobatis.exception.ProjectException;
 import org.nalby.yobatis.exception.SqlConfigIncompleteException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
-import org.nalby.yobatis.sql.Sql;
+import org.nalby.yobatis.sql.DatabaseMetadataProvider;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.util.Expect;
 
-public class Mysql extends Sql {
-	
+public class MysqlDatabaseMetadataProvider extends DatabaseMetadataProvider {
 	
 	private String timedoutUrl;
 	
 	private Logger logger = LogFactory.getLogger(this.getClass());
 
-	private Mysql(String username, String password, String url, String connectorJarPath, String driverClassName) {
+	private MysqlDatabaseMetadataProvider(String username, String password,
+			String url, String driverClassName, String jdbcJarPath) {
 		try {
 			this.username = username;
 			this.password = password;
 			this.url = url;
-			this.connectorJarPath = connectorJarPath;
 			this.driverClassName = driverClassName;
-			URL jarurl = new URL("file://" + connectorJarPath);
-			URLClassLoader classLoader = new URLClassLoader(new URL[] { jarurl });
-			Driver driver = (Driver) Class.forName(driverClassName, true, classLoader).newInstance();
-			DriverWrapper driverWrapper = new DriverWrapper(driver);
-			DriverManager.registerDriver(driverWrapper);
+			this.connectorJarPath = jdbcJarPath;
 			logger.info("Detected sql configuration:[username:{}, url:{}].", username, url);
 			timedoutUrl = this.url;
 			if (!this.timedoutUrl.contains("socketTimeout")) {
@@ -61,14 +57,9 @@ public class Mysql extends Sql {
 		}
 	}
 	
-	private Connection getConnection() throws SQLException {
-		return DriverManager.getConnection(this.timedoutUrl, username, password);
-	}
-	
-	private Table makeTable(String name) {
+	private Table makeTable(String name, DatabaseMetaData metaData) {
 		Table table = new Table(name);
-		try (Connection connection = getConnection()) {
-			DatabaseMetaData metaData = connection.getMetaData();
+		try {
 			ResultSet resultSet = metaData.getColumns(null, null, name, null);
 			while (resultSet.next()) {
 				String columnName = resultSet.getString("COLUMN_NAME");
@@ -97,19 +88,31 @@ public class Mysql extends Sql {
 	 */
 	@Override
 	public List<Table> getTables() {
-		List<Table> result = new ArrayList<>();
-		try (Connection connection = getConnection()) {
+		try (Connection connection = DriverManager.getConnection(this.timedoutUrl, username, password)) {
 			DatabaseMetaData meta = connection.getMetaData();
 			ResultSet res = meta.getTables(null, null, null, new String[] {"TABLE"});
+			List<Table> result = new ArrayList<>();
 			while (res.next()) {
 				String tmp = res.getString("TABLE_NAME");
-				result.add(makeTable(tmp));
+				result.add(makeTable(tmp, meta));
 			}
 			res.close();
 			return result;
 		} catch (Exception e) {
 			throw new ProjectException(e);
 		}
+	}
+	
+	public Connection getConnection() throws SQLException {
+		return DriverManager.getConnection(timedoutUrl);
+	}
+	
+	
+	private static Driver buildDriver(String driverClassName, String jarPath) throws MalformedURLException, InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException {
+		URL jarurl = new URL("file://" + jarPath);
+		URLClassLoader classLoader = new URLClassLoader(new URL[] { jarurl });
+		Driver driver = (Driver) Class.forName(driverClassName, true, classLoader).newInstance();
+		return new DriverWrapper(driver);
 	}
 	
 	
@@ -140,13 +143,19 @@ public class Mysql extends Sql {
 			this.driverClassName = driverClassName;
 			return this;
 		}
-		public Mysql build() {
+		public MysqlDatabaseMetadataProvider build() {
 			Expect.notEmpty(username, "username must not be null.");
 			Expect.notEmpty(password, "password must not be null.");
 			Expect.notEmpty(url, "url must not be null.");
 			Expect.notEmpty(connectorJarPath, "connectorJarPath must not be null.");
 			Expect.notEmpty(driverClassName, "driverClassName must not be null.");
-			return new Mysql(username, password, url, connectorJarPath, driverClassName);
+			try {
+				Driver driver = buildDriver(driverClassName, connectorJarPath);
+				DriverManager.registerDriver(driver);
+				return new MysqlDatabaseMetadataProvider(username, password, url, driverClassName, connectorJarPath);
+			} catch (Exception e) {
+				throw new SqlConfigIncompleteException(e);
+			}
 		}
 	}
 	
@@ -156,13 +165,9 @@ public class Mysql extends Sql {
 	
 	@Override
 	public String getSchema() {
-		try {
-			Pattern pattern = Pattern.compile("jdbc:mysql://[^/]+/([^?]+).*");
-			Matcher matcher = pattern.matcher(url);
-			return matcher.find() ? matcher.group(1) : null;
-		} catch (SqlConfigIncompleteException e) {
-			return null;
-		}
+		Pattern pattern = Pattern.compile("jdbc:mysql://[^/]+/([^?]+).*");
+		Matcher matcher = pattern.matcher(url);
+		return matcher.find() ? matcher.group(1) : null;
 	}
 	
 	// See http://www.kfu.com/~nsayer/Java/dyn-jdbc.html
