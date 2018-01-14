@@ -3,8 +3,10 @@ package org.nalby.yobatis.xml;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.Namespace;
@@ -31,8 +33,9 @@ public class SpringXmlParser extends AbstractXmlParser {
 		importLocations = new HashSet<String>();
 		loadImportLocations();
 		loadPropertieLocationsInContextProperties();
-		loadPropertieLocationsInPropertHolder();
+		loadPropertiesLocations();
 	}
+
 	
 	private void loadPropertieLocationsInContextProperties() {
 		Element root = document.getRootElement();
@@ -62,28 +65,139 @@ public class SpringXmlParser extends AbstractXmlParser {
 		}
 	}
 	
-	private void loadPropertieLocationsInPropertHolder() {
-		Element root = document.getRootElement();
-		List<Element> elements = root.elements("bean");
-		for (Element bean: elements) {
-			List<Element> properties = bean.elements("property");
-			for (Element property: properties) {
-				String name = property.attributeValue("name");
-				if (name == null || !"locations".equals(name.trim())) {
-					continue;
-				}
-				Element listElement = property.element("list");
-				if (listElement == null) {
-					break;
-				}
-				List<Element> valueElements = listElement.elements("value");
-				for (Element valueElement: valueElements) {
-					if (!TextUtil.isEmpty(valueElement.getText())) {
-						propertiesFileLocations.add(valueElement.getTextTrim());
-					}
+	
+	private Element findElementByAttr(List<Element>elements, String attrName, String attrValue) {
+		for (Element element : elements) {
+			if (attrValue.equals(element.attributeValue(attrName))) {
+				return element;
+			}
+		}
+		return null;
+	}
+	
+
+	/**
+	 * Find the property value of a bean.
+	 * @param bean the bean element.
+	 * @param name the property name.
+	 * @return
+	 */
+	private String findPropertyValue(Element bean, String name) {
+		QName qname = new QName(name, new Namespace("p", P_NAMESPACE));
+		String val = bean.attributeValue(qname);
+		if (val != null) {
+			return val.trim();
+		}
+		Element property = findElementByAttr(bean.elements("property"), "name", name);
+		if (property == null) {
+			return null;
+		}
+		val = property.attributeValue("value");
+		if (val != null) {
+			return val.trim();
+		}
+		List<Element> valueList = property.elements("value");
+		if (valueList.size() == 1) {
+			return valueList.get(0).getTextTrim();
+		}
+		return null;
+	}
+	
+	private void loadLocationInPlaceholderBean(Element bean, boolean checkSuffix) {
+		String location = findPropertyValue(bean, "location");
+		if (location != null && (!checkSuffix || location.endsWith(".properties"))) {
+			propertiesFileLocations.add(location);
+		}
+	}
+	
+	// load location.
+	private void loadPropertiesLocationFromPlaceholderConfiguer(Element root) {
+		Element configuer = findElementByAttr(root.elements("bean"), 
+				"class", "org.springframework.beans.factory.config.PropertyPlaceholderConfigurer");
+		if (configuer == null) {
+			return;
+		}
+		loadLocationInPlaceholderBean(configuer, false);
+	}
+	
+	
+	/**
+	 * Find locations in a placeholder configuer bean. This method checks
+	 * whether the locations ends with '.properties' if checkSuffix is true.
+	 * @param configuer
+	 * @param checkSuffix
+	 * @return locations found, or an empty list else.
+	 */
+	private List<String> findLocationsInPlaceholderBean(Element configuer, boolean checkSuffix) {
+		List<String> list = new LinkedList<>();
+		Element locations = findElementByAttr(configuer.elements("property"), "name", "locations");
+		if (locations == null) {
+			return list;
+		}
+		Element value = locations.element("value");
+		if (value != null) {
+			String text = value.getTextTrim();
+			if (!TextUtil.isEmpty(text) && 
+				(!checkSuffix || text.endsWith(".properties"))) {
+				propertiesFileLocations.add(value.getTextTrim());
+			}
+			return list;
+		}
+		Element collection = locations.element("list");
+		if (collection == null) {
+			collection = locations.element("set");
+		}
+		if (collection != null) {
+			for (Element valueElement: collection.elements("value")) {
+				String text = valueElement.getTextTrim();
+				if (!TextUtil.isEmpty(text) &&
+					(!checkSuffix || text.endsWith(".properties"))) {
+					list.add(text);
 				}
 			}
 		}
+		return list;
+	}
+	
+	// load locations.
+	private void loadPropertiesLocationsFromPlaceholderConfiguer(Element root) {
+		Element configuer = findElementByAttr(root.elements("bean"), 
+				"class", "org.springframework.beans.factory.config.PropertyPlaceholderConfigurer");
+		if (configuer == null) {
+			return;
+		}
+		propertiesFileLocations.addAll(findLocationsInPlaceholderBean(configuer, false));
+	}
+	
+	private void loadPropertiesLocations() {
+		Element root = document.getRootElement();
+		loadPropertiesLocationFromPlaceholderConfiguer(root);
+		loadPropertiesLocationsFromPlaceholderConfiguer(root);
+		if (!propertiesFileLocations.isEmpty()) {
+			return;
+		}
+		//Reaching here means no standard Spring placeholder bean was found, then we guess one.
+		for (Element bean : root.elements("bean")) {
+			if (hasProperty(bean, "location")) {
+				loadLocationInPlaceholderBean(bean, true);
+			}
+			Element locations = findElementByAttr(bean.elements("property"), "name", "locations");
+			if (locations == null) {
+				continue;
+			}
+			propertiesFileLocations.addAll(findLocationsInPlaceholderBean(bean, true));
+			if (!propertiesFileLocations.isEmpty()) {
+				break;
+			}
+		}
+	}
+	
+	private boolean hasProperty(Element parent, String attrName) {
+		QName qname = new QName(attrName, new Namespace("p", P_NAMESPACE));
+		if (parent.attributeValue(qname) != null) {
+			return true;
+		}
+		return findElementByAttr(parent.elements("property"), "name", attrName) != null;
 	}
 	
 	private boolean isDatasourceBean(Element element) {
@@ -91,8 +205,21 @@ public class SpringXmlParser extends AbstractXmlParser {
 		if (null == clazz) {
 			return false;
 		}
-		return DATASOURCE_CLASSES[0].equals(clazz)
-				|| DATASOURCE_CLASSES[1].equals(clazz);
+		if (DATASOURCE_CLASSES[0].equals(clazz)
+				|| DATASOURCE_CLASSES[1].equals(clazz)) {
+			return true;
+		}
+		String id = element.attributeValue("id");
+		if ((id == null || !id.toLowerCase().contains("datasource")) &&
+			!clazz.toLowerCase().contains("datasource")) {
+			return false;
+		}
+		if (hasProperty(element, "url") &&
+			hasProperty(element, "username") &&
+			hasProperty(element, "password")) {
+			return true;
+		}
+		return false;
 	}
 
 	private String parsePropertyValue(Element datasourceBean, String propertyName) {
@@ -168,15 +295,15 @@ public class SpringXmlParser extends AbstractXmlParser {
 	
 	/**
 	 * Get the imported spring file locations if any.
-	 * @return the imported files.
+	 * @return locations if any, an empty set else.
 	 */
 	public Set<String> getImportedLocations() {
 		return this.importLocations;
 	}
 	
 	/**
-	 * Get properties file paths.
-	 * @return file paths starting with 'classpath'.
+	 * Get properties file locations configured in PropertyPlaceholderConfigurer bean.
+	 * @return locations if any, an empty set else.
 	 */
 	public Set<String> getPropertiesFileLocations() {
 		return propertiesFileLocations;
