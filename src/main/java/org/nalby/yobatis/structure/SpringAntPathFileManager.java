@@ -193,7 +193,7 @@ public class SpringAntPathFileManager {
 	 * @param file
 	 * @return other spring xml files if found.
 	 */
-	public Set<File> findSpringFiles(File file) {
+	public Set<File> findSpringFiles(final File file) {
 		return findImportedFiles(file, true, new NonclasspathHandler() {
 			@Override
 			public void handle(String hint, Set<File> result) {
