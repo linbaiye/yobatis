@@ -195,4 +195,157 @@ public class SpringXmlParserTests {
 		}
 	}
 	
+	@Test
+	public void nondefaultDataSource() throws DocumentException, IOException {
+		String xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\"><bean class=\"test.Datasource\"" +
+					 " p:username=\"test\" p:password=\"username\" p:url=\"testurl\"/></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertTrue("test".equals(parser.getDbUsername()));
+		
+		xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\"><bean class=\"test.Datasource\">"
+		+ "<property name=\"username\" value=\"test\"/>"
+		+ "<property name=\"password\" value=\"test\"/>"
+		+ "<property name=\"url\" value=\"url\"/>"
+		+ "<property name=\"driverClassName\" value=\"driver\"/>"
+		+ "</bean></beans>";
+		parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertTrue("test".equals(parser.getDbUsername()));
+		assertTrue("driver".equals(parser.getDbDriverClass()));
+	}
+	
+	//Neither id nor class contains 'datasource'
+	@Test
+	public void beanContainsNoDatasource() throws DocumentException, IOException {
+		String xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\"><bean class=\"test.NoClass\"" +
+					 " p:username=\"test\" p:password=\"username\" p:url=\"testurl\"/></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertNull(parser.getDbPassword());
+		assertNull(parser.getDbUrl());
+	}
+	
+	@Test
+	public void notEnoughProperties() throws DocumentException, IOException {
+		String xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\"><bean class=\"test.Datasource\"" +
+					 " p:username=\"test\" p:password=\"username\"/></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertNull(parser.getDbPassword());
+		
+		xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\"><bean class=\"test.Datasource\">"
+				+ "<property name=\"username\" value=\"test\"/>"
+				+ "<property name=\"password\" value=\"test\"/>"
+				+ "</bean></beans>";
+		parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertNull(parser.getDbPassword());
+	}
+	
+	@Test
+	public void placeholderConfiguerSingleLocation() throws DocumentException, IOException {
+		String xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">"
+				+ "<bean class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\"" +
+				 " p:location=\"classpath:test.properties\" p:password=\"username\"></bean></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		TestUtil.assertCollectionEqual(parser.getPropertiesFileLocations(), "classpath:test.properties");
+		
+		xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">"
+				+ "<bean class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">"
+				+ "<property name=\"location\" value=\"classpath:test1.properties\"/>"
+				+ "</bean></beans>";
+		parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		TestUtil.assertCollectionEqual(parser.getPropertiesFileLocations(), "classpath:test1.properties");
+		
+		
+		xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">"
+				+ "<bean class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">"
+				+ "<property name=\"location\"><value>classpath:test1.properties</value></property>"
+				+ "</bean></beans>";
+		parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		TestUtil.assertCollectionEqual(parser.getPropertiesFileLocations(), "classpath:test1.properties");
+	}
+
+	@Test
+	public void placeholderConfiguerLocation() throws DocumentException, IOException {
+		String xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">"
+				+ "<bean class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">"
+				+ "<property name=\"location\">"
+				+ "<value>classpath:test1.properties</value>"
+				+ "<value>classpath:test2.properties</value>"
+				+ "</property>"
+				+ "</bean></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertTrue(parser.getPropertiesFileLocations().isEmpty());
+	}
+	
+	@Test
+	public void singleValueInLocations() throws DocumentException, IOException {
+		String xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">"
+				+ "<bean class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">"
+				+ "<property name=\"locations\">"
+				+ "<value>classpath:test1.properties</value>"
+				+ "</property>"
+				+ "</bean></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		TestUtil.assertCollectionEqual(parser.getPropertiesFileLocations(), "classpath:test1.properties");
+	}
+	
+	@Test
+	public void setValuesInLocations() throws DocumentException, IOException {
+		String xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">"
+				+ "<bean class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">"
+				+ "<property name=\"locations\">"
+				+ "<set>"
+				+ "<value>classpath:test1.properties</value>"
+				+ "</set>"
+				+ "</property>"
+				+ "</bean></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		TestUtil.assertCollectionEqual(parser.getPropertiesFileLocations(), "classpath:test1.properties");
+	}
+	
+	@Test
+	public void emptyLocations() throws DocumentException, IOException {
+		String xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">"
+				+ "<bean class=\"org.springframework.beans.factory.config.PropertyPlaceholderConfigurer\">"
+				+ "<property name=\"locations\">"
+				+ "</property>"
+				+ "</bean></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertTrue(parser.getPropertiesFileLocations().isEmpty());
+	}
+	
+	@Test
+	public void nostandardSpringConfigurer() throws DocumentException, IOException {
+		String xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">"
+				+ "<bean class=\"org.omg.PlaceholderResolver\">"
+				+ "<property name=\"locations\">"
+				+ "<value>classpath:test1.properties</value>"
+				+ "</property>"
+				+ "</bean></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		TestUtil.assertCollectionEqual(parser.getPropertiesFileLocations(), "classpath:test1.properties");
+		
+		xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">"
+				+ "<bean class=\"org.omg.PlaceholderResolver\">"
+				+ "<property name=\"locations\">"
+				+ "<value>classpath:test1.prooep</value>"
+				+ "</property>"
+				+ "</bean></beans>";
+		parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		assertTrue(parser.getPropertiesFileLocations().isEmpty());
+	}
+	
+	@Test
+	public void nostandardSpringLocations() throws DocumentException, IOException {
+		String xml = "<beans xmlns:p=\"http://www.springframework.org/schema/p\">"
+				+ "<bean class=\"org.test.Resolver\">"
+				+ "<property name=\"locations\">"
+				+ "<list>"
+				+ "<value>classpath:test1.properties</value>"
+				+ "</list>"
+				+ "</property>"
+				+ "</bean></beans>";
+		SpringXmlParser parser =  new SpringXmlParser(new ByteArrayInputStream(xml.getBytes()));
+		TestUtil.assertCollectionEqual(parser.getPropertiesFileLocations(), "classpath:test1.properties");
+	}
+	
+
 }
