@@ -60,7 +60,7 @@ public class MysqlDetailProviderTests {
 	public void setup() throws SQLException {
         connection = mock(Connection.class);
 		PowerMockito.mockStatic(DriverManager.class);
-        BDDMockito.given((DriverManager.getConnection(anyString(), any()))).willReturn(connection);
+        BDDMockito.given((DriverManager.getConnection(any(), any()))).willReturn(connection);
         BDDMockito.given(DriverManager.getConnection(anyString())).willReturn(connection);
         BDDMockito.given(DriverManager.getConnection(anyString(), anyString(), anyString())).willReturn(connection);
     	username = "username";
