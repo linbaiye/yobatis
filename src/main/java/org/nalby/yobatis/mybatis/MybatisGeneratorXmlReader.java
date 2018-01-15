@@ -373,7 +373,6 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 		return false;
 	}
 	
-
 	private void loadCommentedElements()  {
 		String text = null;
 		for (Iterator<Node> iterator = context.nodeIterator(); iterator.hasNext(); ) {
@@ -395,30 +394,18 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	
 	private void loadClasspathEntry() {
 		classPathEntry = root.element(CLASS_PATH_ENTRY_TAG);	
-		if (classPathEntry != null) {
-			classPathEntry.detach();
-		}
 	}
 	
 	private void loadContext() {
 		context = root.element("context");
-		if (context != null) {
-			context.detach();
-		}
 	}
 	
 	private void loadJdbcConnection() {
 		jdbcConnection = context.element("jdbcConnection");
-		if (jdbcConnection != null) {
-			jdbcConnection.detach();
-		}
 	}
 	
 	private void loadJavaTypeResolver() {
 		javaTypeResolver = context.element("javaTypeResolver");
-		if (javaTypeResolver != null) {
-			javaTypeResolver.detach();
-		}	
 	}
 
 	
@@ -473,7 +460,7 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 		if (classPathEntry == null) {
 			root.add(configFileGenerator.getClassPathEntryElement().createCopy());
 		} else {
-			root.add(classPathEntry);
+			root.add(classPathEntry.createCopy());
 		}
 	}
 
@@ -492,7 +479,7 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 		if (javaTypeResolver == null) {
 			context.add(configFileGenerator.getJavaTypeResolverElement().createCopy());
 		} else {
-			context.add(javaTypeResolver);
+			context.add(javaTypeResolver.createCopy());
 		}
 	}
 	
@@ -500,7 +487,7 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 		if (jdbcConnection == null) {
 			context.add(configFileGenerator.getJdbConnectionElement().createCopy());
 		} else {
-			context.add(jdbcConnection);
+			context.add(jdbcConnection.createCopy());
 		}
 	}
 
@@ -510,7 +497,7 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	 */
 	private void mergeTables(MybatisGeneratorXmlCreator configFileGenerator) {
 		for (Element current: tables) {
-			context.add(current);
+			context.add(current.createCopy());
 		}
 		for (Element newTable : configFileGenerator.getTableElements()) {
 			if (hasTable(newTable)) {
@@ -518,9 +505,9 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 			}
 			Element commented = findTable(commentedElements, newTable);
 			if (commented != null) {
-				context.add(commentElement(commented));
+				context.add(commentElement(commented.createCopy()));
 			} else {
-				context.add(newTable);
+				context.add(newTable.createCopy());
 			}
 		}
 	}
@@ -540,13 +527,13 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 		for (Element element : plugins) {
 			if (PLUGIN_TAG.equals(element.getName()) &&
 				!YOBATIS_PLUGIN.equals(element.attributeValue("type"))) {
-				context.add(element);
+				context.add(element.createCopy());
 			}
 		}
 		// Keep commented plug-ins, still as commented.
 		for (Element element : commentedElements) {
 			if (PLUGIN_TAG.equals(element.getName())) {
-				context.add(commentElement(element));
+				context.add(commentElement(element.createCopy()));
 			}
 		}
 	}

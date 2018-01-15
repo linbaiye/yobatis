@@ -1,7 +1,6 @@
 package org.nalby.yobatis.structure.mybatis;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -209,6 +208,18 @@ public class GeneratorTests {
 		resouceFolders.add(TestUtil.mockFolder("/src/main/java/resource"));
 		build();
 		assertTrue(generator.getXmlMapperDirPath().equals("/src/main/java/resource/mybatis-mappers"));
+	}
+	
+	@Test
+	public void elementsGenerated() {
+		resouceFolders.add(TestUtil.mockFolder("/src/main/java/resource"));
+		build();
+		assertNotNull(generator.getPluginElement());
+		assertNotNull(generator.getCriteriaPluginElement());
+		assertNotNull(generator.getJdbConnectionElement());
+		assertNotNull(generator.getJavaTypeResolverElement());
+		assertNotNull(generator.getContext());
+		assertNotNull(generator.asXmlText());
 	}
 
 }

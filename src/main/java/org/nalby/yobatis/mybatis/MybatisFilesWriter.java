@@ -15,6 +15,7 @@ import org.nalby.yobatis.log.Logger;
 import org.nalby.yobatis.structure.File;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.util.Expect;
+import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.xml.SqlMapperParser;
 
 /**
@@ -113,8 +114,9 @@ public class MybatisFilesWriter {
 	private void writeJavaDomains() {
 		List<GeneratedJavaFile> files = getDomainFiles();
 		for (GeneratedJavaFile javafile : files) {
-			String path = mybatiGeneratorAnalyzer.getModelDirPath() + "/" + javafile.getFileName();
 			boolean overwrite = isBaseModelClass(javafile);
+			String dirpath = mybatiGeneratorAnalyzer.getModelDirPath() + (overwrite ? "/base" : "");
+			String path = FolderUtil.concatPath(dirpath, javafile.getFileName());
 			writeFile(path, javafile.getFormattedContent(), overwrite);
 		}
 		logger.info("Wrote model files to :{}.", mybatiGeneratorAnalyzer.getModelDirPath());

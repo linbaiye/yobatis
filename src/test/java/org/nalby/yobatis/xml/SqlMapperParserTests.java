@@ -1,5 +1,7 @@
 package org.nalby.yobatis.xml;
 
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,11 +9,12 @@ import java.util.List;
 
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
+import org.dom4j.io.SAXReader;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
-
 import org.nalby.yobatis.exception.InvalidMapperException;
+import org.xml.sax.EntityResolver;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 public class SqlMapperParserTests {
 	
@@ -53,6 +56,17 @@ public class SqlMapperParserTests {
 		public SqlMapper(InputStream inputStream)
 				throws DocumentException, IOException {
 			super(inputStream, "mapper");
+		}
+		
+		@Override
+		protected void customSAXReader(SAXReader saxReader ) {
+			saxReader.setEntityResolver(new EntityResolver() {
+				@Override
+				public InputSource resolveEntity(String publicId, String systemId)
+						throws SAXException, IOException {
+					return null;
+				}
+			});
 		}
 		
 		public void assertHasElement(String id) {

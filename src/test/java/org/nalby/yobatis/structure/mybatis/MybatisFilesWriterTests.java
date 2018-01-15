@@ -230,7 +230,7 @@ public class MybatisFilesWriterTests {
 		when(project.findFile(anyString())).thenReturn(file);
 		build();
 		filesWriter.writeAll();
-		verify(project, times(1)).createFile(MODEL_PATH + "/Test.java");
+		verify(project, times(1)).createFile(MODEL_PATH + "/base/Test.java");
 		verify(file, times(1)).write(content);
 	}
 

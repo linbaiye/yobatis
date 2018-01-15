@@ -191,6 +191,9 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 		Element property = pluginElement.addElement("property");
 		property.addAttribute("name", "enableBaseClass");
 		property.addAttribute("value", "true");
+		property = pluginElement.addElement("property");
+		property.addAttribute("name", "enableToString");
+		property.addAttribute("value", "true");
 	}
 	
 	private Element appendContext(Element root) {
