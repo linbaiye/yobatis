@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.dom4j.Document;
 import org.dom4j.DocumentFactory;
@@ -18,6 +16,7 @@ import org.nalby.yobatis.sql.DatabaseMetadataProvider;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.PomTree;
+import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.xml.AbstractXmlParser;
 
 /**
@@ -159,10 +158,10 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 		List<Folder> folders = pomTree.lookupModelFolders();
 		for (Folder folder: folders) {
 			String path = folder.path();
-			String packageName = getPackageName(path);
+			String packageName = FolderUtil.extractPackageName(path);
 			Element javaModelGenerator = context.addElement(MODEL_GENERATOR_TAG);
 			javaModelGenerator.addAttribute("targetPackage", packageName == null? "": packageName);
-			javaModelGenerator.addAttribute("targetProject", eliminatePackagePath(path));
+			javaModelGenerator.addAttribute("targetProject", FolderUtil.wipePackagePath(path));
 			javaModelGenerators.add(javaModelGenerator);
 		}
 	}
@@ -171,11 +170,11 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 		List<Folder> folders = pomTree.lookupDaoFolders();
 		for (Folder folder: folders) {
 			String path = folder.path();
-			String packageName = getPackageName(path);
+			String packageName = FolderUtil.extractPackageName(path);
 			Element generator = context.addElement(CLIENT_GENERATOR_TAG);
 			generator.addAttribute("type", "XMLMAPPER");
 			generator.addAttribute("targetPackage", packageName == null ? "" : packageName);
-			generator.addAttribute("targetProject", eliminatePackagePath(path));
+			generator.addAttribute("targetProject", FolderUtil.wipePackagePath(path));
 			javaClientGenerators.add(generator);
 		}
 	}
@@ -214,37 +213,6 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 		}
 	}
 
-	private final static String MAVEN_SOURCE_CODE_PATH = "src/main/java";
-
-	private final static Pattern SOURCE_CODE_PATTERN = Pattern.compile("^.+" + MAVEN_SOURCE_CODE_PATH + "/(.+)$");
-	private String getPackageName(String path) {
-		if (path == null || !path.contains(MAVEN_SOURCE_CODE_PATH)) {
-			return null;
-		}
-		Matcher matcher = SOURCE_CODE_PATTERN.matcher(path);
-		String ret = null;
-		if (matcher.find()) {
-			ret = matcher.group(1);
-		}
-		if (ret != null) {
-			ret = ret.replaceAll("/", ".");
-		}
-		return ret;
-	}
-	
-	private String eliminatePackagePath(String fullpath) {
-		Matcher matcher = SOURCE_CODE_PATTERN.matcher(fullpath);
-		String ret = null;
-		if (matcher.find()) {
-			ret = matcher.group(1);
-		}
-		if (ret == null) {
-			return fullpath;
-		}
-		return fullpath.replace("/" + ret, "");
-	}
-	
-	
 	
 	private void createDocument() {
 		document = factory.createDocument();
@@ -252,6 +220,7 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 		document.setDocType(type);
 	}
 	
+	@Override
 	public String asXmlText() {
 		try {
 			return AbstractXmlParser.toXmlString(document);

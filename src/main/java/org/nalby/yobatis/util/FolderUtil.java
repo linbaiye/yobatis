@@ -1,5 +1,8 @@
 package org.nalby.yobatis.util;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public final class FolderUtil {
 
 	private FolderUtil() {}
@@ -35,7 +38,50 @@ public final class FolderUtil {
 		appending = appending.trim();
 		String tmp = base + "/" + appending;
 		return tmp.replaceAll("/+", "/");
-		//return base + "/" + appending;
 	}
 
+	private final static String MAVEN_SOURCE_CODE_PATH = "src/main/java";
+
+	private final static Pattern SOURCE_CODE_PATTERN = Pattern.compile("^.+" + MAVEN_SOURCE_CODE_PATH + "/(.+)$");
+
+	/**
+	 * Extract package name from path.
+	 * @param path the path.
+	 * @return package name if found, null else.
+	 */
+	public static String extractPackageName(String path) {
+		if (path == null || !path.contains(MAVEN_SOURCE_CODE_PATH)) {
+			return null;
+		}
+		Matcher matcher = SOURCE_CODE_PATTERN.matcher(path);
+		String ret = null;
+		if (matcher.find()) {
+			ret = matcher.group(1);
+		}
+		if (ret != null) {
+			ret = ret.replaceAll("/", ".");
+		}
+		return ret;
+	}
+	
+	/**
+	 * Wipe package path out from path.
+	 * @param fullpath
+	 * @return new path if found, the original path else.
+	 */
+	public static String wipePackagePath(String fullpath) {
+		if (TextUtil.isEmpty(fullpath)) {
+			return fullpath;
+		}
+		Matcher matcher = SOURCE_CODE_PATTERN.matcher(fullpath);
+		String ret = null;
+		if (matcher.find()) {
+			ret = matcher.group(1);
+		}
+		if (ret == null) {
+			return fullpath;
+		}
+		return fullpath.replace("/" + ret, "");
+	}
+	
 }
