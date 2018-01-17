@@ -75,12 +75,12 @@ public class TokenSimilarityGrouperTests {
 		}
 	}
 	
-	private void assertGroups(List<TableGroup> groups, String ... names) {
-		assertTrue(groups.size() == names.length);
-		for (TableGroup table : groups) {
+	private void assertGroups(List<TableGroup> groups, Folder ... folders) {
+		assertTrue(groups.size() == folders.length);
+		for (TableGroup group: groups) {
 			boolean found = false;
-			for (String name : names) {
-				if (table.getPackageName().equals(name)) {
+			for (Folder folder: folders) {
+				if (group.getFolder() == folder) {
 					found = true;
 					break;
 				}
@@ -98,27 +98,29 @@ public class TokenSimilarityGrouperTests {
 	
 
 	@Test
-	public void singlePackage() {
+	public void singleFolder() {
 		addTable("table1");
 		addTable("table2");
 		result = grouper.group(tables);
 		assertTrue(result.size() == 1);
 		TableGroup group = result.get(0);
-		assertTrue(group.getPackageName().equals("yobatis.model"));
+		assertTrue(group.getFolder() == defaultFolder);
+		assertTrue(folders.get(0) == group.getFolder());
 		assertTables(group.getTables(), "table1", "table2");
 	}
 	
 
 	@Test
-	public void twoPackages() {
-		folders.add(TestUtil.mockFolder("/src/main/java/admin/model"));
+	public void twoFolders() {
+		Folder adminFolder = TestUtil.mockFolder("/src/main/java/admin/model");
+		folders.add(adminFolder);
 		grouper = new TokenSimilarityGrouper(folders);
 		addTable("sys_admin");
 		addTable("yobatis_user");
 		result = grouper.group(tables);
-		assertGroups(result, "yobatis.model", "admin.model");
+		assertGroups(result, adminFolder, defaultFolder);
 		for (TableGroup group : result) {
-			if (group.getPackageName().equals("yobatis.model")) {
+			if (group.getFolder() == defaultFolder) {
 				assertTables(group.getTables(), "yobatis_user");
 			} else {
 				assertTables(group.getTables(), "sys_admin");

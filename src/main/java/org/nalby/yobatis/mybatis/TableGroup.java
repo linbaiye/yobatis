@@ -4,20 +4,17 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.nalby.yobatis.sql.Table;
+import org.nalby.yobatis.structure.Folder;
 
 public final class TableGroup {
-	
-	private String modelPackageName;
-	
+	//private String modelPackageName;
 	private List<Table> tables;
 	
-	public TableGroup(String packageName) {
-		this.modelPackageName = packageName;
+	private Folder folder;
+	
+	public TableGroup(Folder folder) {
 		this.tables = new LinkedList<>();
-	}
-
-	public String getPackageName() {
-		return modelPackageName;
+		this.folder = folder;
 	}
 
 	public List<Table> getTables() {
@@ -27,5 +24,8 @@ public final class TableGroup {
 	public void addTable(Table table) {
 		tables.add(table);
 	}
-
+	
+	public Folder getFolder() {
+		return folder;
+	}
 }

@@ -1,21 +1,29 @@
 package org.nalby.yobatis.mybatis;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
+import org.nalby.yobatis.structure.TokenSimilarityMatcher;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.util.TextUtil;
 
+/**
+ * Given a list of model folders and another list of tables, TokenSimilarityGrouper 
+ * finds out a table fits which model folder most.
+ * 
+ * @author Kyle Lin
+ *
+ */
 public class TokenSimilarityGrouper implements ContextGrouper {
 	
-	private Map<String, TokenCounter> tokenAnalyzer;
+	private Map<Folder, TableTokenSimilarityMatcher> tokenAnalyzer;
 	
 	public TokenSimilarityGrouper(List<Folder> modelFolders) {
 		Expect.notNull(modelFolders, "modelfolders must not be empty.");
@@ -23,7 +31,7 @@ public class TokenSimilarityGrouper implements ContextGrouper {
 		for (Folder folder : modelFolders) {
 			String packageName = FolderUtil.extractPackageName(folder.path());
 			if (!TextUtil.isEmpty(packageName)) {
-				tokenAnalyzer.put(packageName, new TokenCounter(packageName));
+				tokenAnalyzer.put(folder, new TableTokenSimilarityMatcher(packageName));
 			}
 		}
 		if (tokenAnalyzer.isEmpty()) {
@@ -31,31 +39,15 @@ public class TokenSimilarityGrouper implements ContextGrouper {
 		}
 	}
 	
-	private class TokenCounter {
-		private Set<String> packageTokens;
-
-		private Map<Table, Integer> tableScores;
-
-		public TokenCounter(String packageName) {
-			packageTokens = new HashSet<>();
-			for (String tmp: packageName.split("\\.")) {
-				packageTokens.add(tmp.toLowerCase());
-			}
-			tableScores = new HashMap<>();
-		}
-		public void calculateTableScore(Table table) {
-			String[] tokens = table.getName().split("_");
-			int score = 0;
-			for (String token: tokens) {
-				if (packageTokens.contains(token.toLowerCase())) {
-					score++;
-				}
-			}
-			tableScores.put(table, score);
+	private class TableTokenSimilarityMatcher extends TokenSimilarityMatcher<Table> {
+		public TableTokenSimilarityMatcher(String packageName) {
+			String[] tokens = packageName.split("\\.");
+			setTokens(new HashSet<>(Arrays.asList(tokens)));
 		}
 
-		public int getScore(Table table) {
-			return tableScores.get(table);
+		@Override
+		protected String[] tokenize(Table t) {
+			return t.getName().split("_");
 		}
 	}
 
@@ -64,28 +56,29 @@ public class TokenSimilarityGrouper implements ContextGrouper {
 	public List<TableGroup> group(List<Table> tableList) {
 		Expect.notNull(tableList, "tableList must not be null.");
 		for (Table table : tableList) {
-			for (TokenCounter tokenCounter : tokenAnalyzer.values()) {
-				tokenCounter.calculateTableScore(table);
+			for (TableTokenSimilarityMatcher tokenCounter : tokenAnalyzer.values()) {
+				tokenCounter.calculateSimilarity(table);
 			}
 		}
-		Map<String, TableGroup> packageToGroup = new HashMap<>();
+		Map<Folder, TableGroup> folderToGroup = new HashMap<>();
 		for (Table table : tableList) {
 			int maxScore = -1;
-			String targetPackage = null;
-			for (String packageName: tokenAnalyzer.keySet()) {
-				TokenCounter tokenCounter = tokenAnalyzer.get(packageName);
-				int tmp = tokenCounter.getScore(table);
-				if (maxScore == -1 || maxScore < tmp) {
-					targetPackage = packageName;
-					maxScore = tmp;
+			Folder targetFolder = null;
+			for (Folder folder: tokenAnalyzer.keySet()) {
+				/* Find out which matcher has the highest score of this table. */
+				TableTokenSimilarityMatcher matcher = tokenAnalyzer.get(folder);
+				int thisScore = matcher.getScore(table);
+				if (maxScore < thisScore) {
+					maxScore = thisScore;
+					targetFolder = folder;
 				}
 			}
-			if (!packageToGroup.containsKey(targetPackage)) {
-				packageToGroup.put(targetPackage, new TableGroup(targetPackage));
+			if (!folderToGroup.containsKey(targetFolder)) {
+				folderToGroup.put(targetFolder, new TableGroup(targetFolder));
 			}
-			TableGroup tableGroup = packageToGroup.get(targetPackage);
+			TableGroup tableGroup = folderToGroup.get(targetFolder);
 			tableGroup.addTable(table);
 		}
-		return new ArrayList<>(packageToGroup.values());
+		return new ArrayList<>(folderToGroup.values());
 	}
 }
