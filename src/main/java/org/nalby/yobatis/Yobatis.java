@@ -53,7 +53,7 @@ public class Yobatis {
 		.setUsername(username)
 		.setPassword(password)
 		.setUrl(url);
-		return new MybatisGeneratorXmlCreator(pomTree, builder.build());
+		return new MybatisGeneratorXmlCreator(pomTree, builder.build(), true);
 	}
 	
 
@@ -93,7 +93,8 @@ public class Yobatis {
 		logger.info("Scanning project:{}.", project.name());
 
 		MybatisGeneratorXmlCreator configFileGenerator = buildMybatisGeneratorXmlCreator(project);
-		MybatisGeneratorAnalyzer analyzer = mergeIntoExistentConfig(configFileGenerator, project);
+		logger.info(configFileGenerator.asXmlText());
+/*		MybatisGeneratorAnalyzer analyzer = mergeIntoExistentConfig(configFileGenerator, project);
 		// Write mybatis-generator's config file to the project's root dir.
 		File file = project.createFile(MybatisGeneratorAnalyzer.CONFIG_FILENAME);
 		file.write(analyzer.asXmlText());
@@ -101,7 +102,7 @@ public class Yobatis {
 		// And now run MyBatis Generator.
 		LibraryRunner mybatisRunner = buildMyBatisRunner(project);
 		MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, analyzer, mybatisRunner);
-		filesWriter.writeAll();
+		filesWriter.writeAll();*/
 	}
 
 }

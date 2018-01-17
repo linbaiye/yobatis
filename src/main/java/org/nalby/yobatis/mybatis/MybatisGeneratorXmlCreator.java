@@ -1,6 +1,7 @@
 package org.nalby.yobatis.mybatis;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -58,6 +59,8 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 	
 	private Logger logger = LogFactory.getLogger(MybatisGeneratorXmlCreator.class);
 	
+	private List<MybatisGeneratorContext> contexts;
+	
 	public MybatisGeneratorXmlCreator(PomTree pomTree, DatabaseMetadataProvider sql) {
 		this.sql = sql;
 		this.pomTree = pomTree;
@@ -76,6 +79,40 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 		appendTables(context);
 		logger.info("Generated MyBatis Generator's configuration file.");
 	}
+	
+	public MybatisGeneratorXmlCreator(PomTree pomTree, DatabaseMetadataProvider sql, boolean flag) {
+		this.sql = sql;
+		this.pomTree = pomTree;
+		createDocument();
+		root = factory.createElement(ROOT_TAG);
+		document.setRootElement(root);
+		appendClassPathEntry(root);
+		appendContexts(root, sql);
+		logger.info("Generated MyBatis Generator's configuration file.");
+	}
+	
+	private void appendContexts(Element root, DatabaseMetadataProvider sql) {
+		contexts = new ArrayList<>();
+		List<Folder> modelFolders = pomTree.lookupModelFolders();
+		TokenSimilarityTableGrouper grouper = new TokenSimilarityTableGrouper(modelFolders);
+		List<TableGroup> groups = grouper.group(sql.getTables());
+		for (TableGroup group : groups) {
+			String packageName = FolderUtil.extractPackageName(group.getFolder().path());
+
+			MybatisGeneratorContext thisContext = new MybatisGeneratorContext(packageName, sql);
+			thisContext.appendJavaModelGenerator(group.getFolder());
+
+			Folder daoFolder = pomTree.findMostMatchingDaoFolder(group.getFolder());
+			thisContext.appendJavaClientGenerator(daoFolder);
+
+			Folder resourceFolder = pomTree.findMostMatchingResourceFolder(group.getFolder());
+			thisContext.appendSqlMapGenerator(resourceFolder);
+
+			thisContext.appendTables(group.getTables(), sql.getSchema());
+			contexts.add(thisContext);
+		}
+	}
+	
 	
 	public Element getClassPathEntryElement() {
 		return classPathEntry;
@@ -130,21 +167,6 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 	}
 	
 	private void appendTables(Element context)  {
-		List<Folder> modelFolders = pomTree.lookupModelFolders();
-		for (Folder folder : modelFolders) {
-			System.out.println(folder.path());
-		}
-		TokenSimilarityTableGrouper grouper = new TokenSimilarityTableGrouper(modelFolders);
-		List<TableGroup> groups = grouper.group(sql.getTables());
-		for (TableGroup group : groups) {
-			System.out.println("model  path:" + group.getFolder().path());
-			System.out.println("mapper path:" + pomTree.findMostMatchingDaoFolder(group.getFolder()).path());
-			System.out.println("resource  path:" + pomTree.findMostMatchingResourceFolder(group.getFolder()).path());
-			for (Table table : group.getTables()) {
-				System.out.println("\t" + table.getName());
-			}
-		}
-
 		for (Table table: sql.getTables()) {
 			Element element = context.addElement("table");
 			element.addAttribute("tableName", table.getName());
@@ -209,13 +231,15 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 		property.addAttribute("name", "enableToString");
 		property.addAttribute("value", "true");
 	}
-	
+
+
 	private Element appendContext(Element root) {
 		context = root.addElement("context");
 		context.addAttribute("id", MybatisGeneratorAnalyzer.DEFAULT_CONTEXT_ID);
 		context.addAttribute("targetRuntime", MybatisGeneratorAnalyzer.TARGET_RUNTIME);
 		return context;
 	}
+
 	
 	private void appendSqlMapGenerator(Element context) {
 		List<Folder> resourceFolders = pomTree.lookupResourceFolders();
