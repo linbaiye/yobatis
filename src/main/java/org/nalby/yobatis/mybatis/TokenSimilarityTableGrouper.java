@@ -21,11 +21,11 @@ import org.nalby.yobatis.util.TextUtil;
  * @author Kyle Lin
  *
  */
-public class TokenSimilarityGrouper implements ContextGrouper {
+public class TokenSimilarityTableGrouper implements ContextGrouper {
 	
 	private Map<Folder, TableTokenSimilarityMatcher> tokenAnalyzer;
 	
-	public TokenSimilarityGrouper(List<Folder> modelFolders) {
+	public TokenSimilarityTableGrouper(List<Folder> modelFolders) {
 		Expect.notNull(modelFolders, "modelfolders must not be empty.");
 		tokenAnalyzer = new HashMap<>();
 		for (Folder folder : modelFolders) {

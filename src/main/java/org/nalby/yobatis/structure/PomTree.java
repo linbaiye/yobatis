@@ -243,6 +243,7 @@ public class PomTree {
 		return sourceCodeFolders;
 	}
 
+
 	private interface FolderSelector {
 		public boolean isSelected(Folder folder);
 	}
@@ -308,49 +309,73 @@ public class PomTree {
 		return resourceFolders;
 	}
 	
+
+	private class FolderTokenSimilarityMatcher extends TokenSimilarityMatcher<Folder> {
+		public FolderTokenSimilarityMatcher(Folder folder) {
+			String packageName = FolderUtil.extractPackageName(folder.path());
+			setTokens(new HashSet<>(Arrays.asList(packageName.split("\\."))));
+		}
+		@Override
+		protected String[] tokenize(Folder t) {
+			String packageName = FolderUtil.extractPackageName(t.path());
+			return packageName.split("\\.");
+		}
+	}
 	
-	private Folder matchDaoFolder(List<Folder> folders, String modelPackageName) {
+	private Folder matchDaoFolder(List<Folder> folders, Folder modelFolder) {
 		if (folders.isEmpty()) {
 			return null;
 		}
-		Set<String> tokens = new HashSet<>(Arrays.asList(modelPackageName.split("\\.")));
-		int maxScore = -1;
-		Folder result = null;
+		FolderTokenSimilarityMatcher matcher  = new FolderTokenSimilarityMatcher(modelFolder);
 		for (Folder folder : folders) {
-			String daoPackageName = FolderUtil.extractPackageName(folder.path());
-			if (daoPackageName == null) {
-				continue;
-			}
-			int thisScore = 0;
-			for (String token: daoPackageName.split("\\.")) {
-				if (tokens.contains(token)) {
-					thisScore++;
-				}
-			}
-			if (maxScore < thisScore) {
-				maxScore = thisScore;
-				result = folder;
-			}
-
+			matcher.calculateSimilarity(folder);
 		}
-		return result;
+		return matcher.findMostMatchingOne();
 	}
 	
-	public Folder findBestMatchingDaoFolder(String modelPackageName) {
-		Expect.notEmpty(modelPackageName, "modelPackageName must not be null.");
+
+	public Folder findMostMatchingResourceFolder(Folder modelFolder) {
+		for (Pom pom : poms) {
+			Folder sourceCodeFolder = pom.getSourceCodeFolder();
+			if (sourceCodeFolder == null) {
+				continue;
+			}
+			for (Folder folder : Project.listAllFolders(pom.getSourceCodeFolder())) {
+				if (modelFolder != folder) {
+					continue;
+				}
+				Set<Folder> resourceFolders = pom.getResourceFolders();
+				if (!resourceFolders.isEmpty()) {
+					return resourceFolders.iterator().next();
+				}
+			}
+		}
+		if (webpom != null) {
+			Set<Folder> resourceFolders = webpom.getResourceFolders();
+			if (!resourceFolders.isEmpty()) {
+				return resourceFolders.iterator().next();
+			}
+		}
+		return null;
+	}
+	
+	
+	public Folder findMostMatchingDaoFolder(Folder modelFolder) {
+		Expect.notNull(modelFolder, "modelPackageName must not be null.");
 		List<Folder> daoFolders = new ArrayList<>();
 		for (Pom pom : poms) {
 			Folder sourceCodeFolder = pom.getSourceCodeFolder();
+			if (sourceCodeFolder == null) {
+				continue;
+			}
 			boolean found = false;
+			// There might be more than one dao folders under this pom.
 			daoFolders.clear();
 			for (Folder folder : Project.listAllFolders(sourceCodeFolder)) {
-				String path = folder.path();
 				if (isDaoPath(folder.path())) {
 					daoFolders.add(folder);
-				} else if (isModelPath(path)) {
-					if (!found) {
-						found = modelPackageName.equals(FolderUtil.extractPackageName(path));
-					}
+				} else if (modelFolder == folder) {
+					found = true;
 				}
 			}
 			if (found) {
@@ -361,11 +386,11 @@ public class PomTree {
 		 * Let's see if there is a dao folder has a similar package pattern to the
 		 * model package pattern under the same pom.
 		 */
-		Folder folder = matchDaoFolder(daoFolders, modelPackageName);
+		Folder folder = matchDaoFolder(daoFolders, modelFolder);
 		if (folder == null) {
 			List<Folder> folders = lookupDaoFolders();
 			/* Forget about the same pom, search under the whole project. */
-			folder = matchDaoFolder(folders, modelPackageName);
+			folder = matchDaoFolder(folders, modelFolder);
 			if (folder == null && !folders.isEmpty()) {
 				/* Nothing matched, just return one. */
 				folder = folders.get(0);

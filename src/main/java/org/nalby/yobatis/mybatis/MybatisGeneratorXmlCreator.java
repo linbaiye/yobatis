@@ -130,6 +130,21 @@ public class MybatisGeneratorXmlCreator implements MybatisGeneratorAnalyzer {
 	}
 	
 	private void appendTables(Element context)  {
+		List<Folder> modelFolders = pomTree.lookupModelFolders();
+		for (Folder folder : modelFolders) {
+			System.out.println(folder.path());
+		}
+		TokenSimilarityTableGrouper grouper = new TokenSimilarityTableGrouper(modelFolders);
+		List<TableGroup> groups = grouper.group(sql.getTables());
+		for (TableGroup group : groups) {
+			System.out.println("model  path:" + group.getFolder().path());
+			System.out.println("mapper path:" + pomTree.findMostMatchingDaoFolder(group.getFolder()).path());
+			System.out.println("resource  path:" + pomTree.findMostMatchingResourceFolder(group.getFolder()).path());
+			for (Table table : group.getTables()) {
+				System.out.println("\t" + table.getName());
+			}
+		}
+
 		for (Table table: sql.getTables()) {
 			Element element = context.addElement("table");
 			element.addAttribute("tableName", table.getName());

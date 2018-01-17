@@ -9,14 +9,14 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.nalby.yobatis.mybatis.TableGroup;
-import org.nalby.yobatis.mybatis.TokenSimilarityGrouper;
+import org.nalby.yobatis.mybatis.TokenSimilarityTableGrouper;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.util.TestUtil;
 
 public class TokenSimilarityGrouperTests {
 	
-	private TokenSimilarityGrouper grouper;
+	private TokenSimilarityTableGrouper grouper;
 	
 	private List<Folder> folders;
 	
@@ -33,7 +33,7 @@ public class TokenSimilarityGrouperTests {
 		folders = new ArrayList<>();
 		defaultFolder = TestUtil.mockFolder(DEFAULT_FOLDER_PATH);
 		folders.add(defaultFolder);
-		grouper = new TokenSimilarityGrouper(folders);
+		grouper = new TokenSimilarityTableGrouper(folders);
 		tables = new ArrayList<>();
 	}
 	
@@ -44,20 +44,20 @@ public class TokenSimilarityGrouperTests {
 	@Test(expected = IllegalArgumentException.class)
 	public void emtpyFolders() {
 		try {
-			new TokenSimilarityGrouper(null);
+			new TokenSimilarityTableGrouper(null);
 			fail();
 		} catch (IllegalArgumentException e) {
 
 		}
 		try {
 			folders.clear();
-			new TokenSimilarityGrouper(folders);
+			new TokenSimilarityTableGrouper(folders);
 			fail();
 		} catch (IllegalArgumentException e) {
 			// TODO: handle exception
 		}
 		folders.add(TestUtil.mockFolder("/src"));
-		new TokenSimilarityGrouper(folders);
+		new TokenSimilarityTableGrouper(folders);
 	}
 	
 	
@@ -114,7 +114,7 @@ public class TokenSimilarityGrouperTests {
 	public void twoFolders() {
 		Folder adminFolder = TestUtil.mockFolder("/src/main/java/admin/model");
 		folders.add(adminFolder);
-		grouper = new TokenSimilarityGrouper(folders);
+		grouper = new TokenSimilarityTableGrouper(folders);
 		addTable("sys_admin");
 		addTable("yobatis_user");
 		result = grouper.group(tables);
