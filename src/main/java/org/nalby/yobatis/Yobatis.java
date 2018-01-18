@@ -2,19 +2,23 @@ package org.nalby.yobatis;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 import org.dom4j.DocumentException;
 import org.mybatis.generator.api.LibraryRunner;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
-import org.nalby.yobatis.mybatis.MybatisFilesWriter;
 import org.nalby.yobatis.mybatis.MybatisGeneratorAnalyzer;
-import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
-import org.nalby.yobatis.mybatis.MybatisGeneratorXmlReader;
+import org.nalby.yobatis.mybatis.OldMybatisGeneratorXmlCreator;
+import org.nalby.yobatis.mybatis.OldMybatisGeneratorXmlReader;
+import org.nalby.yobatis.mybatis.TableGroup;
+import org.nalby.yobatis.mybatis.TokenSimilarityTableGrouper;
+import org.nalby.yobatis.sql.DatabaseMetadataProvider;
 import org.nalby.yobatis.sql.mysql.MysqlDatabaseMetadataProvider;
 import org.nalby.yobatis.sql.mysql.MysqlDatabaseMetadataProvider.Builder;
 import org.nalby.yobatis.structure.File;
+import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.structure.PomTree;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.structure.SpringAntPathFileManager;
@@ -28,34 +32,36 @@ public class Yobatis {
 	/**
 	 *  Build the generator of mybatis-generator's config file according to project config.
 	 */
-	private static MybatisGeneratorXmlCreator buildMybatisGeneratorXmlCreator(Project project) {
+	private static OldMybatisGeneratorXmlCreator buildMybatisGeneratorXmlCreator(Project project) {
+
 		PomTree pomTree = new PomTree(project);
 
 		WebContainerParser webContainerParser = new WebContainerParser(pomTree.getWarPom());
 
 		SpringAntPathFileManager fileManager = new SpringAntPathFileManager(pomTree);
 
-		SpringParser springParser = new SpringParser(fileManager, webContainerParser.searchInitParamValues());
-
-		String username = springParser.getDatabaseUsername();
-
-		String password = springParser.getDatabasePassword();
-
-		String url = springParser.getDatabaseUrl();
+		SpringParser springParser = new SpringParser(fileManager, 
+				webContainerParser.searchInitParamValues());
 
 		String driverClassName = springParser.getDatabaseDriverClassName();
 
-		String dbJarPath = pomTree.getDatabaseJarPath(driverClassName);
-
 		Builder builder = MysqlDatabaseMetadataProvider.builder();
-		builder.setConnectorJarPath(dbJarPath)
-		.setDriverClassName(driverClassName)
-		.setUsername(username)
-		.setPassword(password)
-		.setUrl(url);
-		return new MybatisGeneratorXmlCreator(pomTree, builder.build(), true);
+		builder.setConnectorJarPath(pomTree.getDatabaseJarPath(driverClassName))
+		.setDriverClassName(springParser.getDatabaseDriverClassName())
+		.setUsername(springParser.getDatabaseUsername())
+		.setPassword(springParser.getDatabaseUsername())
+		.setUrl(springParser.getDatabaseUrl());
+
+		DatabaseMetadataProvider provider = builder.build();
+
+		List<Folder> modelFolders = pomTree.lookupModelFolders();
+		TokenSimilarityTableGrouper grouper = new TokenSimilarityTableGrouper(modelFolders);
+		List<TableGroup> groups = grouper.group(provider.getTables());
+
+		return new OldMybatisGeneratorXmlCreator(pomTree, provider, groups);
 	}
 	
+
 
 	private static LibraryRunner buildMyBatisRunner(Project project) {
 		try {
@@ -69,16 +75,17 @@ public class Yobatis {
 			throw new InvalidMybatisGeneratorConfigException(e);
 		}
 	}
+
 	
 	/*
 	 * Merge the new file into the existent one if exists.
 	 */
-	private static MybatisGeneratorAnalyzer mergeIntoExistentConfig(MybatisGeneratorXmlCreator configFileGenerator, Project project) {
+	private static MybatisGeneratorAnalyzer mergeIntoExistentConfig(OldMybatisGeneratorXmlCreator configFileGenerator, Project project) {
 		MybatisGeneratorAnalyzer configReader = configFileGenerator;
-		File file = project.findFile(MybatisGeneratorXmlCreator.CONFIG_FILENAME);
+		File file = project.findFile(OldMybatisGeneratorXmlCreator.CONFIG_FILENAME);
 		if (file != null) {
 			try (InputStream inputStream = file.open()) {
-				MybatisGeneratorXmlReader mybatisXmlParser = new MybatisGeneratorXmlReader(inputStream);
+				OldMybatisGeneratorXmlReader mybatisXmlParser = new OldMybatisGeneratorXmlReader(inputStream);
 				mybatisXmlParser.mergeGeneratedConfig(configFileGenerator);
 				configReader = mybatisXmlParser;
 			} catch (IOException | DocumentException e) {
@@ -92,7 +99,7 @@ public class Yobatis {
 	public static void generate(Project project) {
 		logger.info("Scanning project:{}.", project.name());
 
-		MybatisGeneratorXmlCreator configFileGenerator = buildMybatisGeneratorXmlCreator(project);
+		OldMybatisGeneratorXmlCreator configFileGenerator = buildMybatisGeneratorXmlCreator(project);
 		logger.info(configFileGenerator.asXmlText());
 /*		MybatisGeneratorAnalyzer analyzer = mergeIntoExistentConfig(configFileGenerator, project);
 		// Write mybatis-generator's config file to the project's root dir.

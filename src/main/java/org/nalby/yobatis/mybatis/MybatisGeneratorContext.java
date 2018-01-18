@@ -14,6 +14,25 @@ import org.nalby.yobatis.util.FolderUtil;
 
 public class MybatisGeneratorContext {
 	
+	public final static String DEFAULT_CONTEXT_ID = "yobatis";
+
+	public final static String TARGET_RUNTIME = "MyBatis3";
+
+	public final static String MODEL_GENERATOR_TAG = "javaModelGenerator";
+
+	public final static String SQLMAP_GENERATOR_TAG = "sqlMapGenerator";
+
+	public final static String CLIENT_GENERATOR_TAG = "javaClientGenerator";
+
+	public final static String TABLE_TAG = "table";
+
+	public final static String PLUGIN_TAG = "plugin";
+
+	public final static String YOBATIS_PLUGIN = "org.mybatis.generator.plugins.YobatisPlugin";
+	
+	public final static String YOBATIS_CRITERIA_PLUGIN = "org.mybatis.generator.plugins.YobatisCriteriaPlugin";
+	
+	
 	private DocumentFactory factory = DocumentFactory.getInstance();
 
 	private Element context;
@@ -40,7 +59,7 @@ public class MybatisGeneratorContext {
 		this.id = id;
 		context = factory.createElement("context");
 		context.addAttribute("id", id);
-		context.addAttribute("targetRuntime", MybatisGeneratorAnalyzer.TARGET_RUNTIME);
+		context.addAttribute("targetRuntime",  TARGET_RUNTIME);
 		plugins = new ArrayList<>();
 		tableElements = new LinkedList<>();
 		plugins.add(createYobatisPlugin());
@@ -56,15 +75,18 @@ public class MybatisGeneratorContext {
 		Expect.notEmpty(id, "id must not be empty.");
 		this.typeResolver = context.element("javaTypeResolver");
 		this.jdbConnection = context.element("jdbcConnection");
-		this.javaClient = context.element(MybatisGeneratorAnalyzer.CLIENT_GENERATOR_TAG);
-		this.javaModel = context.element(MybatisGeneratorAnalyzer.MODEL_GENERATOR_TAG);
-		this.xmlMapper = context.element(MybatisGeneratorAnalyzer.SQLMAP_GENERATOR_TAG);
+		this.javaClient = context.element(CLIENT_GENERATOR_TAG);
+		this.javaModel = context.element(MODEL_GENERATOR_TAG);
+		this.xmlMapper = context.element(SQLMAP_GENERATOR_TAG);
 		loadPlugins(context);
-		tableElements = context.elements(MybatisGeneratorAnalyzer.TABLE_TAG);
+		tableElements = context.elements(TABLE_TAG);
 		this.context = context.createCopy();
 		this.context.clearContent();
 	}
 	
+	public boolean idEqualsTo(MybatisGeneratorContext thatContext) {
+		return id.equals(thatContext.id);
+	}
 	
 	private boolean hasPlugin(List<Element> elements, String type) {
 		for (Element element : elements) {
@@ -77,8 +99,8 @@ public class MybatisGeneratorContext {
 	
 	
 	private void loadPlugins(Element context) {
-		plugins = context.elements(MybatisGeneratorAnalyzer.PLUGIN_TAG);
-		if (!hasPlugin(plugins, MybatisGeneratorAnalyzer.YOBATIS_PLUGIN)) {
+		plugins = context.elements(PLUGIN_TAG);
+		if (!hasPlugin(plugins,  YOBATIS_PLUGIN)) {
 			plugins.add(0, createYobatisPlugin());
 		}
 	}
@@ -115,14 +137,14 @@ public class MybatisGeneratorContext {
 	}
 	
 	private Element createCriteriaPlugin() {
-		Element criteriaPluginElement = factory.createElement(MybatisGeneratorAnalyzer.PLUGIN_TAG);
-		criteriaPluginElement.addAttribute("type",  MybatisGeneratorAnalyzer.YOBATIS_CRITERIA_PLUGIN);
+		Element criteriaPluginElement = factory.createElement(PLUGIN_TAG);
+		criteriaPluginElement.addAttribute("type",   YOBATIS_CRITERIA_PLUGIN);
 		return criteriaPluginElement;
 	}
 	
 	private Element createYobatisPlugin() {
-		Element yobatisPluginElement = factory.createElement(MybatisGeneratorAnalyzer.PLUGIN_TAG);
-		yobatisPluginElement.addAttribute("type",  MybatisGeneratorAnalyzer.YOBATIS_PLUGIN);
+		Element yobatisPluginElement = factory.createElement(PLUGIN_TAG);
+		yobatisPluginElement.addAttribute("type",   YOBATIS_PLUGIN);
 		Element property = yobatisPluginElement.addElement("property");
 		property.addAttribute("name", "enableBaseClass");
 		property.addAttribute("value", "true");
@@ -133,19 +155,19 @@ public class MybatisGeneratorContext {
 	}
 	
 	public void appendJavaModelGenerator(Folder folder) {
-		javaModel = factory.createElement(MybatisGeneratorAnalyzer.MODEL_GENERATOR_TAG);
+		javaModel = factory.createElement(MODEL_GENERATOR_TAG);
 		javaModel.addAttribute("targetPackage", packageNameOfFolder(folder));
 		javaModel.addAttribute("targetProject", sourceCodePath(folder));
 	}
 
 	public void appendSqlMapGenerator(Folder folder) {
-		xmlMapper = factory.createElement(MybatisGeneratorAnalyzer.SQLMAP_GENERATOR_TAG);
+		xmlMapper = factory.createElement(SQLMAP_GENERATOR_TAG);
 		xmlMapper.addAttribute("targetPackage", "mybatis-mappers");
 		xmlMapper.addAttribute("targetProject", folder == null? "" : folder.path());
 	}
 	
 	public void appendJavaClientGenerator(Folder folder) {
-		javaClient = factory.createElement(MybatisGeneratorAnalyzer.CLIENT_GENERATOR_TAG);
+		javaClient = factory.createElement(CLIENT_GENERATOR_TAG);
 		javaClient.addAttribute("type", "XMLMAPPER");
 		javaClient.addAttribute("targetPackage", packageNameOfFolder(folder));
 		javaClient.addAttribute("targetProject", sourceCodePath(folder));

@@ -15,7 +15,6 @@ import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.internal.stubbing.VoidMethodStubbableImpl;
 import org.nalby.yobatis.mybatis.MybatisGeneratorAnalyzer;
 import org.nalby.yobatis.mybatis.MybatisGeneratorContext;
 import org.nalby.yobatis.sql.DatabaseMetadataProvider;

@@ -1,15 +1,21 @@
 package org.nalby.yobatis.mybatis;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
+import org.dom4j.Comment;
+import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentFactory;
 import org.dom4j.Element;
+import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.xml.AbstractXmlParser;
@@ -24,7 +30,7 @@ import org.xml.sax.SAXException;
  * @author Kyle Lin
  *
  */
-public class MybatisGeneratorXmlReader extends AbstractXmlParser implements MybatisGenerator {
+public class OldMybatisGeneratorXmlReader extends AbstractXmlParser implements MybatisGeneratorAnalyzer {
 	private static final String DTD = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
 			"<!--\n" + 
 			"\n" + 
@@ -277,11 +283,51 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	
 	private Element classPathEntry;
 	
+	private Element context;
+	
+	private Element jdbcConnection;
+	
+	private Element javaTypeResolver;
+	
 	private DocumentFactory documentFactory  = DocumentFactory.getInstance();
 
 	private List<MybatisGeneratorContext> contexts;
 
-	public MybatisGeneratorXmlReader(InputStream inputStream, boolean flag) throws DocumentException, IOException {
+	private List<Element> plugins = new LinkedList<>();
+	
+	private List<Element> javaModelGenerators = new LinkedList<>();
+
+	private List<Element> sqlMapGenerators = new LinkedList<>();
+
+	private List<Element> javaClientGenerators = new LinkedList<>();
+
+	private List<Element> tables = new LinkedList<>();
+	
+	private List<Element> commentedElements;
+
+
+	public OldMybatisGeneratorXmlReader(InputStream inputStream) throws DocumentException, IOException {
+		super(inputStream, ROOT_TAG);
+		root = document.getRootElement();
+		loadClasspathEntry();
+		loadContext();
+		if (context != null) {
+			loadCommentedElements();
+			loadJdbcConnection();
+			loadJavaTypeResolver();
+			loadElements(PLUGIN_TAG, plugins);
+			loadElements(MODEL_GENERATOR_TAG, javaModelGenerators);
+			loadElements(SQLMAP_GENERATOR_TAG, sqlMapGenerators);
+			loadElements(CLIENT_GENERATOR_TAG, javaClientGenerators);
+			loadElements(TABLE_TAG, tables);
+		}
+		document.remove(root);
+		root = documentFactory.createElement(ROOT_TAG);
+		document.setRootElement(root);
+	}
+	
+
+	public OldMybatisGeneratorXmlReader(InputStream inputStream, boolean flag) throws DocumentException, IOException {
 		super(inputStream, ROOT_TAG);
 		root = document.getRootElement();
 		loadClasspathEntry();
@@ -299,9 +345,140 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 			contexts.add(new MybatisGeneratorContext(element));
 		}
 	}
-
+	
+	
+	//private void build
+	
+	private Document buildDoc(String text) {
+		SAXReader saxReader = new SAXReader();
+		saxReader.setValidation(false);
+		try  {
+			return saxReader.read(new ByteArrayInputStream(("<rootDoc>" + text + "</rootDoc>").getBytes()));
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+	
+	
+	private Element findPluginElement(List<Element> elements, String type) {
+		for (Element element : elements) {
+			if (!PLUGIN_TAG.equals(element.getName())) {
+				continue;
+			}
+			if (type.equals(element.attributeValue("type"))) {
+				return element;
+			}
+		}
+		return null;
+	}
+	
+	private void loadElements(String tag, List<Element> dst) {
+		for (Element element : context.elements(tag)) {
+			dst.add(element.createCopy());
+		}
+	}
+	
+	
+	private void convertToElements(String text) {
+		Document doc = buildDoc(text);
+		if (doc != null) {
+			commentedElements = doc.getRootElement().elements();
+		}
+		if (commentedElements == null) {
+			commentedElements = new ArrayList<>(0);
+		}
+	}
+	
+	
+	private boolean isCommentedElement(String text) {
+		if (buildDoc(text) != null) {
+			return true;
+		}
+		return false;
+	}
+	
+	private void loadCommentedElements()  {
+		String text = null;
+		for (Iterator<Node> iterator = context.nodeIterator(); iterator.hasNext(); ) {
+			Node node = iterator.next();
+			if (node.getNodeType() != Node.COMMENT_NODE) {
+				continue;
+			}
+			Comment comment = (Comment) node;
+			String tmp = comment.asXML().replaceAll("\\s+", " ");
+			tmp = tmp.replaceAll("<!--", "<");
+			tmp = tmp.replaceAll("-->", ">");
+			if (isCommentedElement(tmp)) {
+				text = text == null ? tmp : text + tmp;
+			}
+		}
+		convertToElements(text);
+	}
+	
+	
 	private void loadClasspathEntry() {
 		classPathEntry = root.element(CLASS_PATH_ENTRY_TAG);	
+	}
+	
+	private void loadContext() {
+		context = root.element("context");
+	}
+	
+	private void loadJdbcConnection() {
+		jdbcConnection = context.element("jdbcConnection");
+	}
+	
+	private void loadJavaTypeResolver() {
+		javaTypeResolver = context.element("javaTypeResolver");
+	}
+
+	
+	private Element findTable(List<Element> elements, Element table) {
+		for (Element e: elements) {
+			if (!"table".equals(e.getName())) {
+				continue;
+			}
+			String name = e.attributeValue("tableName");
+			String schema = e.attributeValue("schema");
+			if ((name != null && name.equals(table.attributeValue("tableName"))) &&
+				(schema != null && schema.equals(table.attributeValue("schema")))) {
+				return e;
+			}
+		}
+		return null;
+	}
+
+	private boolean hasTable(Element table) {
+		return findTable(tables, table) != null;
+	}
+	
+	private Comment commentElement(Element e) {
+		String str = e.asXML();
+		str = str.replaceFirst("^<", "");
+		str = str.replaceFirst("/>$", "");
+		return documentFactory.createComment(str);
+	}
+
+	private void mergeGenerators(Set<Element> generatedOnes, List<Element> currentOnes) {
+		if (currentOnes.isEmpty()) {
+			currentOnes.addAll(generatedOnes);
+		}
+		for (Element e : currentOnes) {
+			context.add(e.createCopy());
+		}
+	}
+	
+	private void mergeSqlMapGenerators(OldMybatisGeneratorXmlCreator configFileGenerator) {
+		mergeGenerators(configFileGenerator.getSqlMapGeneratorElements(), sqlMapGenerators);
+	}
+	
+	private void mergeJavaModelGenerators(OldMybatisGeneratorXmlCreator configFileGenerator) {
+		mergeGenerators(configFileGenerator.getJavaModelGeneratorElements(), javaModelGenerators);
+	}
+	
+	private void mergeJavaClientGenerators(OldMybatisGeneratorXmlCreator configFileGenerator) {
+		mergeGenerators(configFileGenerator.getJavaClientGeneratorElements(), javaClientGenerators);
 	}
 	
 	private void mergeClasspathEntry(OldMybatisGeneratorXmlCreator configFileGenerator) {
@@ -311,12 +488,100 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 			root.add(classPathEntry.createCopy());
 		}
 	}
+
+	private boolean mergeContext(OldMybatisGeneratorXmlCreator configFileGenerator) {
+		if (context == null) {
+			root.add(configFileGenerator.getContext().createCopy());
+			return false;
+		}
+		context = root.addElement("context");
+		context.addAttribute("id", MybatisGeneratorAnalyzer.DEFAULT_CONTEXT_ID);
+		context.addAttribute("targetRuntime", MybatisGeneratorAnalyzer.TARGET_RUNTIME);
+		return true;
+	}
+	
+	private void mergeJavaTypeResolver(OldMybatisGeneratorXmlCreator configFileGenerator) {
+		if (javaTypeResolver == null) {
+			context.add(configFileGenerator.getJavaTypeResolverElement().createCopy());
+		} else {
+			context.add(javaTypeResolver.createCopy());
+		}
+	}
+	
+	private void mergeJdbcConnection(OldMybatisGeneratorXmlCreator configFileGenerator) {
+		if (jdbcConnection == null) {
+			context.add(configFileGenerator.getJdbConnectionElement().createCopy());
+		} else {
+			context.add(jdbcConnection.createCopy());
+		}
+	}
+
+	
+	/*
+	 * Tables commented will just remain the same.
+	 */
+	private void mergeTables(OldMybatisGeneratorXmlCreator configFileGenerator) {
+		for (Element current: tables) {
+			context.add(current.createCopy());
+		}
+		for (Element newTable : configFileGenerator.getTableElements()) {
+			if (hasTable(newTable)) {
+				continue;
+			}
+			Element commented = findTable(commentedElements, newTable);
+			if (commented != null) {
+				context.add(commentElement(commented.createCopy()));
+			} else {
+				context.add(newTable.createCopy());
+			}
+		}
+	}
+	
+	
+	private void mergePlugins(OldMybatisGeneratorXmlCreator configFileGenerator) {
+		Element pluginElement = configFileGenerator.getPluginElement();
+		Element currentPlugin = findPluginElement(plugins, YOBATIS_PLUGIN);
+		// This one is mandatory.
+		if (currentPlugin == null) {
+			context.add(pluginElement.createCopy());
+		} else {
+			context.add(currentPlugin.createCopy());
+		}
+		
+		// Preserve active plug-ins.
+		for (Element element : plugins) {
+			if (PLUGIN_TAG.equals(element.getName()) &&
+				!YOBATIS_PLUGIN.equals(element.attributeValue("type"))) {
+				context.add(element.createCopy());
+			}
+		}
+		// Keep commented plug-ins, still as commented.
+		for (Element element : commentedElements) {
+			if (PLUGIN_TAG.equals(element.getName())) {
+				context.add(commentElement(element.createCopy()));
+			}
+		}
+	}
 	
 	/**
 	 * Preserve manually edited elements. 
 	 * @param configFileGenerator
 	 */
 	public void mergeGeneratedConfig(OldMybatisGeneratorXmlCreator configFileGenerator) {
+		mergeClasspathEntry(configFileGenerator);
+		if (mergeContext(configFileGenerator)) {
+			mergePlugins(configFileGenerator);
+			mergeJdbcConnection(configFileGenerator);
+			mergeJavaTypeResolver(configFileGenerator);
+			mergeJavaModelGenerators(configFileGenerator);
+			mergeSqlMapGenerators(configFileGenerator);
+			mergeJavaClientGenerators(configFileGenerator);
+			mergeTables(configFileGenerator);
+		}
+	}
+
+	
+	public void mergeGeneratedConfig(OldMybatisGeneratorXmlCreator configFileGenerator, boolean flag) {
 		mergeClasspathEntry(configFileGenerator);
 		List<MybatisGeneratorContext> thatContexts = configFileGenerator.getContexts();
 		for (MybatisGeneratorContext thisContext: contexts) {
@@ -354,6 +619,67 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 				return null;
 			}
 		});
+	}
+	
+	
+	
+	private void assertHasSingleElement(List<Element> elements, String name) {
+		if (elements.isEmpty() ) {
+			throw new InvalidMybatisGeneratorConfigException(
+				String.format("There is no %s configured, please set the element and re-run.", name));
+		} else if (elements.size() > 1)  {
+			throw new InvalidMybatisGeneratorConfigException(
+				String.format("More than one %s configured, please remove unintentional ones and re-run.", name));
+		}
+	}
+
+	
+	/*
+	 * a.b.c + /user/test -> /user/test/a/b/c
+	 */
+	private String buildGeneratorPath(List<Element> elements, String name) {
+		assertHasSingleElement(elements, name);
+		Element element = elements.get(0);
+		String packageName = element.attributeValue("targetPackage");
+		String targetProject = element.attributeValue("targetProject");
+		return targetProject + "/" + packageName.replace(".", "/");
+	}
+	
+	
+	@Override
+	public String getDaoDirPath() {
+		return buildGeneratorPath(javaClientGenerators, CLIENT_GENERATOR_TAG);
+	}
+
+	@Override
+	public String getModelDirPath() {
+		return buildGeneratorPath(javaModelGenerators, MODEL_GENERATOR_TAG);
+	}
+
+	@Override
+	public String getCriteriaDirPath() {
+		return getModelDirPath() + "/criteria";
+	}
+
+	private String getTargetPackage(List<Element> elements, String tag) {
+		assertHasSingleElement(elements, tag);
+		Element element = javaModelGenerators.get(0);
+		return element.attributeValue("targetPackage");
+	}
+
+	@Override
+	public String getModelPackageName() {
+		return getTargetPackage(javaModelGenerators, MODEL_GENERATOR_TAG);
+	}
+
+	@Override
+	public String getXmlMapperDirPath() {
+		return buildGeneratorPath(sqlMapGenerators, SQLMAP_GENERATOR_TAG);
+	}
+
+	@Override
+	public String getDaoPackageName() {
+		return getTargetPackage(javaClientGenerators, CLIENT_GENERATOR_TAG);
 	}
 
 	@Override
