@@ -31,7 +31,6 @@ public class MybatisGeneratorContext {
 	
 	public final static String YOBATIS_CRITERIA_PLUGIN = "org.mybatis.generator.plugins.YobatisCriteriaPlugin";
 	
-	
 	private DocumentFactory factory = DocumentFactory.getInstance();
 
 	private Element context;
@@ -52,13 +51,16 @@ public class MybatisGeneratorContext {
 	
 	private String id;
 
+	/**
+	 * Construct a MybatisGeneratorContext according to database details.
+	 * @param id the context id.
+	 * @param databaseMetadataProvider the database details provider.
+	 */
 	public MybatisGeneratorContext(String id, DatabaseMetadataProvider databaseMetadataProvider) {
 		Expect.notNull(databaseMetadataProvider, "databaseMetadataProvider must not be null.");
 		Expect.notEmpty(id, "id must not be empty.");
 		this.id = id;
-		context = factory.createElement("context");
-		context.addAttribute("id", id);
-		context.addAttribute("targetRuntime",  TARGET_RUNTIME);
+
 		plugins = new ArrayList<>();
 		tableElements = new ArrayList<>();
 		plugins.add(createYobatisPlugin());
@@ -68,6 +70,10 @@ public class MybatisGeneratorContext {
 	}
 	
 	
+	/**
+	 * Construct a MybatisGeneratorContext from a existent element.
+	 * @param context the context element.
+	 */
 	public MybatisGeneratorContext(Element context) {
 		Expect.notNull(context, "context must not be null.");
 		this.id = context.attributeValue("id");
@@ -79,12 +85,15 @@ public class MybatisGeneratorContext {
 		this.xmlMapper = context.element(SQLMAP_GENERATOR_TAG);
 		loadPlugins(context);
 		tableElements = context.elements(TABLE_TAG);
-		this.context = context.createCopy();
-		this.context.clearContent();
 	}
 	
+	/**
+	 * Test if this context has the same id to another context's id.
+	 * @param thatContext 
+	 * @return true if so, false else.
+	 */
 	public boolean idEqualsTo(MybatisGeneratorContext thatContext) {
-		return id.equals(thatContext.id);
+		return thatContext != null && id.equals(thatContext.id);
 	}
 	
 	private boolean hasPlugin(List<Element> elements, String type) {
@@ -190,7 +199,14 @@ public class MybatisGeneratorContext {
 		}
 	}
 	
+	
 	public Element getContext() {
+		if (context != null) {
+			return context;
+		}
+		context = factory.createElement("context");
+		context.addAttribute("id", id);
+		context.addAttribute("targetRuntime",  TARGET_RUNTIME);
 		for (Element plugin: plugins) {
 			context.add(plugin.createCopy());
 		}

@@ -26,16 +26,12 @@ public class MybatisFilesWriter {
 
 	private LibraryRunner runner;
 
-	private MybatisGeneratorAnalyzer mybatiGeneratorAnalyzer;
-
 	private Project project;
 	
 	private Logger logger = LogFactory.getLogger(MybatisFilesWriter.class);
 
-	public MybatisFilesWriter(Project project, MybatisGeneratorAnalyzer mgAnalyzer,
-			LibraryRunner mybatisRunner) {
+	public MybatisFilesWriter(Project project, LibraryRunner mybatisRunner) {
 		Expect.notNull(project, "project must not be null.");
-		Expect.notNull(mgAnalyzer, "mgAnalyzer must not be null.");
 		Expect.notNull(mybatisRunner, "mybatisRunner must not be null.");
 		this.project = project;
 		this.runner = mybatisRunner;
@@ -45,7 +41,6 @@ public class MybatisFilesWriter {
 		if (runner.getGeneratedXmlFiles() == null) {
 			throw new InvalidMybatisGeneratorConfigException("No xml files generated.");
 		}
-		this.mybatiGeneratorAnalyzer = mgAnalyzer;
 	}
 
 	private List<GeneratedJavaFile> listFile(String suffix) {
@@ -85,7 +80,6 @@ public class MybatisFilesWriter {
 		return runner.getGeneratedXmlFiles();
 	}
 	
-	
 	private void writeFile(String path, String content, boolean overwrite) {
 		File file = project.findFile(path);
 		if (file == null || overwrite) {
@@ -94,7 +88,7 @@ public class MybatisFilesWriter {
 		}
 	}
 	
-	private void writeJavaMappers() {
+/*	private void writeJavaMappers() {
 		List<GeneratedJavaFile> files = getMapperFiles();
 		for (GeneratedJavaFile javafile : files) {
 			String path = mybatiGeneratorAnalyzer.getDaoDirPath() + "/" + javafile.getFileName();
@@ -103,7 +97,7 @@ public class MybatisFilesWriter {
 		logger.info("Wrote java mapper files to :{}.", mybatiGeneratorAnalyzer.getDaoDirPath());
 	}
 	
-	
+	*/
 	private static final Pattern BASE_CLASS_PATTERN = Pattern.compile("public abstract class [^\\s]+ \\{");
 	
 	private boolean isBaseModelClass(GeneratedJavaFile javaFile) {
@@ -111,26 +105,30 @@ public class MybatisFilesWriter {
 		return matcher.find();
 	}
 	
+
+	private void writeJavaFile(GeneratedJavaFile javafile, boolean overwrite) {
+		String dirpath = FolderUtil.concatPath(javafile.getTargetProject(), 
+				javafile.getTargetPackage().replaceAll("\\.", "/"));
+		String filepath = FolderUtil.concatPath(dirpath, javafile.getFileName());
+		writeFile(filepath, javafile.getFormattedContent(), true);
+		logger.info("Wrote file {}.", filepath);
+	}
+	
 	private void writeJavaDomains() {
 		List<GeneratedJavaFile> files = getDomainFiles();
 		for (GeneratedJavaFile javafile : files) {
 			boolean overwrite = isBaseModelClass(javafile);
-			String dirpath = mybatiGeneratorAnalyzer.getModelDirPath() + (overwrite ? "/base" : "");
-			String path = FolderUtil.concatPath(dirpath, javafile.getFileName());
-			writeFile(path, javafile.getFormattedContent(), overwrite);
+			writeJavaFile(javafile, overwrite);
 		}
-		logger.info("Wrote model files to :{}.", mybatiGeneratorAnalyzer.getModelDirPath());
 	}
 	
 	private void writeCriteriaFiles() {
 		List<GeneratedJavaFile> files = getCriteriaFiles();
 		for (GeneratedJavaFile javafile : files) {
-			String path = mybatiGeneratorAnalyzer.getCriteriaDirPath() + "/" + javafile.getFileName();
-			writeFile(path, javafile.getFormattedContent(), true);
+			writeJavaFile(javafile, true);
 		}
-		logger.info("Wrote criteria files to :{}.", mybatiGeneratorAnalyzer.getCriteriaDirPath());
 	}
-	
+/*	
 	private String mergeManualSqlXml(String path, String content) {
 		File file = project.findFile(path);
 		if (file != null) {
@@ -154,12 +152,12 @@ public class MybatisFilesWriter {
 		}
 		logger.info("Wrote xml mapper files to :{}.", mybatiGeneratorAnalyzer.getXmlMapperDirPath());
 	}
-
+*/
 	public void writeAll() {
 		writeCriteriaFiles();
 		writeJavaDomains();
-		writeJavaMappers();
-		writeXmlFiles();
+		/*writeJavaMappers();
+		writeXmlFiles();*/
 	}
 
 }

@@ -4,14 +4,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-import org.dom4j.DocumentException;
 import org.mybatis.generator.api.LibraryRunner;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
-import org.nalby.yobatis.mybatis.MybatisGeneratorAnalyzer;
-import org.nalby.yobatis.mybatis.OldMybatisGeneratorXmlCreator;
-import org.nalby.yobatis.mybatis.OldMybatisGeneratorXmlReader;
+import org.nalby.yobatis.mybatis.MybatisFilesWriter;
+import org.nalby.yobatis.mybatis.MybatisGenerator;
+import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
+import org.nalby.yobatis.mybatis.MybatisGeneratorXmlReader;
 import org.nalby.yobatis.mybatis.TableGroup;
 import org.nalby.yobatis.mybatis.TokenSimilarityTableGrouper;
 import org.nalby.yobatis.sql.DatabaseMetadataProvider;
@@ -32,7 +32,7 @@ public class Yobatis {
 	/**
 	 *  Build the generator of mybatis-generator's config file according to project config.
 	 */
-	private static OldMybatisGeneratorXmlCreator buildMybatisGeneratorXmlCreator(Project project) {
+	private static MybatisGeneratorXmlCreator buildMybatisGeneratorXmlCreator(Project project) {
 
 		PomTree pomTree = new PomTree(project);
 
@@ -58,14 +58,13 @@ public class Yobatis {
 		TokenSimilarityTableGrouper grouper = new TokenSimilarityTableGrouper(modelFolders);
 		List<TableGroup> groups = grouper.group(provider.getTables());
 
-		return new OldMybatisGeneratorXmlCreator(pomTree, provider, groups);
+		return new MybatisGeneratorXmlCreator(pomTree, provider, groups);
 	}
 	
 
-
 	private static LibraryRunner buildMyBatisRunner(Project project) {
 		try {
-			File file = project.findFile(MybatisGeneratorAnalyzer.CONFIG_FILENAME);
+			File file = project.findFile(MybatisGenerator.CONFIG_FILENAME);
 			try (InputStream inputStream = file.open()) {
 				LibraryRunner libraryRunner = new LibraryRunner();
 				libraryRunner.parse(inputStream);
@@ -75,41 +74,34 @@ public class Yobatis {
 			throw new InvalidMybatisGeneratorConfigException(e);
 		}
 	}
-
 	
 	/*
 	 * Merge the new file into the existent one if exists.
 	 */
-	private static MybatisGeneratorAnalyzer mergeIntoExistentConfig(OldMybatisGeneratorXmlCreator configFileGenerator, Project project) {
-		MybatisGeneratorAnalyzer configReader = configFileGenerator;
-		File file = project.findFile(OldMybatisGeneratorXmlCreator.CONFIG_FILENAME);
+	private static MybatisGenerator mergeIntoExistentConfig(MybatisGeneratorXmlCreator configFileGenerator, Project project) {
+		MybatisGenerator generator = configFileGenerator;
+		File file = project.findFile(MybatisGenerator.CONFIG_FILENAME);
 		if (file != null) {
 			try (InputStream inputStream = file.open()) {
-				OldMybatisGeneratorXmlReader mybatisXmlParser = new OldMybatisGeneratorXmlReader(inputStream);
+				MybatisGeneratorXmlReader mybatisXmlParser = MybatisGeneratorXmlReader.build(inputStream);
 				mybatisXmlParser.mergeGeneratedConfig(configFileGenerator);
-				configReader = mybatisXmlParser;
-			} catch (IOException | DocumentException e) {
+				generator = mybatisXmlParser;
+			} catch (IOException  e) {
 				logger.info("Unable to merge existent file:{}.", e);
 			}
 		}
-		return configReader;
+		file = project.createFile(MybatisGenerator.CONFIG_FILENAME);
+		file.write(generator.asXmlText());
+		return generator;
 	}
 
 
 	public static void generate(Project project) {
 		logger.info("Scanning project:{}.", project.name());
-
-		OldMybatisGeneratorXmlCreator configFileGenerator = buildMybatisGeneratorXmlCreator(project);
-		logger.info(configFileGenerator.asXmlText());
-/*		MybatisGeneratorAnalyzer analyzer = mergeIntoExistentConfig(configFileGenerator, project);
-		// Write mybatis-generator's config file to the project's root dir.
-		File file = project.createFile(MybatisGeneratorAnalyzer.CONFIG_FILENAME);
-		file.write(analyzer.asXmlText());
-		
-		// And now run MyBatis Generator.
-		LibraryRunner mybatisRunner = buildMyBatisRunner(project);
-		MybatisFilesWriter filesWriter = new MybatisFilesWriter(project, analyzer, mybatisRunner);
-		filesWriter.writeAll();*/
+		MybatisGeneratorXmlCreator generator = buildMybatisGeneratorXmlCreator(project);
+		mergeIntoExistentConfig(generator, project);
+		LibraryRunner runner = buildMyBatisRunner(project);
+		new MybatisFilesWriter(project, runner).writeAll();;
 	}
 
 }

@@ -46,16 +46,12 @@ public class MybatisGeneratorXmlCreator implements MybatisGenerator {
 		Expect.notNull(sql , "sql must not be null.");
 		Expect.notNull(tableGroups, "tableGroups must not be null.");
 		this.pomTree = pomTree;
-		createDocument();
-		root = factory.createElement(ROOT_TAG);
-		document.setRootElement(root);
-		appendClassPathEntry(root, sql);
-		createContexts(root, sql, tableGroups);
+		createClassPathEntry(sql);
+		createContexts(sql, tableGroups);
 		logger.info("Generated MyBatis Generator's configuration file.");
 	}
 	
-	private void createContexts(Element root, DatabaseMetadataProvider sql, 
-			List<TableGroup> groups) {
+	private void createContexts(DatabaseMetadataProvider sql, List<TableGroup> groups) {
 		contexts = new ArrayList<>();
 		for (TableGroup group : groups) {
 			String packageName = FolderUtil.extractPackageName(group.getFolder().path());
@@ -86,8 +82,8 @@ public class MybatisGeneratorXmlCreator implements MybatisGenerator {
 		return classPathEntry;
 	}
 	
-	private void appendClassPathEntry(Element root, DatabaseMetadataProvider sql) {
-		classPathEntry = root.addElement(CLASS_PATH_ENTRY_TAG);
+	private void createClassPathEntry(DatabaseMetadataProvider sql) {
+		classPathEntry = factory.createElement(CLASS_PATH_ENTRY_TAG);
 		classPathEntry.addAttribute("location", sql.getConnectorJarPath());
 	}
 
@@ -102,8 +98,14 @@ public class MybatisGeneratorXmlCreator implements MybatisGenerator {
 	@Override
 	public String asXmlText() {
 		try {
-			for (MybatisGeneratorContext thisContext : contexts) {
-				root.add(thisContext.getContext().createCopy());
+			if (document == null) {
+				createDocument();
+				root = factory.createElement(ROOT_TAG);
+				document.setRootElement(root);
+				root.add(classPathEntry);
+				for (MybatisGeneratorContext thisContext : contexts) {
+					root.add(thisContext.getContext().createCopy());
+				}
 			}
 			return AbstractXmlParser.toXmlString(document);
 		} catch (IOException e) {

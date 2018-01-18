@@ -12,7 +12,7 @@ import org.eclipse.ui.PlatformUI;
 import org.nalby.yobatis.Yobatis;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
-import org.nalby.yobatis.mybatis.OldMybatisGeneratorXmlCreator;
+import org.nalby.yobatis.mybatis.MybatisGenerator;
 
 public class GenerationCommandHandler extends AbstractHandler {
 	
@@ -32,7 +32,7 @@ public class GenerationCommandHandler extends AbstractHandler {
 		}
 		if (element instanceof IFile) {
 			IFile iFile = (IFile)element;
-			if (OldMybatisGeneratorXmlCreator.CONFIG_FILENAME.equals(iFile.getName())) {
+			if (MybatisGenerator.CONFIG_FILENAME.equals(iFile.getName())) {
 				IProject project = iFile.getProject();
 				Yobatis.generate(new EclipseProject(project));
 			}
