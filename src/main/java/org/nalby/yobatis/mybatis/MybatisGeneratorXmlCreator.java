@@ -91,12 +91,6 @@ public class MybatisGeneratorXmlCreator implements MybatisGenerator {
 		classPathEntry.addAttribute("location", sql.getConnectorJarPath());
 	}
 
-	private void appendContexts() {
-		for (MybatisGeneratorContext thisContext : contexts) {
-			root.add(thisContext.getContext().createCopy());
-		}
-	}
-
 	private void createDocument() {
 		document = factory.createDocument();
 		DocumentType type = factory.createDocType(ROOT_TAG, 
@@ -108,7 +102,9 @@ public class MybatisGeneratorXmlCreator implements MybatisGenerator {
 	@Override
 	public String asXmlText() {
 		try {
-			appendContexts();
+			for (MybatisGeneratorContext thisContext : contexts) {
+				root.add(thisContext.getContext().createCopy());
+			}
 			return AbstractXmlParser.toXmlString(document);
 		} catch (IOException e) {
 			throw new InvalidMybatisGeneratorConfigException(e);

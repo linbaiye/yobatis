@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -281,16 +282,30 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 
 	private List<MybatisGeneratorContext> contexts;
 
-	public MybatisGeneratorXmlReader(InputStream inputStream, boolean flag) throws DocumentException, IOException {
+	private MybatisGeneratorXmlReader(InputStream inputStream) throws DocumentException, IOException {
 		super(inputStream, ROOT_TAG);
 		root = document.getRootElement();
-		loadClasspathEntry();
+		classPathEntry = root.element(CLASS_PATH_ENTRY_TAG);	
 		loadContexts(root);
 		document.remove(root);
 		root = documentFactory.createElement(ROOT_TAG);
 		document.setRootElement(root);
 	}
 	
+	/**
+	 * Build {@link MybatisGeneratorXmlReader} from the inputStream.
+	 * @param inputStream
+	 * @return an instance of {@link MybatisGeneratorXmlReader}.
+	 * @throws InvalidMybatisGeneratorConfigException if the inputStream is not from a valid xml file.
+	 */
+	public static MybatisGeneratorXmlReader build(InputStream inputStream)  {
+		try {
+			return new MybatisGeneratorXmlReader(inputStream);
+		} catch (DocumentException | IOException e) {
+			throw new InvalidMybatisGeneratorConfigException(e);
+		}
+	}
+
 	
 	private void loadContexts(Element root) {
 		contexts = new LinkedList<>();
@@ -300,25 +315,14 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 		}
 	}
 
-	private void loadClasspathEntry() {
-		classPathEntry = root.element(CLASS_PATH_ENTRY_TAG);	
-	}
 	
-	private void mergeClasspathEntry(OldMybatisGeneratorXmlCreator configFileGenerator) {
+	private void mergeClasspathEntry(Element thatClassPathEntry) {
 		if (classPathEntry == null) {
-			root.add(configFileGenerator.getClassPathEntryElement().createCopy());
-		} else {
-			root.add(classPathEntry.createCopy());
+			classPathEntry = thatClassPathEntry;
 		}
 	}
 	
-	/**
-	 * Preserve manually edited elements. 
-	 * @param configFileGenerator
-	 */
-	public void mergeGeneratedConfig(OldMybatisGeneratorXmlCreator configFileGenerator) {
-		mergeClasspathEntry(configFileGenerator);
-		List<MybatisGeneratorContext> thatContexts = configFileGenerator.getContexts();
+	private void mergeContexts(List<MybatisGeneratorContext> thatContexts) {
 		for (MybatisGeneratorContext thisContext: contexts) {
 			for (MybatisGeneratorContext thatContext: thatContexts) {
 				if (thisContext.idEqualsTo(thatContext)) {
@@ -342,6 +346,16 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	}
 
 	
+	/**
+	 * Preserve manually edited elements. 
+	 * @param configFileGenerator
+	 */
+	public void mergeGeneratedConfig(MybatisGeneratorXmlCreator configFileGenerator) {
+		mergeClasspathEntry(configFileGenerator.getClassPathEntryElement());
+		mergeContexts(configFileGenerator.getContexts());
+	}
+
+	
 	@Override
 	protected void customSAXReader(SAXReader saxReader ) {
 		saxReader.setEntityResolver(new EntityResolver() {
@@ -359,6 +373,12 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	@Override
 	public String asXmlText() {
 		try {
+			if (classPathEntry != null) {
+				root.add(classPathEntry.createCopy());
+			}
+			for (MybatisGeneratorContext context: contexts) {
+				root.add(context.getContext().createCopy());
+			}
 			return toXmlString(document);
 		} catch (IOException e){
 			throw new InvalidMybatisGeneratorConfigException(e);

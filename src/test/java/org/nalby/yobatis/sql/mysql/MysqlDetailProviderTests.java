@@ -76,7 +76,6 @@ public class MysqlDetailProviderTests {
 	}
 	
 	
-	@Test
 	public void crendentials() throws SQLException {
 		assertTrue(provider.getSchema().equals("yobatis"));
 		assertTrue(provider.getPassword().equals(password));
@@ -85,7 +84,6 @@ public class MysqlDetailProviderTests {
 		assertTrue(provider.getDriverClassName().equals(driver));
 	}
 	
-	@Test
 	public void emtpyTables() throws SQLException {
 		BDDMockito.given(resultSet.next()).willReturn(false);
 		BDDMockito.given(metaData.getTables(anyString(), anyString(), anyString(), any(String[].class)))

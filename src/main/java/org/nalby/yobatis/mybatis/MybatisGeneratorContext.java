@@ -1,7 +1,6 @@
 package org.nalby.yobatis.mybatis;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.dom4j.DocumentFactory;
@@ -61,7 +60,7 @@ public class MybatisGeneratorContext {
 		context.addAttribute("id", id);
 		context.addAttribute("targetRuntime",  TARGET_RUNTIME);
 		plugins = new ArrayList<>();
-		tableElements = new LinkedList<>();
+		tableElements = new ArrayList<>();
 		plugins.add(createYobatisPlugin());
 		plugins.add(createCriteriaPlugin());
 		createJdbcConnection(databaseMetadataProvider);
@@ -195,8 +194,12 @@ public class MybatisGeneratorContext {
 		for (Element plugin: plugins) {
 			context.add(plugin.createCopy());
 		}
-		context.add(jdbConnection.createCopy());
-		context.add(typeResolver.createCopy());
+		if (jdbConnection != null) {
+			context.add(jdbConnection.createCopy());
+		}
+		if (typeResolver != null) {
+			context.add(typeResolver.createCopy());
+		}
 		if (javaModel != null) {
 			context.add(javaModel.createCopy());
 		}
@@ -237,7 +240,7 @@ public class MybatisGeneratorContext {
 		}
 		for (Element thatTable : generatedContext.tableElements) {
 			if (!hasTable(thatTable)) {
-				tableElements.add(thatTable);
+				tableElements.add(thatTable.createCopy());
 			}
 		}
 	}
