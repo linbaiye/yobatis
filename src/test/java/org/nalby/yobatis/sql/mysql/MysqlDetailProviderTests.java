@@ -1,8 +1,8 @@
 package org.nalby.yobatis.sql.mysql;
 
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 
 import java.lang.reflect.Constructor;
@@ -27,6 +27,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 public class MysqlDetailProviderTests {
 	
 	private MysqlDatabaseMetadataProvider provider;
+	
 	
 	private String username = "username";
 	private String password = "password";
