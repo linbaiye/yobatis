@@ -1,16 +1,28 @@
 package org.nalby.yobatis.mybatis;
 
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
+import org.dom4j.Comment;
+import org.dom4j.Document;
 import org.dom4j.DocumentFactory;
 import org.dom4j.Element;
+import org.dom4j.Node;
+import org.dom4j.io.SAXReader;
 import org.nalby.yobatis.sql.DatabaseMetadataProvider;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.FolderUtil;
 
+/**
+ * 
+ * 
+ *
+ */
 public class MybatisGeneratorContext {
 	
 	public final static String DEFAULT_CONTEXT_ID = "yobatis";
@@ -49,6 +61,8 @@ public class MybatisGeneratorContext {
 	
 	private List<Element> plugins;
 	
+	private List<Element> commentedElements;
+	
 	private String id;
 
 	/**
@@ -56,6 +70,7 @@ public class MybatisGeneratorContext {
 	 * @param id the context id.
 	 * @param databaseMetadataProvider the database details provider.
 	 */
+	@SuppressWarnings("unchecked")
 	public MybatisGeneratorContext(String id, DatabaseMetadataProvider databaseMetadataProvider) {
 		Expect.notNull(databaseMetadataProvider, "databaseMetadataProvider must not be null.");
 		Expect.notEmpty(id, "id must not be empty.");
@@ -67,6 +82,7 @@ public class MybatisGeneratorContext {
 		plugins.add(createCriteriaPlugin());
 		createJdbcConnection(databaseMetadataProvider);
 		createTypeResolver();
+		commentedElements = Collections.EMPTY_LIST;
 	}
 	
 	
@@ -84,6 +100,7 @@ public class MybatisGeneratorContext {
 		this.javaModel = context.element(MODEL_GENERATOR_TAG);
 		this.xmlMapper = context.element(SQLMAP_GENERATOR_TAG);
 		loadPlugins(context);
+		loadCommentedElements(context);
 		tableElements = context.elements(TABLE_TAG);
 	}
 	
@@ -162,6 +179,91 @@ public class MybatisGeneratorContext {
 		return yobatisPluginElement;
 	}
 	
+	private Document buildDoc(String text) {
+		SAXReader saxReader = new SAXReader();
+		saxReader.setValidation(false);
+		try  {
+			return saxReader.read(new ByteArrayInputStream(("<rootDoc>" + text + "</rootDoc>").getBytes()));
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+	private void convertToElements(String text) {
+		Document doc = buildDoc(text);
+		if (doc != null) {
+			commentedElements = doc.getRootElement().elements();
+		}
+		if (commentedElements == null) {
+			commentedElements = new ArrayList<>(0);
+		}
+	}
+	
+	private boolean isCommentedElement(String text) {
+		if (buildDoc(text) != null) {
+			return true;
+		}
+		return false;
+	}
+	
+	private void loadCommentedElements(Element parent)  {
+		String text = null;
+		for (Iterator<Node> iterator = parent.nodeIterator(); iterator.hasNext(); ) {
+			Node node = iterator.next();
+			if (node.getNodeType() != Node.COMMENT_NODE) {
+				continue;
+			}
+			Comment comment = (Comment) node;
+			String tmp = comment.asXML().replaceAll("\\s+", " ");
+			tmp = tmp.replaceAll("<!--", "<");
+			tmp = tmp.replaceAll("-->", ">");
+			if (isCommentedElement(tmp)) {
+				text = text == null ? tmp : text + tmp;
+			}
+		}
+		convertToElements(text);
+	}
+	
+
+	private Element findTable(List<Element> elements, Element table) {
+		if (table != null) {
+			for (Element e : elements) {
+				if (!"table".equals(e.getName())) {
+					continue;
+				}
+				String name = e.attributeValue("tableName");
+				String schema = e.attributeValue("schema");
+				if ((name != null && name.equals(table.attributeValue("tableName")))
+						&& (schema != null && schema.equals(table.attributeValue("schema")))) {
+					return e;
+				}
+			}
+		}
+		return null;
+	}
+	
+	
+	/**
+	 * Test if this table element is commented by comparing
+	 * the tableName and schema attributes.
+	 * @param table the table element to test.
+	 * @return true if so, false otherwise.
+	 */
+	public boolean isTableCommented(Element table) {
+		return findTable(commentedElements, table) != null;
+	}
+	
+	/**
+	 * Test if this table element is contained in this context by comparing
+	 * the tableName and schema attributes.
+	 * @param table the table element to test.
+	 * @return true if so, false otherwise.
+	 */
+	public boolean hasTable(Element thatTable) {
+		return findTable(tableElements, thatTable) != null;
+	}
+
+	
 	public void appendJavaModelGenerator(Folder folder) {
 		javaModel = factory.createElement(MODEL_GENERATOR_TAG);
 		javaModel.addAttribute("targetPackage", packageNameOfFolder(folder));
@@ -231,19 +333,7 @@ public class MybatisGeneratorContext {
 		return context;
 	}
 	
-	
-	private boolean hasTable(Element thatTable) {
-		for (Element thisTable : tableElements) {
-			String name = thisTable.attributeValue("tableName");
-			String schema = thisTable.attributeValue("schema");
-			if ((name != null && name.equals(thatTable.attributeValue("tableName"))) &&
-				(schema != null && schema.equals(thatTable.attributeValue("schema")))) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
+
 	
 	public void merge(MybatisGeneratorContext generatedContext) {
 		Expect.asTrue(generatedContext != null && id.equals(generatedContext.id),

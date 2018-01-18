@@ -1,6 +1,6 @@
 package org.nalby.yobatis.structure.mybatis;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -12,10 +12,10 @@ import java.util.Collections;
 import java.util.List;
 
 import org.dom4j.DocumentException;
+import org.dom4j.DocumentFactory;
 import org.dom4j.Element;
 import org.junit.Before;
 import org.junit.Test;
-import org.nalby.yobatis.mybatis.MybatisGeneratorAnalyzer;
 import org.nalby.yobatis.mybatis.MybatisGeneratorContext;
 import org.nalby.yobatis.sql.DatabaseMetadataProvider;
 import org.nalby.yobatis.sql.Table;
@@ -120,11 +120,11 @@ public class MybatisGeneratorContextTests {
 		context.appendSqlMapGenerator(null);
 		context.appendJavaModelGenerator(null);
 		Element element = context.getContext();
-		Element client = element.element(MybatisGeneratorAnalyzer.SQLMAP_GENERATOR_TAG);
+		Element client = element.element(MybatisGeneratorContext.SQLMAP_GENERATOR_TAG);
 		assertTrue(client.attributeValue("targetProject").equals(""));
 		assertTrue(client.attributeValue("targetPackage").equals("mybatis-mappers"));
 
-		Element model = element.element(MybatisGeneratorAnalyzer.MODEL_GENERATOR_TAG);
+		Element model = element.element(MybatisGeneratorContext.MODEL_GENERATOR_TAG);
 		assertTrue(model.attributeValue("targetProject").equals(""));
 		assertTrue(model.attributeValue("targetPackage").equals(""));
 	}
@@ -136,15 +136,15 @@ public class MybatisGeneratorContextTests {
 		context.appendSqlMapGenerator(resource);
 		Element element = context.getContext();
 
-		Element client = element.element(MybatisGeneratorAnalyzer.CLIENT_GENERATOR_TAG);
+		Element client = element.element(MybatisGeneratorContext.CLIENT_GENERATOR_TAG);
 		assertTrue(client.attributeValue("targetProject").equals("/src/main/java"));
 		assertTrue(client.attributeValue("targetPackage").equals("yobatis.dao"));
 
-		Element model = element.element(MybatisGeneratorAnalyzer.MODEL_GENERATOR_TAG);
+		Element model = element.element(MybatisGeneratorContext.MODEL_GENERATOR_TAG);
 		assertTrue(model.attributeValue("targetProject").equals("/src/main/java"));
 		assertTrue(model.attributeValue("targetPackage").equals("yobatis.model"));
 
-		Element resource = element.element(MybatisGeneratorAnalyzer.SQLMAP_GENERATOR_TAG);
+		Element resource = element.element(MybatisGeneratorContext.SQLMAP_GENERATOR_TAG);
 		assertTrue(resource.attributeValue("targetProject").equals("/src/main/resource"));
 	}
 	
@@ -239,7 +239,7 @@ public class MybatisGeneratorContextTests {
 				"  </context>\n";
 		context = build(xml);
 		assertElements(context.getContext());
-		assertTrue(hasPlugin(context.getContext().elements("plugin"), MybatisGeneratorAnalyzer.YOBATIS_PLUGIN));
+		assertTrue(hasPlugin(context.getContext().elements("plugin"), MybatisGeneratorContext.YOBATIS_PLUGIN));
 		assertTrue(hasPlugin(context.getContext().elements("plugin"), "test"));
 		assertTrue(hasTable(context.getContext().elements("table"), "table1"));
 		assertTrue(hasTable(context.getContext().elements("table"), "table2"));
@@ -262,6 +262,7 @@ public class MybatisGeneratorContextTests {
 				"  </context>\n";
 		appendTables();
 		MybatisGeneratorContext thisContext = build(xml);
+		thisContext.idEqualsTo(context);
 		thisContext.merge(context);
 		Element element = thisContext.getContext();
 		assertTrue(element.elements("table").size() == 4);
@@ -270,6 +271,63 @@ public class MybatisGeneratorContextTests {
 		assertTrue(hasTable(element.elements("table"), "table3"));
 		assertTrue(hasTable(element.elements("table"), "table4"));
 		assertHasAttributes(element.element("jdbcConnection"), new Attribute("driverClass", "driverClassName"));
+	}
+	
+	
+	@Test
+	public void hasTable() {
+		String xml = 
+				"  <context id=\"id\" targetRuntime=\"MyBatis3\">\n" + 
+				"  	 <plugin type=\"org.mybatis.generator.plugins.YobatisPlugin\">\n" + 
+				"        <property name=\"enableBaseClass\" value=\"true\"/>\n" + 
+				"    </plugin>" + 
+				"  	 <plugin type=\"test\">\n" + 
+				"        <property name=\"enableBaseClass\" value=\"true\"/>\n" + 
+				"    </plugin>" + 
+				"    <table tableName=\"table1\" schema=\"schema\" />\n" +
+				"    <table tableName=\"table3\" schema=\"schema\" />\n" +
+				"    <table tableName=\"table4\" schema=\"schema\" />n" +
+				"  </context>\n";
+		appendTables();
+		MybatisGeneratorContext thisContext = build(xml);
+		DocumentFactory factory = DocumentFactory.getInstance();
+		assertFalse(thisContext.hasTable(null));
+
+		Element tmp = factory.createElement("table");
+		tmp.addAttribute("tableName", "table3");
+		tmp.addAttribute("schema", "schema");
+		assertTrue(thisContext.hasTable(tmp));
+	}
+	
+	
+	@Test
+	public void hasCommentedTable() {
+		String xml = 
+				"  <context id=\"id\" targetRuntime=\"MyBatis3\">\n" + 
+				"  	 <plugin type=\"org.mybatis.generator.plugins.YobatisPlugin\">\n" + 
+				"        <property name=\"enableBaseClass\" value=\"true\"/>\n" + 
+				"    </plugin>" + 
+				"  	 <plugin type=\"test\">\n" + 
+				"        <property name=\"enableBaseClass\" value=\"true\"/>\n" + 
+				"    </plugin>" + 
+				"    <table tableName=\"table1\" schema=\"schema\" />\n" +
+				"    <!--table tableName=\"table3\" schema=\"schema\" />\n" +
+				"    <table tableName=\"table4\" schema=\"schema\" /-->\n" +
+				"    <!--table 		tableName=\"table5\" schema=\"schema\" /-->" +
+				"  </context>\n";
+		MybatisGeneratorContext thisContext = build(xml);
+		assertFalse(thisContext.isTableCommented(null));
+
+		DocumentFactory factory = DocumentFactory.getInstance();
+		Element tmp = factory.createElement("table");
+		tmp.addAttribute("tableName", "table1");
+		tmp.addAttribute("schema", "schema");
+		assertFalse(thisContext.isTableCommented(tmp));
+		
+		tmp = factory.createElement("table");
+		tmp.addAttribute("tableName", "table3");
+		tmp.addAttribute("schema", "schema");
+		assertTrue(thisContext.isTableCommented(tmp));
 	}
 
 }

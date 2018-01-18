@@ -112,7 +112,6 @@ public class MybatisGeneratorXmlReaderTests {
 		mockContext("hello", "table1");
 		mockContext("contextid2");
 		reader.mergeGeneratedConfig(creator);
-		System.out.println(reader.asXmlText());
 		assertTrue(reader.asXmlText().contains("classPathEntry location"));
 		assertTrue(reader.asXmlText().contains("table tableName"));
 		assertTrue(reader.asXmlText().contains("contextid2"));

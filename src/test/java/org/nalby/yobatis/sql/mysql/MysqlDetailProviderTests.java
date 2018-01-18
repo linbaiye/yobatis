@@ -14,7 +14,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.junit.Before;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.BDDMockito;
 import org.powermock.api.mockito.PowerMockito;
