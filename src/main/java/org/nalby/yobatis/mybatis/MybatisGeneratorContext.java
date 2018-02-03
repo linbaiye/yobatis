@@ -1,27 +1,21 @@
 package org.nalby.yobatis.mybatis;
 
-import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import org.dom4j.Comment;
-import org.dom4j.Document;
 import org.dom4j.DocumentFactory;
 import org.dom4j.Element;
-import org.dom4j.Node;
-import org.dom4j.io.SAXReader;
 import org.nalby.yobatis.sql.DatabaseMetadataProvider;
 import org.nalby.yobatis.sql.Table;
 import org.nalby.yobatis.structure.Folder;
 import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.util.FolderUtil;
+import org.nalby.yobatis.xml.AbstractXmlParser;
 
 /**
- * 
- * 
- *
+ * Abstraction of MyBatis Generator's context.
  */
 public class MybatisGeneratorContext {
 	
@@ -100,7 +94,7 @@ public class MybatisGeneratorContext {
 		this.javaModel = context.element(MODEL_GENERATOR_TAG);
 		this.xmlMapper = context.element(SQLMAP_GENERATOR_TAG);
 		loadPlugins(context);
-		loadCommentedElements(context);
+		this.commentedElements = AbstractXmlParser.loadCommentedElements(context);
 		tableElements = context.elements(TABLE_TAG);
 	}
 	
@@ -179,52 +173,6 @@ public class MybatisGeneratorContext {
 		return yobatisPluginElement;
 	}
 	
-	private Document buildDoc(String text) {
-		SAXReader saxReader = new SAXReader();
-		saxReader.setValidation(false);
-		try  {
-			return saxReader.read(new ByteArrayInputStream(("<rootDoc>" + text + "</rootDoc>").getBytes()));
-		} catch (Exception e) {
-			return null;
-		}
-	}
-	
-	private void convertToElements(String text) {
-		Document doc = buildDoc(text);
-		if (doc != null) {
-			commentedElements = doc.getRootElement().elements();
-		}
-		if (commentedElements == null) {
-			commentedElements = new ArrayList<>(0);
-		}
-	}
-	
-	private boolean isCommentedElement(String text) {
-		if (buildDoc(text) != null) {
-			return true;
-		}
-		return false;
-	}
-	
-	private void loadCommentedElements(Element parent)  {
-		String text = null;
-		for (Iterator<Node> iterator = parent.nodeIterator(); iterator.hasNext(); ) {
-			Node node = iterator.next();
-			if (node.getNodeType() != Node.COMMENT_NODE) {
-				continue;
-			}
-			Comment comment = (Comment) node;
-			String tmp = comment.asXML().replaceAll("\\s+", " ");
-			tmp = tmp.replaceAll("<!--", "<");
-			tmp = tmp.replaceAll("-->", ">");
-			if (isCommentedElement(tmp)) {
-				text = text == null ? tmp : text + tmp;
-			}
-		}
-		convertToElements(text);
-	}
-	
-
 	private Element findTable(List<Element> elements, Element table) {
 		if (table != null) {
 			for (Element e : elements) {
@@ -244,45 +192,76 @@ public class MybatisGeneratorContext {
 	
 	
 	/**
-	 * Test if this table element is commented by comparing
-	 * the tableName and schema attributes.
-	 * @param table the table element to test.
-	 * @return true if so, false otherwise.
-	 */
-	public boolean isTableCommented(Element table) {
-		return findTable(commentedElements, table) != null;
-	}
-	
-	/**
 	 * Test if this table element is contained in this context by comparing
 	 * the tableName and schema attributes.
 	 * @param table the table element to test.
 	 * @return true if so, false otherwise.
 	 */
-	public boolean hasTable(Element thatTable) {
+	private boolean hasTable(Element thatTable) {
 		return findTable(tableElements, thatTable) != null;
+	}
+	
+	
+	/**
+	 * Remove tables appearing in thatContext from this context.
+	 */
+	public void removeExistentTables(MybatisGeneratorContext thatContext) {
+		Expect.notNull(thatContext, "thatContext must not be null.");
+		for (Iterator<Element> iterator = tableElements.iterator(); iterator.hasNext(); ) {
+			Element thisTable = iterator.next();
+			String thisTableName = thisTable.attributeValue("tableName");
+			String thisSchema = thisTable.attributeValue("schema");
+			if (thisTableName == null || thisSchema == null) {
+				continue;
+			}
+			if (findTable(thatContext.tableElements, thisTable) != null ||
+				findTable(thatContext.commentedElements, thisTable) != null) {
+				iterator.remove();
+			}
+		}
 	}
 
 	
-	public void appendJavaModelGenerator(Folder folder) {
+	/**
+	 * Create the javaModelGenerator element according to the model folder,
+	 * if the model folder is null, both of the targetPackage and targetProject
+	 * will be empty.
+	 * 
+	 * @param folder the model folder.
+	 */
+	public void createJavaModelGenerator(Folder folder) {
 		javaModel = factory.createElement(MODEL_GENERATOR_TAG);
 		javaModel.addAttribute("targetPackage", packageNameOfFolder(folder));
 		javaModel.addAttribute("targetProject", sourceCodePath(folder));
 	}
 
-	public void appendSqlMapGenerator(Folder folder) {
+	/**
+	 * Create the sqlMapGenerator element according to the resource folder,
+	 * if the model folder is null, the targetProject will be empty.
+	 * 
+	 * @param folder the resource folder.
+	 */
+	public void createSqlMapGenerator(Folder folder) {
 		xmlMapper = factory.createElement(SQLMAP_GENERATOR_TAG);
 		xmlMapper.addAttribute("targetPackage", "mybatis-mappers");
 		xmlMapper.addAttribute("targetProject", folder == null? "" : folder.path());
 	}
 	
-	public void appendJavaClientGenerator(Folder folder) {
+	/**
+	 * Create the sqlMapGenerator element according to the dao folder,
+	 * if the dao folder is null, both of the targetPackage and targetProject
+	 * will be empty.
+	 * 
+	 * @param folder the dao/mapper folder.
+	 */
+	public void createJavaClientGenerator(Folder folder) {
 		javaClient = factory.createElement(CLIENT_GENERATOR_TAG);
 		javaClient.addAttribute("type", "XMLMAPPER");
 		javaClient.addAttribute("targetPackage", packageNameOfFolder(folder));
 		javaClient.addAttribute("targetProject", sourceCodePath(folder));
 	}
 	
+
 	public void appendTables(List<Table> tables, String schema)  {
 		Expect.notNull(tables, "tables must not be null.");
 		for (Table table: tables) {
@@ -302,6 +281,10 @@ public class MybatisGeneratorContext {
 	}
 	
 	
+	/**
+	 * Get the context element.
+	 * @return a dom4j element that represents this context.
+	 */
 	public Element getContext() {
 		if (context != null) {
 			return context;
@@ -330,19 +313,23 @@ public class MybatisGeneratorContext {
 		for (Element e : tableElements) {
 			context.add(e.createCopy());
 		}
+		for (Element e : commentedElements) {
+			if ("table".equals(e.getName())) {
+				context.add(AbstractXmlParser.commentElement(e));
+			}
+		}
 		return context;
 	}
 	
-
-	
+	/**
+	 * Merge jdbcConnection element and table elements.
+	 * @param generatedContext another context to merge.
+	 */
 	public void merge(MybatisGeneratorContext generatedContext) {
 		Expect.asTrue(generatedContext != null && id.equals(generatedContext.id),
 				"generatedContext must not be null.");
 		if (jdbConnection == null) {
 			jdbConnection = generatedContext.jdbConnection;
-		}
-		if (typeResolver == null) {
-			typeResolver = generatedContext.typeResolver;
 		}
 		for (Element thatTable : generatedContext.tableElements) {
 			if (!hasTable(thatTable)) {

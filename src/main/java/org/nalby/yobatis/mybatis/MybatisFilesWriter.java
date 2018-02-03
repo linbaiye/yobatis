@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.mybatis.generator.api.GeneratedFile;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.GeneratedXmlFile;
 import org.mybatis.generator.api.LibraryRunner;
@@ -29,6 +30,11 @@ public class MybatisFilesWriter {
 	private Project project;
 	
 	private Logger logger = LogFactory.getLogger(MybatisFilesWriter.class);
+	
+	@FunctionalInterface
+	private interface FileSelector {
+		boolean select(GeneratedFile file);
+	}
 
 	public MybatisFilesWriter(Project project, LibraryRunner mybatisRunner) {
 		Expect.notNull(project, "project must not be null.");
@@ -42,34 +48,34 @@ public class MybatisFilesWriter {
 			throw new InvalidMybatisGeneratorConfigException("No xml files generated.");
 		}
 	}
-
-	private List<GeneratedJavaFile> listFile(String suffix) {
-		List<GeneratedJavaFile> result = new LinkedList<GeneratedJavaFile>();
-		List<GeneratedJavaFile> javaFiles = runner.getGeneratedJavaFiles();
-		for (GeneratedJavaFile file : javaFiles) {
-			if (file.getFileName() != null
-					&& file.getFileName().endsWith(suffix)) {
-				result.add(file);
-			}
-		}
-		return result;
-	}
-
-
-	public List<GeneratedJavaFile> getDomainFiles() {
-		List<GeneratedJavaFile> javaFiles = runner.getGeneratedJavaFiles();
-		List<GeneratedJavaFile> result = new LinkedList<GeneratedJavaFile>();
-		for (GeneratedJavaFile file : javaFiles) {
-			if (file.getFileName() != null &&
-				(!file.getFileName().endsWith("Mapper.java") &&
-				 !file.getFileName().endsWith("Criteria.java"))) {
-				result.add(file);
-			}
-		}
-		return result;
-	}
 	
 
+	private List<GeneratedJavaFile> selectFiles(FileSelector selector) {
+		List<GeneratedJavaFile> result = new LinkedList<GeneratedJavaFile>();
+		List<GeneratedJavaFile> javaFiles = runner.getGeneratedJavaFiles();
+		for (GeneratedJavaFile file : javaFiles) {
+			if (selector.select(file)) {
+				result.add(file);
+			}
+		}
+		return result;
+	}
+
+	private List<GeneratedJavaFile> listFile(final String suffix) {
+		return selectFiles((GeneratedFile file) -> {
+			return file.getFileName() != null &&
+					file.getFileName().endsWith(suffix);
+		});
+	}
+
+	private List<GeneratedJavaFile> getDomainFiles() {
+		return selectFiles((GeneratedFile file) -> {
+			return file.getFileName() != null &&
+					!file.getFileName().endsWith("Mapper.java") &&
+					!file.getFileName().endsWith("Criteria.java");
+		});
+	}
+	
 	
 	private void writeFile(String path, String content, boolean overwrite) {
 		File file = project.findFile(path);
@@ -98,7 +104,7 @@ public class MybatisFilesWriter {
 		String dirpath = FolderUtil.concatPath(javafile.getTargetProject(), 
 				javafile.getTargetPackage().replaceAll("\\.", "/"));
 		String filepath = FolderUtil.concatPath(dirpath, javafile.getFileName());
-		writeFile(filepath, javafile.getFormattedContent(), true);
+		writeFile(filepath, javafile.getFormattedContent(), overwrite);
 	}
 	
 	private void writeJavaDomains() {
@@ -146,7 +152,7 @@ public class MybatisFilesWriter {
 		writeJavaDomains();
 		writeJavaMappers();
 		writeXmlFiles();
-		logger.info("Files have been writen, happy coding.");
+		logger.info("Files have been generated, happy coding.");
 	}
 
 }

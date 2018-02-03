@@ -9,17 +9,17 @@ import java.util.List;
 
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentFactory;
+import org.dom4j.DocumentType;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
+import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.xml.AbstractXmlParser;
-import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 /**
  * MybatisGeneratorXmlReader reads the existent configuration file of MyBatis Generator
- * and merges newly generated one. Also it fixes the Yobatis plug-in if it's deleted.
+ * and merges newly generated one. 
  * 
  * @author Kyle Lin
  *
@@ -280,15 +280,32 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	private DocumentFactory documentFactory  = DocumentFactory.getInstance();
 
 	private List<MybatisGeneratorContext> contexts;
+	
+	private List<MybatisGeneratorContext> commentedContexts;
 
 	private MybatisGeneratorXmlReader(InputStream inputStream) throws DocumentException, IOException {
 		super(inputStream, ROOT_TAG);
 		root = document.getRootElement();
 		classPathEntry = root.element(CLASS_PATH_ENTRY_TAG);	
 		loadContexts(root);
-		document.remove(root);
+		loadCommentedContexts(root);
 		root = documentFactory.createElement(ROOT_TAG);
-		document.setRootElement(root);
+		document = null;
+	}
+	
+	private void loadCommentedContexts(Element parent) {
+		commentedContexts = new ArrayList<>();
+		List<Element> tmpList = AbstractXmlParser.loadCommentedElements(parent);
+		for (Element tmp : tmpList) {
+			if (!tmp.getName().equals("context")) {
+				continue;
+			}
+			try {
+				commentedContexts.add(new MybatisGeneratorContext(tmp));
+			} catch (Exception e) {
+
+			}
+		}
 	}
 	
 	/**
@@ -304,7 +321,6 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 			throw new InvalidMybatisGeneratorConfigException(e);
 		}
 	}
-
 	
 	private void loadContexts(Element root) {
 		contexts = new LinkedList<>();
@@ -313,7 +329,6 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 			contexts.add(new MybatisGeneratorContext(element));
 		}
 	}
-
 	
 	private void mergeClasspathEntry(Element thatClassPathEntry) {
 		if (classPathEntry == null) {
@@ -321,7 +336,20 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 		}
 	}
 	
+	/**
+	 * Drop tables that already configured in existent contexts from generated contexts.
+	 * @param thatContexts generated contexts.
+	 */
+	private void dropExistentTables(List<MybatisGeneratorContext> thatContexts) {
+		for (MybatisGeneratorContext thisContext: contexts) {
+			for (MybatisGeneratorContext thatContext: thatContexts) {
+				thatContext.removeExistentTables(thisContext);
+			}
+		}
+	}
+	
 	private void mergeContexts(List<MybatisGeneratorContext> thatContexts) {
+		dropExistentTables(thatContexts);
 		for (MybatisGeneratorContext thisContext: contexts) {
 			for (MybatisGeneratorContext thatContext: thatContexts) {
 				if (thisContext.idEqualsTo(thatContext)) {
@@ -350,33 +378,40 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	 * @param configFileGenerator
 	 */
 	public void mergeGeneratedConfig(MybatisGeneratorXmlCreator configFileGenerator) {
+		Expect.notNull(configFileGenerator, "configFileGenerator must not be empty.");
 		mergeClasspathEntry(configFileGenerator.getClassPathEntryElement());
 		mergeContexts(configFileGenerator.getContexts());
 	}
 
-	
 	@Override
 	protected void customSAXReader(SAXReader saxReader ) {
-		saxReader.setEntityResolver(new EntityResolver() {
-			@Override
-			public InputSource resolveEntity(String publicId, String systemId)
-					throws SAXException, IOException {
-				if (systemId.contains("mybatis-generator-config_1_0.dtd")) {
-					return new InputSource(new StringReader(DTD)); 
-				}
-				return null;
+		saxReader.setEntityResolver((String publicId, String systemId) -> {
+			if (systemId.contains("mybatis-generator-config_1_0.dtd")) {
+				return new InputSource(new StringReader(DTD));
 			}
+			return null;
 		});
 	}
 
 	@Override
 	public String asXmlText() {
 		try {
-			if (classPathEntry != null) {
-				root.add(classPathEntry.createCopy());
-			}
-			for (MybatisGeneratorContext context: contexts) {
-				root.add(context.getContext().createCopy());
+			if (document == null) {
+				document = documentFactory.createDocument();
+				DocumentType type = documentFactory.createDocType(ROOT_TAG, 
+						"-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN",
+						"http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd");
+				document.setDocType(type);
+				if (classPathEntry != null) {
+					root.add(classPathEntry.createCopy());
+				}
+				for (MybatisGeneratorContext context : contexts) {
+					root.add(context.getContext().createCopy());
+				}
+				for (MybatisGeneratorContext context : commentedContexts) {
+					root.add(AbstractXmlParser.commentElement(context.getContext().createCopy()));
+				}
+				document.setRootElement(root);
 			}
 			return toXmlString(document);
 		} catch (IOException e){

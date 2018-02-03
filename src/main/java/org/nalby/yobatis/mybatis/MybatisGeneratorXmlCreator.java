@@ -57,13 +57,13 @@ public class MybatisGeneratorXmlCreator implements MybatisGenerator {
 			String packageName = FolderUtil.extractPackageName(group.getFolder().path());
 
 			MybatisGeneratorContext thisContext = new MybatisGeneratorContext(packageName, sql);
-			thisContext.appendJavaModelGenerator(group.getFolder());
+			thisContext.createJavaModelGenerator(group.getFolder());
 
 			Folder daoFolder = pomTree.findMostMatchingDaoFolder(group.getFolder());
-			thisContext.appendJavaClientGenerator(daoFolder);
+			thisContext.createJavaClientGenerator(daoFolder);
 
 			Folder resourceFolder = pomTree.findMostMatchingResourceFolder(group.getFolder());
-			thisContext.appendSqlMapGenerator(resourceFolder);
+			thisContext.createSqlMapGenerator(resourceFolder);
 
 			thisContext.appendTables(group.getTables(), sql.getSchema());
 			contexts.add(thisContext);

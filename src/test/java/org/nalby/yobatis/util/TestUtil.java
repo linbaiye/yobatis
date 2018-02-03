@@ -4,10 +4,12 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.nalby.yobatis.structure.File;
 import org.nalby.yobatis.structure.Folder;
 
 public class TestUtil {
@@ -93,6 +95,14 @@ public class TestUtil {
 		String name = FolderUtil.filename(path);
 		when(folder.name()).thenReturn(name);
 		return folder;
+	}
+	
+	public static File mockFile(String path, String content) {
+		File file = mock(File.class);
+		when(file.path()).thenReturn(path);
+		when(file.open()).thenReturn(new ByteArrayInputStream(content.getBytes()));
+		when(file.name()).thenReturn(FolderUtil.filename(path));
+		return file;
 	}
 	
 }

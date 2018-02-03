@@ -1,6 +1,6 @@
-package org.nalby.yobatis.structure.mybatis;
+package org.nalby.yobatis.mybatis;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -12,7 +12,6 @@ import java.util.Collections;
 import java.util.List;
 
 import org.dom4j.DocumentException;
-import org.dom4j.DocumentFactory;
 import org.dom4j.Element;
 import org.junit.Before;
 import org.junit.Test;
@@ -98,9 +97,21 @@ public class MybatisGeneratorContextTests {
 		}
 	}
 	
+	private void assertTables(List<Element> tables, String ... names) {
+		assertTrue(tables.size() == names.length);
+		for (String name : names) {
+			boolean found = false;
+			for (Element element : tables) {
+				if (!found) {
+					found = element.attributeValue("tableName").equals(name);
+				}
+			}
+			assertTrue(found);
+		}
+	}
 	
 	
-	private void assertElements(Element element) {
+	private void assertPluginElement(Element element) {
 		assertTrue(element.elements("plugin").size() != 0);
 		assertTrue(element.element("javaTypeResolver") != null);
 		assertTrue(element.element("jdbcConnection") != null);
@@ -111,14 +122,14 @@ public class MybatisGeneratorContextTests {
 	public void hasPredefinedElements() {
 		Element element = context.getContext();
 		assertTrue(element.elements("plugin").size() == 2);
-		assertElements(element);
+		assertPluginElement(element);
 	}
 
 	
 	@Test
 	public void appendNullFolders() {
-		context.appendSqlMapGenerator(null);
-		context.appendJavaModelGenerator(null);
+		context.createSqlMapGenerator(null);
+		context.createJavaModelGenerator(null);
 		Element element = context.getContext();
 		Element client = element.element(MybatisGeneratorContext.SQLMAP_GENERATOR_TAG);
 		assertTrue(client.attributeValue("targetProject").equals(""));
@@ -131,9 +142,9 @@ public class MybatisGeneratorContextTests {
 	
 	@Test
 	public void appendFolders() {
-		context.appendJavaClientGenerator(dao);
-		context.appendJavaModelGenerator(model);
-		context.appendSqlMapGenerator(resource);
+		context.createJavaClientGenerator(dao);
+		context.createJavaModelGenerator(model);
+		context.createSqlMapGenerator(resource);
 		Element element = context.getContext();
 
 		Element client = element.element(MybatisGeneratorContext.CLIENT_GENERATOR_TAG);
@@ -221,7 +232,7 @@ public class MybatisGeneratorContextTests {
 				"    </javaTypeResolver>\n" + 
 				"  </context>\n";
 		MybatisGeneratorContext context = build(xml);
-		assertElements(context.getContext());
+		assertPluginElement(context.getContext());
 		xml = 
 				"  <context id=\"id\" targetRuntime=\"MyBatis3\">\n" + 
 				"  	 <plugin type=\"org.mybatis.generator.plugins.YobatisPlugin\">\n" + 
@@ -238,7 +249,7 @@ public class MybatisGeneratorContextTests {
 				"    <table tableName=\"table2\" schema=\"schema\" />n" +
 				"  </context>\n";
 		context = build(xml);
-		assertElements(context.getContext());
+		assertPluginElement(context.getContext());
 		assertTrue(hasPlugin(context.getContext().elements("plugin"), MybatisGeneratorContext.YOBATIS_PLUGIN));
 		assertTrue(hasPlugin(context.getContext().elements("plugin"), "test"));
 		assertTrue(hasTable(context.getContext().elements("table"), "table1"));
@@ -275,33 +286,22 @@ public class MybatisGeneratorContextTests {
 	
 	
 	@Test
-	public void hasTable() {
+	public void preserveCommentedTables() {
 		String xml = 
 				"  <context id=\"id\" targetRuntime=\"MyBatis3\">\n" + 
-				"  	 <plugin type=\"org.mybatis.generator.plugins.YobatisPlugin\">\n" + 
-				"        <property name=\"enableBaseClass\" value=\"true\"/>\n" + 
-				"    </plugin>" + 
-				"  	 <plugin type=\"test\">\n" + 
-				"        <property name=\"enableBaseClass\" value=\"true\"/>\n" + 
-				"    </plugin>" + 
-				"    <table tableName=\"table1\" schema=\"schema\" />\n" +
-				"    <table tableName=\"table3\" schema=\"schema\" />\n" +
-				"    <table tableName=\"table4\" schema=\"schema\" />n" +
+				"    <!--table tableName=\"table3\" schema=\"schema\" />\n" +
+				"    <table tableName=\"table4\" schema=\"schema\" /-->\n" +
+				"    <!--table tableName=\"table2\" schema=\"schema\" /-->\n" +
+				"    <!--table 		tableName=\"table5\" schema=\"schema\" /-->" +
+				"    <!--able 		tableName=\"table5\" schema=\"schema\" /-->" +
 				"  </context>\n";
-		appendTables();
-		MybatisGeneratorContext thisContext = build(xml);
-		DocumentFactory factory = DocumentFactory.getInstance();
-		assertFalse(thisContext.hasTable(null));
-
-		Element tmp = factory.createElement("table");
-		tmp.addAttribute("tableName", "table3");
-		tmp.addAttribute("schema", "schema");
-		assertTrue(thisContext.hasTable(tmp));
+		MybatisGeneratorContext thatContext = build(xml);
+		List<Element> commentd = AbstractXmlParser.loadCommentedElements(thatContext.getContext());
+		assertTables(commentd, "table3", "table4", "table5", "table2");
 	}
 	
-	
 	@Test
-	public void hasCommentedTable() {
+	public void removeExistentTables() {
 		String xml = 
 				"  <context id=\"id\" targetRuntime=\"MyBatis3\">\n" + 
 				"  	 <plugin type=\"org.mybatis.generator.plugins.YobatisPlugin\">\n" + 
@@ -313,21 +313,15 @@ public class MybatisGeneratorContextTests {
 				"    <table tableName=\"table1\" schema=\"schema\" />\n" +
 				"    <!--table tableName=\"table3\" schema=\"schema\" />\n" +
 				"    <table tableName=\"table4\" schema=\"schema\" /-->\n" +
+				"    <!--table tableName=\"table2\" schema=\"schema\" /-->\n" +
 				"    <!--table 		tableName=\"table5\" schema=\"schema\" /-->" +
+				"    <!--able 		tableName=\"table5\" schema=\"schema\" /-->" +
 				"  </context>\n";
-		MybatisGeneratorContext thisContext = build(xml);
-		assertFalse(thisContext.isTableCommented(null));
-
-		DocumentFactory factory = DocumentFactory.getInstance();
-		Element tmp = factory.createElement("table");
-		tmp.addAttribute("tableName", "table1");
-		tmp.addAttribute("schema", "schema");
-		assertFalse(thisContext.isTableCommented(tmp));
-		
-		tmp = factory.createElement("table");
-		tmp.addAttribute("tableName", "table3");
-		tmp.addAttribute("schema", "schema");
-		assertTrue(thisContext.isTableCommented(tmp));
+		Table table1 = new Table("table1");
+		Table table2 = new Table("table2");
+		context.appendTables(Arrays.asList(table1, table2), "schema");
+		MybatisGeneratorContext thatContext = build(xml);
+		context.removeExistentTables(thatContext);
+		assertTrue(context.getContext().elements("table").isEmpty());
 	}
-
 }

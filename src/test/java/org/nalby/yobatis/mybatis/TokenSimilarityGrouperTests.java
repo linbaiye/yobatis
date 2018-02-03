@@ -1,4 +1,4 @@
-package org.nalby.yobatis.structure.mybatis;
+package org.nalby.yobatis.mybatis;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
