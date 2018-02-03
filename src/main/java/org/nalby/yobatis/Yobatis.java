@@ -95,11 +95,15 @@ public class Yobatis {
 		return generator;
 	}
 
-
-	public static void generate(Project project) {
+	public static void onClickProject(Project project) {
 		logger.info("Scanning project:{}.", project.name());
 		MybatisGeneratorXmlCreator generator = buildMybatisGeneratorXmlCreator(project);
 		mergeIntoExistentConfig(generator, project);
+		logger.info("Config file has been created, right-click on {} to generate java and xml mapper files.", MybatisGenerator.CONFIG_FILENAME);
+	}
+	
+	public static void onClickFile(Project project) {
+		logger.info("Using existent config file.");
 		LibraryRunner runner = buildMyBatisRunner(project);
 		new MybatisFilesWriter(project, runner).writeAll();;
 	}
