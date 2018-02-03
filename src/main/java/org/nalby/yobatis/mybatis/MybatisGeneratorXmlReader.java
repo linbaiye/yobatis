@@ -406,7 +406,9 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 					root.add(classPathEntry.createCopy());
 				}
 				for (MybatisGeneratorContext context : contexts) {
-					root.add(context.getContext().createCopy());
+					if (context.hasTable()) {
+						root.add(context.getContext().createCopy());
+					}
 				}
 				for (MybatisGeneratorContext context : commentedContexts) {
 					root.add(AbstractXmlParser.commentElement(context.getContext().createCopy()));
