@@ -34,10 +34,10 @@ public class GenerationCommandHandler extends AbstractHandler {
 			IFile iFile = (IFile)element;
 			if (MybatisGenerator.CONFIG_FILENAME.equals(iFile.getName())) {
 				IProject project = iFile.getProject();
-				Yobatis.generate(new EclipseProject(project));
+				Yobatis.onClickFile(new EclipseProject(project));
 			}
 		} else {
-			Yobatis.generate(new EclipseProject((IProject)element));
+			Yobatis.onClickProject(new EclipseProject((IProject)element));
 		}
 	}
 
