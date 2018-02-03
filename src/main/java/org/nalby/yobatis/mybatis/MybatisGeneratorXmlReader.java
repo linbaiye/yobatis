@@ -1,36 +1,30 @@
 package org.nalby.yobatis.mybatis;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
-import org.dom4j.Comment;
-import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentFactory;
+import org.dom4j.DocumentType;
 import org.dom4j.Element;
-import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
+import org.nalby.yobatis.util.Expect;
 import org.nalby.yobatis.xml.AbstractXmlParser;
-import org.xml.sax.EntityResolver;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 /**
  * MybatisGeneratorXmlReader reads the existent configuration file of MyBatis Generator
- * and merges newly generated one. Also it fixes the Yobatis plug-in if it's deleted.
+ * and merges newly generated one. 
  * 
  * @author Kyle Lin
  *
  */
-public class MybatisGeneratorXmlReader extends AbstractXmlParser implements MybatisGeneratorAnalyzer {
+public class MybatisGeneratorXmlReader extends AbstractXmlParser implements MybatisGenerator {
 	private static final String DTD = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
 			"<!--\n" + 
 			"\n" + 
@@ -283,357 +277,142 @@ public class MybatisGeneratorXmlReader extends AbstractXmlParser implements Myba
 	
 	private Element classPathEntry;
 	
-	private Element context;
-	
-	private Element jdbcConnection;
-	
-	private Element javaTypeResolver;
-	
-
 	private DocumentFactory documentFactory  = DocumentFactory.getInstance();
 
-	private List<Element> plugins = new LinkedList<>();
+	private List<MybatisGeneratorContext> contexts;
 	
-	private List<Element> javaModelGenerators = new LinkedList<>();
+	private List<MybatisGeneratorContext> commentedContexts;
 
-	private List<Element> sqlMapGenerators = new LinkedList<>();
-
-	private List<Element> javaClientGenerators = new LinkedList<>();
-
-	private List<Element> tables = new LinkedList<>();
-	
-	private List<Element> commentedElements;
-
-
-	public MybatisGeneratorXmlReader(InputStream inputStream) throws DocumentException, IOException {
+	private MybatisGeneratorXmlReader(InputStream inputStream) throws DocumentException, IOException {
 		super(inputStream, ROOT_TAG);
 		root = document.getRootElement();
-		loadClasspathEntry();
-		loadContext();
-		if (context != null) {
-			loadCommentedElements();
-			loadJdbcConnection();
-			loadJavaTypeResolver();
-			loadElements(PLUGIN_TAG, plugins);
-			loadElements(MODEL_GENERATOR_TAG, javaModelGenerators);
-			loadElements(SQLMAP_GENERATOR_TAG, sqlMapGenerators);
-			loadElements(CLIENT_GENERATOR_TAG, javaClientGenerators);
-			loadElements(TABLE_TAG, tables);
-		}
-		document.remove(root);
-		root = documentFactory.createElement(ROOT_TAG);
-		document.setRootElement(root);
-	}
-	
-	
-	private Document buildDoc(String text) {
-		SAXReader saxReader = new SAXReader();
-		saxReader.setValidation(false);
-		try  {
-			return saxReader.read(new ByteArrayInputStream(("<rootDoc>" + text + "</rootDoc>").getBytes()));
-		} catch (Exception e) {
-			return null;
-		}
-	}
-	
-	private Element findPluginElement(List<Element> elements, String type) {
-		for (Element element : elements) {
-			if (!PLUGIN_TAG.equals(element.getName())) {
-				continue;
-			}
-			if (type.equals(element.attributeValue("type"))) {
-				return element;
-			}
-		}
-		return null;
-	}
-	
-	private void loadElements(String tag, List<Element> dst) {
-		for (Element element : context.elements(tag)) {
-			dst.add(element.createCopy());
-		}
-	}
-	
-	
-	private void convertToElements(String text) {
-		Document doc = buildDoc(text);
-		if (doc != null) {
-			commentedElements = doc.getRootElement().elements();
-		}
-		if (commentedElements == null) {
-			commentedElements = new ArrayList<>(0);
-		}
-	}
-	
-	
-	private boolean isCommentedElement(String text) {
-		if (buildDoc(text) != null) {
-			return true;
-		}
-		return false;
-	}
-	
-	private void loadCommentedElements()  {
-		String text = null;
-		for (Iterator<Node> iterator = context.nodeIterator(); iterator.hasNext(); ) {
-			Node node = iterator.next();
-			if (node.getNodeType() != Node.COMMENT_NODE) {
-				continue;
-			}
-			Comment comment = (Comment) node;
-			String tmp = comment.asXML().replaceAll("\\s+", " ");
-			tmp = tmp.replaceAll("<!--", "<");
-			tmp = tmp.replaceAll("-->", ">");
-			if (isCommentedElement(tmp)) {
-				text = text == null ? tmp : text + tmp;
-			}
-		}
-		convertToElements(text);
-	}
-	
-	
-	private void loadClasspathEntry() {
 		classPathEntry = root.element(CLASS_PATH_ENTRY_TAG);	
+		loadContexts(root);
+		loadCommentedContexts(root);
+		root = documentFactory.createElement(ROOT_TAG);
+		document = null;
 	}
 	
-	private void loadContext() {
-		context = root.element("context");
-	}
-	
-	private void loadJdbcConnection() {
-		jdbcConnection = context.element("jdbcConnection");
-	}
-	
-	private void loadJavaTypeResolver() {
-		javaTypeResolver = context.element("javaTypeResolver");
-	}
-
-	
-	private Element findTable(List<Element> elements, Element table) {
-		for (Element e: elements) {
-			if (!"table".equals(e.getName())) {
+	private void loadCommentedContexts(Element parent) {
+		commentedContexts = new ArrayList<>();
+		List<Element> tmpList = AbstractXmlParser.loadCommentedElements(parent);
+		for (Element tmp : tmpList) {
+			if (!tmp.getName().equals("context")) {
 				continue;
 			}
-			String name = e.attributeValue("tableName");
-			String schema = e.attributeValue("schema");
-			if ((name != null && name.equals(table.attributeValue("tableName"))) &&
-				(schema != null && schema.equals(table.attributeValue("schema")))) {
-				return e;
+			try {
+				commentedContexts.add(new MybatisGeneratorContext(tmp));
+			} catch (Exception e) {
+
 			}
 		}
-		return null;
-	}
-
-	private boolean hasTable(Element table) {
-		return findTable(tables, table) != null;
 	}
 	
-	private Comment commentElement(Element e) {
-		String str = e.asXML();
-		str = str.replaceFirst("^<", "");
-		str = str.replaceFirst("/>$", "");
-		return documentFactory.createComment(str);
-	}
-
-	private void mergeGenerators(Set<Element> generatedOnes, List<Element> currentOnes) {
-		if (currentOnes.isEmpty()) {
-			currentOnes.addAll(generatedOnes);
-		}
-		for (Element e : currentOnes) {
-			context.add(e.createCopy());
-		}
-	}
-	
-	private void mergeSqlMapGenerators(MybatisGeneratorXmlCreator configFileGenerator) {
-		mergeGenerators(configFileGenerator.getSqlMapGeneratorElements(), sqlMapGenerators);
-	}
-	
-	private void mergeJavaModelGenerators(MybatisGeneratorXmlCreator configFileGenerator) {
-		mergeGenerators(configFileGenerator.getJavaModelGeneratorElements(), javaModelGenerators);
-	}
-	
-	private void mergeJavaClientGenerators(MybatisGeneratorXmlCreator configFileGenerator) {
-		mergeGenerators(configFileGenerator.getJavaClientGeneratorElements(), javaClientGenerators);
-	}
-	
-	private void mergeClasspathEntry(MybatisGeneratorXmlCreator configFileGenerator) {
-		if (classPathEntry == null) {
-			root.add(configFileGenerator.getClassPathEntryElement().createCopy());
-		} else {
-			root.add(classPathEntry.createCopy());
-		}
-	}
-
-	private boolean mergeContext(MybatisGeneratorXmlCreator configFileGenerator) {
-		if (context == null) {
-			root.add(configFileGenerator.getContext().createCopy());
-			return false;
-		}
-		context = root.addElement("context");
-		context.addAttribute("id", MybatisGeneratorAnalyzer.DEFAULT_CONTEXT_ID);
-		context.addAttribute("targetRuntime", MybatisGeneratorAnalyzer.TARGET_RUNTIME);
-		return true;
-	}
-	
-	private void mergeJavaTypeResolver(MybatisGeneratorXmlCreator configFileGenerator) {
-		if (javaTypeResolver == null) {
-			context.add(configFileGenerator.getJavaTypeResolverElement().createCopy());
-		} else {
-			context.add(javaTypeResolver.createCopy());
-		}
-	}
-	
-	private void mergeJdbcConnection(MybatisGeneratorXmlCreator configFileGenerator) {
-		if (jdbcConnection == null) {
-			context.add(configFileGenerator.getJdbConnectionElement().createCopy());
-		} else {
-			context.add(jdbcConnection.createCopy());
-		}
-	}
-
-	
-	/*
-	 * Tables commented will just remain the same.
+	/**
+	 * Build {@link MybatisGeneratorXmlReader} from the inputStream.
+	 * @param inputStream
+	 * @return an instance of {@link MybatisGeneratorXmlReader}.
+	 * @throws InvalidMybatisGeneratorConfigException if the inputStream is not from a valid xml file.
 	 */
-	private void mergeTables(MybatisGeneratorXmlCreator configFileGenerator) {
-		for (Element current: tables) {
-			context.add(current.createCopy());
+	public static MybatisGeneratorXmlReader build(InputStream inputStream)  {
+		try {
+			return new MybatisGeneratorXmlReader(inputStream);
+		} catch (DocumentException | IOException e) {
+			throw new InvalidMybatisGeneratorConfigException(e);
 		}
-		for (Element newTable : configFileGenerator.getTableElements()) {
-			if (hasTable(newTable)) {
-				continue;
-			}
-			Element commented = findTable(commentedElements, newTable);
-			if (commented != null) {
-				context.add(commentElement(commented.createCopy()));
-			} else {
-				context.add(newTable.createCopy());
+	}
+	
+	private void loadContexts(Element root) {
+		contexts = new LinkedList<>();
+		List<Element> thisContexts = root.elements("context");
+		for (Element element : thisContexts) {
+			contexts.add(new MybatisGeneratorContext(element));
+		}
+	}
+	
+	private void mergeClasspathEntry(Element thatClassPathEntry) {
+		if (classPathEntry == null) {
+			classPathEntry = thatClassPathEntry;
+		}
+	}
+	
+	/**
+	 * Drop tables that already configured in existent contexts from generated contexts.
+	 * @param thatContexts generated contexts.
+	 */
+	private void dropExistentTables(List<MybatisGeneratorContext> thatContexts) {
+		for (MybatisGeneratorContext thisContext: contexts) {
+			for (MybatisGeneratorContext thatContext: thatContexts) {
+				thatContext.removeExistentTables(thisContext);
 			}
 		}
 	}
 	
-	
-	private void mergePlugins(MybatisGeneratorXmlCreator configFileGenerator) {
-		Element pluginElement = configFileGenerator.getPluginElement();
-		Element currentPlugin = findPluginElement(plugins, YOBATIS_PLUGIN);
-		// This one is mandatory.
-		if (currentPlugin == null) {
-			context.add(pluginElement.createCopy());
-		} else {
-			context.add(currentPlugin.createCopy());
-		}
-		
-		// Preserve active plug-ins.
-		for (Element element : plugins) {
-			if (PLUGIN_TAG.equals(element.getName()) &&
-				!YOBATIS_PLUGIN.equals(element.attributeValue("type"))) {
-				context.add(element.createCopy());
+	private void mergeContexts(List<MybatisGeneratorContext> thatContexts) {
+		dropExistentTables(thatContexts);
+		for (MybatisGeneratorContext thisContext: contexts) {
+			for (MybatisGeneratorContext thatContext: thatContexts) {
+				if (thisContext.idEqualsTo(thatContext)) {
+					thisContext.merge(thatContext);
+				}
 			}
 		}
-		// Keep commented plug-ins, still as commented.
-		for (Element element : commentedElements) {
-			if (PLUGIN_TAG.equals(element.getName())) {
-				context.add(commentElement(element.createCopy()));
+		List<MybatisGeneratorContext> diff = new ArrayList<>();
+		for (MybatisGeneratorContext thatContext: thatContexts) {
+			boolean found = false;
+			for (MybatisGeneratorContext thisContext: contexts) {
+				if (thisContext.idEqualsTo(thatContext)) {
+					found = true;
+				}
+			}
+			if (!found) {
+				diff.add(thatContext);
 			}
 		}
+		contexts.addAll(diff);
 	}
+
 	
 	/**
 	 * Preserve manually edited elements. 
 	 * @param configFileGenerator
 	 */
 	public void mergeGeneratedConfig(MybatisGeneratorXmlCreator configFileGenerator) {
-		mergeClasspathEntry(configFileGenerator);
-		if (mergeContext(configFileGenerator)) {
-			mergePlugins(configFileGenerator);
-			mergeJdbcConnection(configFileGenerator);
-			mergeJavaTypeResolver(configFileGenerator);
-			mergeJavaModelGenerators(configFileGenerator);
-			mergeSqlMapGenerators(configFileGenerator);
-			mergeJavaClientGenerators(configFileGenerator);
-			mergeTables(configFileGenerator);
-		}
+		Expect.notNull(configFileGenerator, "configFileGenerator must not be empty.");
+		mergeClasspathEntry(configFileGenerator.getClassPathEntryElement());
+		mergeContexts(configFileGenerator.getContexts());
 	}
 
-	
 	@Override
 	protected void customSAXReader(SAXReader saxReader ) {
-		saxReader.setEntityResolver(new EntityResolver() {
-			@Override
-			public InputSource resolveEntity(String publicId, String systemId)
-					throws SAXException, IOException {
-				if (systemId.contains("mybatis-generator-config_1_0.dtd")) {
-					return new InputSource(new StringReader(DTD)); 
-				}
-				return null;
+		saxReader.setEntityResolver((String publicId, String systemId) -> {
+			if (systemId.contains("mybatis-generator-config_1_0.dtd")) {
+				return new InputSource(new StringReader(DTD));
 			}
+			return null;
 		});
-	}
-	
-	
-	
-	private void assertHasSingleElement(List<Element> elements, String name) {
-		if (elements.isEmpty() ) {
-			throw new InvalidMybatisGeneratorConfigException(
-				String.format("There is no %s configured, please set the element and re-run.", name));
-		} else if (elements.size() > 1)  {
-			throw new InvalidMybatisGeneratorConfigException(
-				String.format("More than one %s configured, please remove unintentional ones and re-run.", name));
-		}
-	}
-
-	
-	/*
-	 * a.b.c + /user/test -> /user/test/a/b/c
-	 */
-	private String buildGeneratorPath(List<Element> elements, String name) {
-		assertHasSingleElement(elements, name);
-		Element element = elements.get(0);
-		String packageName = element.attributeValue("targetPackage");
-		String targetProject = element.attributeValue("targetProject");
-		return targetProject + "/" + packageName.replace(".", "/");
-	}
-	
-	
-	@Override
-	public String getDaoDirPath() {
-		return buildGeneratorPath(javaClientGenerators, CLIENT_GENERATOR_TAG);
-	}
-
-	@Override
-	public String getModelDirPath() {
-		return buildGeneratorPath(javaModelGenerators, MODEL_GENERATOR_TAG);
-	}
-
-	@Override
-	public String getCriteriaDirPath() {
-		return getModelDirPath() + "/criteria";
-	}
-
-	private String getTargetPackage(List<Element> elements, String tag) {
-		assertHasSingleElement(elements, tag);
-		Element element = javaModelGenerators.get(0);
-		return element.attributeValue("targetPackage");
-	}
-
-	@Override
-	public String getModelPackageName() {
-		return getTargetPackage(javaModelGenerators, MODEL_GENERATOR_TAG);
-	}
-
-	@Override
-	public String getXmlMapperDirPath() {
-		return buildGeneratorPath(sqlMapGenerators, SQLMAP_GENERATOR_TAG);
-	}
-
-	@Override
-	public String getDaoPackageName() {
-		return getTargetPackage(javaClientGenerators, CLIENT_GENERATOR_TAG);
 	}
 
 	@Override
 	public String asXmlText() {
 		try {
+			if (document == null) {
+				document = documentFactory.createDocument();
+				DocumentType type = documentFactory.createDocType(ROOT_TAG, 
+						"-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN",
+						"http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd");
+				document.setDocType(type);
+				if (classPathEntry != null) {
+					root.add(classPathEntry.createCopy());
+				}
+				for (MybatisGeneratorContext context : contexts) {
+					root.add(context.getContext().createCopy());
+				}
+				for (MybatisGeneratorContext context : commentedContexts) {
+					root.add(AbstractXmlParser.commentElement(context.getContext().createCopy()));
+				}
+				document.setRootElement(root);
+			}
 			return toXmlString(document);
 		} catch (IOException e){
 			throw new InvalidMybatisGeneratorConfigException(e);

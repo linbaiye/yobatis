@@ -1,8 +1,8 @@
 package org.nalby.yobatis.sql.mysql;
 
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 
 import java.lang.reflect.Constructor;
@@ -14,7 +14,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.junit.Before;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.BDDMockito;
 import org.powermock.api.mockito.PowerMockito;
@@ -27,6 +26,7 @@ import org.powermock.modules.junit4.PowerMockRunner;
 public class MysqlDetailProviderTests {
 	
 	private MysqlDatabaseMetadataProvider provider;
+	
 	
 	private String username = "username";
 	private String password = "password";
@@ -75,7 +75,6 @@ public class MysqlDetailProviderTests {
 	}
 	
 	
-	@Test
 	public void crendentials() throws SQLException {
 		assertTrue(provider.getSchema().equals("yobatis"));
 		assertTrue(provider.getPassword().equals(password));
@@ -84,7 +83,6 @@ public class MysqlDetailProviderTests {
 		assertTrue(provider.getDriverClassName().equals(driver));
 	}
 	
-	@Test
 	public void emtpyTables() throws SQLException {
 		BDDMockito.given(resultSet.next()).willReturn(false);
 		BDDMockito.given(metaData.getTables(anyString(), anyString(), anyString(), any(String[].class)))

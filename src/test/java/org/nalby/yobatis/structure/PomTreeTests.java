@@ -1,6 +1,6 @@
 package org.nalby.yobatis.structure;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -14,7 +14,7 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.nalby.yobatis.util.TestUtil;
 
 public class PomTreeTests {
 	
@@ -33,6 +33,8 @@ public class PomTreeTests {
 	private Folder model;
 	
 	private File pomFile;
+	
+	private static final String DEFAULT_CODE_PATH = "/test/src/main/java";
 	
 	private String defaultXML = "<project>\n" + 
 			"  <modelVersion>4.0.0</modelVersion>\n" + 
@@ -71,27 +73,21 @@ public class PomTreeTests {
 		
 		sourceCodeFolders = new LinkedList<>();
 		
-		dao = mock(Folder.class);
-		when(dao.path()).thenReturn("/test/src/main/java/dao");
+		dao = TestUtil.mockFolder("/test/src/main/java/dao");
 
-		model = mock(Folder.class);
-		when(model.path()).thenReturn("/test/src/main/java/model");
+		model = TestUtil.mockFolder("/test/src/main/java/model");
 
 		sourceCodeFolders.add(dao);
 		sourceCodeFolders.add(model);
 
 		when(sourceCodeFolder.listFolders()).thenReturn(sourceCodeFolders);
 		
-		when(project.concatMavenRepositoryPath(anyString())).then(new Answer<String>() {
-
-			@Override
-			public String answer(InvocationOnMock invocation) throws Throwable {
-				String arg = (String)invocation.getArguments()[0];
-				if (arg.contains("mysql-connector-java")) {
-					return "/m2/" + arg;
-				}
-				return null;
+		when(project.concatMavenRepositoryPath(anyString())).then((InvocationOnMock invocation) -> {
+			String arg = (String) invocation.getArguments()[0];
+			if (arg.contains("mysql-connector-java")) {
+				return "/m2/" + arg;
 			}
+			return null;
 		});
 	}
 	
@@ -232,5 +228,43 @@ public class PomTreeTests {
 		assertTrue(tree.getDatabaseJarPath("com.jdbc.Driver") == null);
 	}
 	
+	@Test
+	public void findMatchingDaoFolder() {
+		PomTree tree = new PomTree(project);
+		assertTrue(tree.findMostMatchingDaoFolder(model) == dao);
+	}
+	
+	@Test
+	public void noDaoFolder() {
+		sourceCodeFolders.remove(dao);
+		PomTree tree = new PomTree(project);
+		assertNull(tree.findMostMatchingDaoFolder(model));
+	}
+	
+	@Test
+	public void multipleDaoFolders() {
+		Folder modelFolder = TestUtil.mockFolder(DEFAULT_CODE_PATH + "/user/model");
+		sourceCodeFolders.add(modelFolder);
+		PomTree tree = new PomTree(project);
+		assertTrue(tree.findMostMatchingDaoFolder(modelFolder) == dao);
+		Folder userdaoFolder = TestUtil.mockFolder(DEFAULT_CODE_PATH + "/user/dao");
+		sourceCodeFolders.add(userdaoFolder);
+		assertTrue(tree.findMostMatchingDaoFolder(modelFolder) == userdaoFolder);
+	}
+	
+	@Test
+	public void findResourceFolder() {
+		PomTree tree = new PomTree(project);
+		assertTrue(tree.findMostMatchingResourceFolder(model) == resourceFolder);
+		Folder test = TestUtil.mockFolder("/test");
+		assertTrue(tree.findMostMatchingResourceFolder(test) == resourceFolder);
+	}
+	
+	@Test
+	public void noResourceFolder() {
+		when(project.findFolder("src/main/resources")).thenReturn(null);
+		PomTree tree = new PomTree(project);
+		assertNull(tree.findMostMatchingResourceFolder(model));
+	}
 	
 }

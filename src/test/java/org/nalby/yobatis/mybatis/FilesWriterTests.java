@@ -1,0 +1,232 @@
+package org.nalby.yobatis.mybatis;
+
+import static org.mockito.Mockito.*;
+
+import java.io.InputStream;
+import java.util.LinkedList;
+import java.util.List;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.mybatis.generator.api.GeneratedFile;
+import org.mybatis.generator.api.GeneratedJavaFile;
+import org.mybatis.generator.api.GeneratedXmlFile;
+import org.mybatis.generator.api.LibraryRunner;
+import org.nalby.yobatis.structure.File;
+import org.nalby.yobatis.structure.Project;
+import org.nalby.yobatis.util.FolderUtil;
+import org.nalby.yobatis.util.TestUtil;
+
+public class FilesWriterTests {
+	
+	private LibraryRunner libraryRunner;
+	
+	private List<GeneratedJavaFile> javaFiles;
+	
+	private List<GeneratedXmlFile> xmlFiles;
+
+	private Project project;
+	
+	private final static String DEFAULT_JAVA_PATH = "/src/main/java";
+
+	private final static String DEFAULT_XML_PATH = "/src/main/resources";
+
+	private GeneratedJavaFile addBaseClass(String className) {
+		GeneratedJavaFile javaFile = mock(GeneratedJavaFile.class);
+		String content = "package model.base\n";
+		content = content + "public abstract class " + className + " {\n";
+		content = content + "int a = 1;\n";
+		content = content + "}";
+		when(javaFile.getFormattedContent()).thenReturn(content);
+		when(javaFile.getTargetPackage()).thenReturn("model.base");
+		when(javaFile.getTargetProject()).thenReturn(DEFAULT_JAVA_PATH);
+		when(javaFile.getFileName()).thenReturn(className + ".java");
+		javaFiles.add(javaFile);
+		return javaFile;
+	}
+	
+	private GeneratedJavaFile addModelClass(String className) {
+		GeneratedJavaFile javaFile = mock(GeneratedJavaFile.class);
+		String content = "package model\n";
+		content = content + "public class " + className + " {\n";
+		content = content + "int a = 1;\n";
+		content = content + "}";
+		when(javaFile.getFormattedContent()).thenReturn(content);
+		when(javaFile.getTargetPackage()).thenReturn("model");
+		when(javaFile.getTargetProject()).thenReturn(DEFAULT_JAVA_PATH);
+		when(javaFile.getFileName()).thenReturn(className + ".java");
+		javaFiles.add(javaFile);
+		return javaFile;
+	}
+	
+	
+	private GeneratedJavaFile addCriteriaClass(String className) {
+		GeneratedJavaFile javaFile = mock(GeneratedJavaFile.class);
+		String content = "package model.criteria\n";
+		content = content + "public class " + className + " {\n";
+		content = content + "int a = 1;\n";
+		content = content + "}";
+		when(javaFile.getFormattedContent()).thenReturn(content);
+		when(javaFile.getTargetPackage()).thenReturn("model.criteria");
+		when(javaFile.getTargetProject()).thenReturn(DEFAULT_JAVA_PATH);
+		when(javaFile.getFileName()).thenReturn(className + ".java");
+		javaFiles.add(javaFile);
+		return javaFile;
+	}
+	
+	private GeneratedJavaFile addMapperClass(String className) {
+		GeneratedJavaFile javaFile = mock(GeneratedJavaFile.class);
+		String content = "package mapper\n";
+		content = content + "public interface " + className + " {\n";
+		content = content + "}";
+		when(javaFile.getFormattedContent()).thenReturn(content);
+		when(javaFile.getTargetPackage()).thenReturn("mapper");
+		when(javaFile.getTargetProject()).thenReturn(DEFAULT_JAVA_PATH);
+		when(javaFile.getFileName()).thenReturn(className + ".java");
+		javaFiles.add(javaFile);
+		return javaFile;
+	}
+
+
+	private File wrapGeneratedFile(GeneratedFile javaFile) {
+		String filepath = FolderUtil.concatPath(javaFile.getTargetProject(), 
+				javaFile.getTargetPackage().replaceAll("\\.", "/") + "/" + javaFile.getFileName());
+		File file = TestUtil.mockFile(filepath, javaFile.getFormattedContent());;
+		doNothing().when(file).write(any(InputStream.class));
+		doNothing().when(file).write(anyString());
+		when(project.createFile(file.path())).thenReturn(file);
+		return file;
+	}
+	
+
+	private File addGeneratedFileToProject(GeneratedFile javaFile) {
+		File file = wrapGeneratedFile(javaFile);
+		when(project.findFile(file.path())).thenReturn(file);
+		return file;
+	}
+	
+	private GeneratedXmlFile makeXmlMapper(String name, String content) {
+		GeneratedXmlFile xmlFile = mock(GeneratedXmlFile.class);
+		when(xmlFile.getFileName()).thenReturn(name + ".xml");
+		when(xmlFile.getFormattedContent()).thenReturn(content);
+		when(xmlFile.getTargetProject()).thenReturn(DEFAULT_XML_PATH);
+		when(xmlFile.getTargetPackage()).thenReturn("mybatis");
+		xmlFiles.add(xmlFile);
+		return xmlFile;
+	}
+
+	private GeneratedXmlFile addXmlMapper(String name, String content) {
+		GeneratedXmlFile xmlFile = makeXmlMapper(name, content);
+		addGeneratedFileToProject(xmlFile);
+		return xmlFile;
+	}
+	
+	private final static String DEFAULT_XML_FILE = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+			"<!DOCTYPE mapper PUBLIC \"-//mybatis.org//DTD Mapper 3.0//EN\" \"http://mybatis.org/dtd/mybatis-3-mapper.dtd\">\n" + 
+			"<mapper namespace=\"dao.BlogMapper\">\n" + 
+			"  <resultMap id=\"BaseResultMap\" type=\"hello.world.domain.Blog\">\n" + 
+			"    <!--\n" + 
+			"      WARNING - @mbg.generated\n" + 
+			"      This element is automatically generated by MyBatis Generator, do not modify.\n" + 
+			"    -->\n" + 
+			"    <id column=\"id\" jdbcType=\"BIGINT\" property=\"id\" />\n" + 
+			"    <result column=\"name\" jdbcType=\"VARCHAR\" property=\"name\" />\n" + 
+			"  </resultMap>\n" + 
+			"</mapper>";
+	
+	@Before
+	public void setup() {
+		libraryRunner = mock(LibraryRunner.class);
+		javaFiles = new LinkedList<>();
+		xmlFiles = new LinkedList<>();
+		when(libraryRunner.getGeneratedJavaFiles()).thenReturn(javaFiles);
+		when(libraryRunner.getGeneratedXmlFiles()).thenReturn(xmlFiles);
+		project = mock(Project.class);
+	}
+	
+	
+	@Test
+	public void writeNewXmlFile() {
+		GeneratedXmlFile xmlFile = addXmlMapper("test", DEFAULT_XML_FILE);
+		File file = wrapGeneratedFile(xmlFile);
+		new MybatisFilesWriter(project, libraryRunner).writeAll();
+		verify(project, times(2)).findFile(file.path());
+		verify(file, times(1)).write(xmlFile.getFormattedContent());
+	}
+	
+	
+	@Test
+	public void writeNewBaseClass() {
+		GeneratedJavaFile javaFile = addBaseClass("Test");
+		File file = wrapGeneratedFile(javaFile);
+		new MybatisFilesWriter(project, libraryRunner).writeAll();
+		verify(project, times(1)).findFile(file.path());
+		verify(file, times(1)).write(javaFile.getFormattedContent());
+	}
+	
+	
+	@Test
+	public void overwriteBaseClass() {
+		GeneratedJavaFile javaFile = addBaseClass("Test");
+		File file = addGeneratedFileToProject(javaFile);
+		new MybatisFilesWriter(project, libraryRunner).writeAll();
+		verify(project, times(1)).findFile(file.path());
+		verify(file, times(1)).write(javaFile.getFormattedContent());
+	}
+	
+	@Test
+	public void writeNewModelClass() {
+		GeneratedJavaFile javaFile = addModelClass("Test");
+		File file = wrapGeneratedFile(javaFile);
+		new MybatisFilesWriter(project, libraryRunner).writeAll();
+		verify(project, times(1)).findFile(file.path());
+		verify(file, times(1)).write(javaFile.getFormattedContent());
+	}
+	
+	@Test
+	public void preserveModelClass() {
+		GeneratedJavaFile javaFile = addModelClass("Test");
+		File file = addGeneratedFileToProject(javaFile);
+		new MybatisFilesWriter(project, libraryRunner).writeAll();
+		verify(project, times(1)).findFile(file.path());
+		verify(file, times(0)).write(javaFile.getFormattedContent());
+	}
+	
+	@Test
+	public void writeNewMapperClass() {
+		GeneratedJavaFile javaFile = addMapperClass("TestMapper");
+		File file = wrapGeneratedFile(javaFile);
+		new MybatisFilesWriter(project, libraryRunner).writeAll();
+		verify(project, times(1)).findFile(file.path());
+		verify(file, times(1)).write(javaFile.getFormattedContent());
+	}
+	
+	@Test
+	public void preserveMapperClass() {
+		GeneratedJavaFile javaFile = addMapperClass("TestMapper");
+		File file = addGeneratedFileToProject(javaFile);
+		new MybatisFilesWriter(project, libraryRunner).writeAll();
+		verify(project, times(1)).findFile(file.path());
+		verify(file, times(0)).write(javaFile.getFormattedContent());
+	}
+	
+	
+	@Test
+	public void writeNewCriteriaClass() {
+		GeneratedJavaFile javaFile = addCriteriaClass("TestCriteria");
+		File file = wrapGeneratedFile(javaFile);
+		new MybatisFilesWriter(project, libraryRunner).writeAll();
+		verify(project, times(1)).findFile(file.path());
+		verify(file, times(1)).write(javaFile.getFormattedContent());
+	}
+	
+	@Test
+	public void overwriteCriteriaClass() {
+		GeneratedJavaFile javaFile = addCriteriaClass("TestCriteria");
+		File file = addGeneratedFileToProject(javaFile);
+		new MybatisFilesWriter(project, libraryRunner).writeAll();
+		verify(project, times(1)).findFile(file.path());
+		verify(file, times(1)).write(javaFile.getFormattedContent());
+	}
+
+}

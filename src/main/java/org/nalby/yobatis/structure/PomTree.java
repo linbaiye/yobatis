@@ -1,6 +1,8 @@
 package org.nalby.yobatis.structure;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -10,6 +12,7 @@ import java.util.Stack;
 import org.nalby.yobatis.exception.InvalidPomException;
 import org.nalby.yobatis.exception.UnsupportedProjectException;
 import org.nalby.yobatis.util.Expect;
+import org.nalby.yobatis.util.FolderUtil;
 import org.nalby.yobatis.util.PropertyUtil;
 import org.nalby.yobatis.util.TextUtil;
 import org.nalby.yobatis.xml.PomXmlParser;
@@ -240,10 +243,12 @@ public class PomTree {
 		return sourceCodeFolders;
 	}
 
+
 	private interface FolderSelector {
 		public boolean isSelected(Folder folder);
 	}
-	
+
+
 	private List<Folder> iterateSourceCodeFolders(FolderSelector selector) {
 		List<Folder> sourceCodeFolders = lookupSourceCodeFolders();
 		List<Folder> folders = new LinkedList<Folder>();
@@ -257,32 +262,45 @@ public class PomTree {
 		return folders;
 	}
 	
+	
+	private boolean isDaoPath(String path)  {
+		return path.endsWith("dao") || path.endsWith("mapper") || path.endsWith("repository");
+	}
+	
+	private boolean isModelPath(String path)  {
+		return path.endsWith("domain") || path.endsWith("entity") || path.endsWith("model");
+	}
+	
+	/**
+	 * Find all dao folders of this project.
+	 * @return the folders, or an empty list.
+	 */
 	public List<Folder> lookupDaoFolders() {
 		return iterateSourceCodeFolders(new FolderSelector() {
 			@Override
 			public boolean isSelected(Folder folder) {
-				String path = folder.path();
-				if (path.endsWith("dao") || path.endsWith("mapper") || path.endsWith("repository")) {
-					return true;
-				}
-				return false;
+				return isDaoPath(folder.path());
 			}
 		});
 	}
 
+	/**
+	 * Find all model folders of this project.
+	 * @return the folders, or an empty list.
+	 */
 	public List<Folder> lookupModelFolders() {
 		return iterateSourceCodeFolders(new FolderSelector() {
 			@Override
 			public boolean isSelected(Folder folder) {
-				String path = folder.path();
-				if (path.endsWith("domain") || path.endsWith("entity") || path.endsWith("model")) {
-					return true;
-				}
-				return false;
+				return isModelPath(folder.path());
 			}
 		});
 	}
 
+	/**
+	 * Find all resource folders of this project.
+	 * @return the folders, or an empty list.
+	 */
 	public List<Folder> lookupResourceFolders() {
 		List<Folder> resourceFolders = new LinkedList<Folder>();
 		for (Pom pom: poms) {
@@ -290,5 +308,94 @@ public class PomTree {
 		}
 		return resourceFolders;
 	}
+	
 
+	private class FolderTokenSimilarityMatcher extends TokenSimilarityMatcher<Folder> {
+		public FolderTokenSimilarityMatcher(Folder folder) {
+			String packageName = FolderUtil.extractPackageName(folder.path());
+			setTokens(new HashSet<>(Arrays.asList(packageName.split("\\."))));
+		}
+		@Override
+		protected String[] tokenize(Folder t) {
+			String packageName = FolderUtil.extractPackageName(t.path());
+			return packageName.split("\\.");
+		}
+	}
+	
+	private Folder matchDaoFolder(List<Folder> folders, Folder modelFolder) {
+		if (folders.isEmpty()) {
+			return null;
+		}
+		FolderTokenSimilarityMatcher matcher  = new FolderTokenSimilarityMatcher(modelFolder);
+		for (Folder folder : folders) {
+			matcher.calculateSimilarity(folder);
+		}
+		return matcher.findMostMatchingOne();
+	}
+	
+
+	public Folder findMostMatchingResourceFolder(Folder modelFolder) {
+		for (Pom pom : poms) {
+			Folder sourceCodeFolder = pom.getSourceCodeFolder();
+			if (sourceCodeFolder == null) {
+				continue;
+			}
+			for (Folder folder : Project.listAllFolders(pom.getSourceCodeFolder())) {
+				if (modelFolder != folder) {
+					continue;
+				}
+				Set<Folder> resourceFolders = pom.getResourceFolders();
+				if (!resourceFolders.isEmpty()) {
+					return resourceFolders.iterator().next();
+				}
+			}
+		}
+		if (webpom != null) {
+			Set<Folder> resourceFolders = webpom.getResourceFolders();
+			if (!resourceFolders.isEmpty()) {
+				return resourceFolders.iterator().next();
+			}
+		}
+		return null;
+	}
+	
+	
+	public Folder findMostMatchingDaoFolder(Folder modelFolder) {
+		Expect.notNull(modelFolder, "modelPackageName must not be null.");
+		List<Folder> daoFolders = new ArrayList<>();
+		for (Pom pom : poms) {
+			Folder sourceCodeFolder = pom.getSourceCodeFolder();
+			if (sourceCodeFolder == null) {
+				continue;
+			}
+			boolean found = false;
+			// There might be more than one dao folders under this pom.
+			daoFolders.clear();
+			for (Folder folder : Project.listAllFolders(sourceCodeFolder)) {
+				if (isDaoPath(folder.path())) {
+					daoFolders.add(folder);
+				} else if (modelFolder == folder) {
+					found = true;
+				}
+			}
+			if (found) {
+				break;
+			}
+		}
+		/* 
+		 * Let's see if there is a dao folder has a similar package pattern to the
+		 * model package pattern under the same pom.
+		 */
+		Folder folder = matchDaoFolder(daoFolders, modelFolder);
+		if (folder == null) {
+			List<Folder> folders = lookupDaoFolders();
+			/* Forget about the same pom, search under the whole project. */
+			folder = matchDaoFolder(folders, modelFolder);
+			if (folder == null && !folders.isEmpty()) {
+				/* Nothing matched, just return one. */
+				folder = folders.get(0);
+			}
+		}
+		return folder;
+	}
 }

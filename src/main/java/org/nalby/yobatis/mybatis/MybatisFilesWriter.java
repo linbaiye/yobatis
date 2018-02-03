@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.mybatis.generator.api.GeneratedFile;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.GeneratedXmlFile;
 import org.mybatis.generator.api.LibraryRunner;
@@ -26,16 +27,17 @@ public class MybatisFilesWriter {
 
 	private LibraryRunner runner;
 
-	private MybatisGeneratorAnalyzer mybatiGeneratorAnalyzer;
-
 	private Project project;
 	
 	private Logger logger = LogFactory.getLogger(MybatisFilesWriter.class);
+	
+	@FunctionalInterface
+	private interface FileSelector {
+		boolean select(GeneratedFile file);
+	}
 
-	public MybatisFilesWriter(Project project, MybatisGeneratorAnalyzer mgAnalyzer,
-			LibraryRunner mybatisRunner) {
+	public MybatisFilesWriter(Project project, LibraryRunner mybatisRunner) {
 		Expect.notNull(project, "project must not be null.");
-		Expect.notNull(mgAnalyzer, "mgAnalyzer must not be null.");
 		Expect.notNull(mybatisRunner, "mybatisRunner must not be null.");
 		this.project = project;
 		this.runner = mybatisRunner;
@@ -45,44 +47,33 @@ public class MybatisFilesWriter {
 		if (runner.getGeneratedXmlFiles() == null) {
 			throw new InvalidMybatisGeneratorConfigException("No xml files generated.");
 		}
-		this.mybatiGeneratorAnalyzer = mgAnalyzer;
 	}
+	
 
-	private List<GeneratedJavaFile> listFile(String suffix) {
+	private List<GeneratedJavaFile> selectFiles(FileSelector selector) {
 		List<GeneratedJavaFile> result = new LinkedList<GeneratedJavaFile>();
 		List<GeneratedJavaFile> javaFiles = runner.getGeneratedJavaFiles();
 		for (GeneratedJavaFile file : javaFiles) {
-			if (file.getFileName() != null
-					&& file.getFileName().endsWith(suffix)) {
+			if (selector.select(file)) {
 				result.add(file);
 			}
 		}
 		return result;
 	}
 
-	private List<GeneratedJavaFile> getMapperFiles() {
-		return listFile("Mapper.java");
-	}
-	
-	private List<GeneratedJavaFile> getCriteriaFiles() {
-		return listFile("Criteria.java");
+	private List<GeneratedJavaFile> listFile(final String suffix) {
+		return selectFiles((GeneratedFile file) -> {
+			return file.getFileName() != null &&
+					file.getFileName().endsWith(suffix);
+		});
 	}
 
-	public List<GeneratedJavaFile> getDomainFiles() {
-		List<GeneratedJavaFile> javaFiles = runner.getGeneratedJavaFiles();
-		List<GeneratedJavaFile> result = new LinkedList<GeneratedJavaFile>();
-		for (GeneratedJavaFile file : javaFiles) {
-			if (file.getFileName() != null &&
-				(!file.getFileName().endsWith("Mapper.java") &&
-				 !file.getFileName().endsWith("Criteria.java"))) {
-				result.add(file);
-			}
-		}
-		return result;
-	}
-	
-	private List<GeneratedXmlFile> getXmlFiles() {
-		return runner.getGeneratedXmlFiles();
+	private List<GeneratedJavaFile> getDomainFiles() {
+		return selectFiles((GeneratedFile file) -> {
+			return file.getFileName() != null &&
+					!file.getFileName().endsWith("Mapper.java") &&
+					!file.getFileName().endsWith("Criteria.java");
+		});
 	}
 	
 	
@@ -95,12 +86,9 @@ public class MybatisFilesWriter {
 	}
 	
 	private void writeJavaMappers() {
-		List<GeneratedJavaFile> files = getMapperFiles();
-		for (GeneratedJavaFile javafile : files) {
-			String path = mybatiGeneratorAnalyzer.getDaoDirPath() + "/" + javafile.getFileName();
-			writeFile(path, javafile.getFormattedContent(), false);
+		for (GeneratedJavaFile javafile : listFile("Mapper.java")) {
+			writeJavaFile(javafile, false);
 		}
-		logger.info("Wrote java mapper files to :{}.", mybatiGeneratorAnalyzer.getDaoDirPath());
 	}
 	
 	
@@ -111,24 +99,26 @@ public class MybatisFilesWriter {
 		return matcher.find();
 	}
 	
+
+	private void writeJavaFile(GeneratedJavaFile javafile, boolean overwrite) {
+		String dirpath = FolderUtil.concatPath(javafile.getTargetProject(), 
+				javafile.getTargetPackage().replaceAll("\\.", "/"));
+		String filepath = FolderUtil.concatPath(dirpath, javafile.getFileName());
+		writeFile(filepath, javafile.getFormattedContent(), overwrite);
+	}
+	
 	private void writeJavaDomains() {
 		List<GeneratedJavaFile> files = getDomainFiles();
 		for (GeneratedJavaFile javafile : files) {
 			boolean overwrite = isBaseModelClass(javafile);
-			String dirpath = mybatiGeneratorAnalyzer.getModelDirPath() + (overwrite ? "/base" : "");
-			String path = FolderUtil.concatPath(dirpath, javafile.getFileName());
-			writeFile(path, javafile.getFormattedContent(), overwrite);
+			writeJavaFile(javafile, overwrite);
 		}
-		logger.info("Wrote model files to :{}.", mybatiGeneratorAnalyzer.getModelDirPath());
 	}
 	
 	private void writeCriteriaFiles() {
-		List<GeneratedJavaFile> files = getCriteriaFiles();
-		for (GeneratedJavaFile javafile : files) {
-			String path = mybatiGeneratorAnalyzer.getCriteriaDirPath() + "/" + javafile.getFileName();
-			writeFile(path, javafile.getFormattedContent(), true);
+		for (GeneratedJavaFile javafile : listFile("Criteria.java")) {
+			writeJavaFile(javafile, true);
 		}
-		logger.info("Wrote criteria files to :{}.", mybatiGeneratorAnalyzer.getCriteriaDirPath());
 	}
 	
 	private String mergeManualSqlXml(String path, String content) {
@@ -147,12 +137,14 @@ public class MybatisFilesWriter {
 	}
 	
 	private void writeXmlFiles() {
-		List<GeneratedXmlFile> xmlFiles = getXmlFiles();
+		List<GeneratedXmlFile> xmlFiles = runner.getGeneratedXmlFiles();
 		for (GeneratedXmlFile xmlfile : xmlFiles) {
-			String path = mybatiGeneratorAnalyzer.getXmlMapperDirPath() + "/" + xmlfile.getFileName();
-			writeFile(path, mergeManualSqlXml(path, xmlfile.getFormattedContent()), true);
+			String dirpath = FolderUtil.concatPath(xmlfile.getTargetProject(), 
+					xmlfile.getTargetPackage().replaceAll("\\.", "/"));
+			String filepath = FolderUtil.concatPath(dirpath, xmlfile.getFileName());
+			String content = mergeManualSqlXml(filepath, xmlfile.getFormattedContent());
+			writeFile(filepath, content, true);
 		}
-		logger.info("Wrote xml mapper files to :{}.", mybatiGeneratorAnalyzer.getXmlMapperDirPath());
 	}
 
 	public void writeAll() {
@@ -160,6 +152,7 @@ public class MybatisFilesWriter {
 		writeJavaDomains();
 		writeJavaMappers();
 		writeXmlFiles();
+		logger.info("Files have been generated, happy coding.");
 	}
 
 }

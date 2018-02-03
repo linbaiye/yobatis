@@ -18,7 +18,7 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.commands.ICommandService;
 import org.eclipse.ui.handlers.IHandlerService;
 import org.nalby.yobatis.log.LogFactory;
-import org.nalby.yobatis.mybatis.MybatisGeneratorXmlCreator;
+import org.nalby.yobatis.mybatis.MybatisGenerator;
 
 public class MenuAppender extends ContributionItem {
 	
@@ -48,7 +48,7 @@ public class MenuAppender extends ContributionItem {
 		}
 		if (element instanceof IFile) {
 			IFile iFile = (IFile)element;
-			if (!MybatisGeneratorXmlCreator.CONFIG_FILENAME.equals(iFile.getName())) {
+			if (!MybatisGenerator.CONFIG_FILENAME.equals(iFile.getName())) {
 				return;
 			}
 		}
