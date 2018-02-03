@@ -111,6 +111,24 @@ public class MybatisGeneratorContextTests {
 	}
 	
 	
+	private boolean hasPlugin(List<Element> elements, String type) {
+		for (Element element : elements) {
+			if (type.equals(element.attributeValue("type"))) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private boolean hasTable(List<Element> tableElements, String name) {
+		for (Element thisTable : tableElements) {
+			if (name != null && name.equals(thisTable.attributeValue("tableName"))) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	private void assertPluginElement(Element element) {
 		assertTrue(element.elements("plugin").size() != 0);
 		assertTrue(element.element("javaTypeResolver") != null);
@@ -202,24 +220,7 @@ public class MybatisGeneratorContextTests {
 				"  </context>\n";
 		build(xml);
 	}
-	
-	private boolean hasPlugin(List<Element> elements, String type) {
-		for (Element element : elements) {
-			if (type.equals(element.attributeValue("type"))) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	private boolean hasTable(List<Element> tableElements, String name) {
-		for (Element thisTable : tableElements) {
-			if (name != null && name.equals(thisTable.attributeValue("tableName"))) {
-				return true;
-			}
-		}
-		return false;
-	}
+
 
 	
 	@Test
@@ -254,6 +255,7 @@ public class MybatisGeneratorContextTests {
 		assertTrue(hasPlugin(context.getContext().elements("plugin"), "test"));
 		assertTrue(hasTable(context.getContext().elements("table"), "table1"));
 		assertTrue(hasTable(context.getContext().elements("table"), "table2"));
+		assertTrue(context.hasTable());
 	}
 	
 	

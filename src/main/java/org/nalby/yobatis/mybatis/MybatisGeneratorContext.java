@@ -201,6 +201,15 @@ public class MybatisGeneratorContext {
 		return findTable(tableElements, thatTable) != null;
 	}
 	
+						
+	/**
+	 * Test if this context contains any table elements.
+	 * @return true if so, false otherwise.
+	 */
+	public boolean hasTable() {
+		return !tableElements.isEmpty();
+	}
+	
 	
 	/**
 	 * Remove tables appearing in thatContext from this context.
