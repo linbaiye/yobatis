@@ -1,1 +1,2 @@
 # yobatis
+yobatis是一个基于mybatis-generator的eclipse插件。如果你在使用spring, servlet, mysql开发web项目，它可以根据数据库帮你生成dao和model的代码。减少手写Mybatis-Generator的配置文件。
