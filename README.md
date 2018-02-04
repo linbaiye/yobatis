@@ -23,3 +23,5 @@ https://linbaiye.github.io/yobatis_upsite
 ```
 5.右键单击项目，选择弹出菜单中的"Yobatis"生成Mybatis-Generator配置文件"mybatisGeneratorConfig.xml"；右键单击该文件选择弹出菜单中的"Yobatis"生成代码。
 ![alt text](https://linbaiye.github.io/yobatis/img/usage.gif)
+# BUG & 改进
+使用中遇到问题，或者有改进建议请提交issue。
