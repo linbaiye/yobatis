@@ -16,15 +16,12 @@
 package org.nalby.yobatis.mybatis;
 
 import java.io.InputStream;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.mybatis.generator.api.GeneratedFile;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.GeneratedXmlFile;
 import org.mybatis.generator.api.LibraryRunner;
+import org.mybatis.generator.api.YobatisJavaFile;
 import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.log.LogFactory;
 import org.nalby.yobatis.log.Logger;
@@ -65,33 +62,6 @@ public class MybatisFilesWriter {
 	}
 	
 
-	private List<GeneratedJavaFile> selectFiles(FileSelector selector) {
-		List<GeneratedJavaFile> result = new LinkedList<GeneratedJavaFile>();
-		List<GeneratedJavaFile> javaFiles = runner.getGeneratedJavaFiles();
-		for (GeneratedJavaFile file : javaFiles) {
-			if (selector.select(file)) {
-				result.add(file);
-			}
-		}
-		return result;
-	}
-
-	private List<GeneratedJavaFile> listFile(final String suffix) {
-		return selectFiles((GeneratedFile file) -> {
-			return file.getFileName() != null &&
-					file.getFileName().endsWith(suffix);
-		});
-	}
-
-	private List<GeneratedJavaFile> getDomainFiles() {
-		return selectFiles((GeneratedFile file) -> {
-			return file.getFileName() != null &&
-					!file.getFileName().endsWith("Mapper.java") &&
-					!file.getFileName().endsWith("Criteria.java");
-		});
-	}
-	
-	
 	private void writeFile(String path, String content, boolean overwrite) {
 		File file = project.findFile(path);
 		if (file == null || overwrite) {
@@ -99,21 +69,6 @@ public class MybatisFilesWriter {
 			file.write(content);
 		}
 	}
-	
-	private void writeJavaMappers() {
-		for (GeneratedJavaFile javafile : listFile("Mapper.java")) {
-			writeJavaFile(javafile, false);
-		}
-	}
-	
-	
-	private static final Pattern BASE_CLASS_PATTERN = Pattern.compile("public abstract class [^\\s]+ \\{");
-	
-	private boolean isBaseModelClass(GeneratedJavaFile javaFile) {
-		Matcher matcher = BASE_CLASS_PATTERN.matcher(javaFile.getFormattedContent());
-		return matcher.find();
-	}
-	
 
 	private void writeJavaFile(GeneratedJavaFile javafile, boolean overwrite) {
 		String dirpath = FolderUtil.concatPath(javafile.getTargetProject(), 
@@ -122,17 +77,17 @@ public class MybatisFilesWriter {
 		writeFile(filepath, javafile.getFormattedContent(), overwrite);
 	}
 	
-	private void writeJavaDomains() {
-		List<GeneratedJavaFile> files = getDomainFiles();
-		for (GeneratedJavaFile javafile : files) {
-			boolean overwrite = isBaseModelClass(javafile);
-			writeJavaFile(javafile, overwrite);
-		}
-	}
-	
-	private void writeCriteriaFiles() {
-		for (GeneratedJavaFile javafile : listFile("Criteria.java")) {
-			writeJavaFile(javafile, true);
+	private void writeJavaFiles() {
+		for (GeneratedJavaFile tmp : runner.getGeneratedJavaFiles()) {
+			if (!(tmp instanceof YobatisJavaFile)) {
+				continue;
+			}
+			YobatisJavaFile javaFile = (YobatisJavaFile)tmp;
+			if (javaFile.isOverwrite()) {
+				writeJavaFile(javaFile, true);
+			} else {
+				writeJavaFile(javaFile, false);
+			}
 		}
 	}
 	
@@ -147,6 +102,11 @@ public class MybatisFilesWriter {
 			} catch (Exception e) {
 				//Do nothing.
 			}
+		}
+		try {
+			// Transform format.
+			return SqlMapperParser.fromString(content).toXmlString();
+		} catch (Exception e) {
 		}
 		return content;
 	}
@@ -163,9 +123,7 @@ public class MybatisFilesWriter {
 	}
 
 	public void writeAll() {
-		writeCriteriaFiles();
-		writeJavaDomains();
-		writeJavaMappers();
+		writeJavaFiles();
 		writeXmlFiles();
 		logger.info("Files have been generated, happy coding.");
 	}

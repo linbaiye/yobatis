@@ -251,7 +251,7 @@ public class MybatisGeneratorContextTests {
 				"  </context>\n";
 		context = build(xml);
 		assertPluginElement(context.getContext());
-		assertTrue(hasPlugin(context.getContext().elements("plugin"), MybatisGeneratorContext.YOBATIS_PLUGIN));
+		assertTrue(hasPlugin(context.getContext().elements("plugin"), MybatisGeneratorContext.YOBATIS_DAO_PLUGIN));
 		assertTrue(hasPlugin(context.getContext().elements("plugin"), "test"));
 		assertTrue(hasTable(context.getContext().elements("table"), "table1"));
 		assertTrue(hasTable(context.getContext().elements("table"), "table2"));

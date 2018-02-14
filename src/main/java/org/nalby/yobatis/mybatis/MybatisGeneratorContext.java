@@ -48,9 +48,7 @@ public class MybatisGeneratorContext {
 
 	public final static String PLUGIN_TAG = "plugin";
 
-	public final static String YOBATIS_PLUGIN = "org.mybatis.generator.plugins.YobatisPlugin";
-	
-	public final static String YOBATIS_CRITERIA_PLUGIN = "org.mybatis.generator.plugins.YobatisCriteriaPlugin";
+	public final static String YOBATIS_DAO_PLUGIN = "org.mybatis.generator.plugins.YobatisDaoPlugin";
 	
 	private DocumentFactory factory = DocumentFactory.getInstance();
 
@@ -84,11 +82,9 @@ public class MybatisGeneratorContext {
 		Expect.notNull(databaseMetadataProvider, "databaseMetadataProvider must not be null.");
 		Expect.notEmpty(id, "id must not be empty.");
 		this.id = id;
-
 		plugins = new ArrayList<>();
 		tableElements = new ArrayList<>();
-		plugins.add(createYobatisPlugin());
-		plugins.add(createCriteriaPlugin());
+		plugins.add(createYobatisDaoPlugin());
 		createJdbcConnection(databaseMetadataProvider);
 		createTypeResolver();
 		commentedElements = Collections.EMPTY_LIST;
@@ -134,8 +130,8 @@ public class MybatisGeneratorContext {
 	
 	private void loadPlugins(Element context) {
 		plugins = context.elements(PLUGIN_TAG);
-		if (!hasPlugin(plugins,  YOBATIS_PLUGIN)) {
-			plugins.add(0, createYobatisPlugin());
+		if (!hasPlugin(plugins,  YOBATIS_DAO_PLUGIN)) {
+			plugins.add(0, createYobatisDaoPlugin());
 		}
 	}
 	
@@ -170,21 +166,10 @@ public class MybatisGeneratorContext {
 		return FolderUtil.wipePackagePath(folder.path());
 	}
 	
-	private Element createCriteriaPlugin() {
-		Element criteriaPluginElement = factory.createElement(PLUGIN_TAG);
-		criteriaPluginElement.addAttribute("type",   YOBATIS_CRITERIA_PLUGIN);
-		return criteriaPluginElement;
-	}
 	
-	private Element createYobatisPlugin() {
+	private Element createYobatisDaoPlugin() {
 		Element yobatisPluginElement = factory.createElement(PLUGIN_TAG);
-		yobatisPluginElement.addAttribute("type",   YOBATIS_PLUGIN);
-		Element property = yobatisPluginElement.addElement("property");
-		property.addAttribute("name", "enableBaseClass");
-		property.addAttribute("value", "true");
-		property = yobatisPluginElement.addElement("property");
-		property.addAttribute("name", "enableToString");
-		property.addAttribute("value", "true");
+		yobatisPluginElement.addAttribute("type",   YOBATIS_DAO_PLUGIN);
 		return yobatisPluginElement;
 	}
 	

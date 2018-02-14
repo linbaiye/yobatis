@@ -64,6 +64,7 @@ public abstract class AbstractXmlParser {
 	
 	public static String toXmlString(Document document) throws IOException {
 		OutputFormat format = OutputFormat.createPrettyPrint();
+		format.setTrimText(false);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		PrintStream ps = new PrintStream(baos, true, "utf-8");
 	    XMLWriter writer = new XMLWriter(ps, format);
@@ -80,6 +81,7 @@ public abstract class AbstractXmlParser {
 	private static Document buildDoc(String text) {
 		SAXReader saxReader = new SAXReader();
 		saxReader.setValidation(false);
+		saxReader.setStripWhitespaceText(false);
 		try  {
 			return saxReader.read(new ByteArrayInputStream(("<rootDoc>" + text + "</rootDoc>").getBytes()));
 		} catch (Exception e) {
@@ -139,4 +141,5 @@ public abstract class AbstractXmlParser {
 		str = str.replaceFirst(">$", "");
 		return DocumentFactory.getInstance().createComment(str);
 	}
+
 }
