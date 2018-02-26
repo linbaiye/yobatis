@@ -40,19 +40,8 @@ public List nameEqualOrAuthorIs(String name, long authorId) {
 ![alt text](https://linbaiye.github.io/yobatis/img/install1.png)
 
 ![alt text](https://linbaiye.github.io/yobatis/img/install2.png)
-# 使用
-用yobatis-simple-example作为示例，展示如何使用Yobatis
-1. git clone https://github.com/linbaiye/yobatis-simple-example.git
-2. 使用book_store.sql建表。
-3. eclipse打开项目(maven项目)。
-4. 在pom.xml文件中配置好数据库，初始配置如下:
-```
-<jdbc.username>root</jdbc.username>
-<jdbc.password>root</jdbc.password>
-<jdbc.url>jdbc:mysql://localhost:3306/book_store?characterEncoding=utf-8</jdbc.url>
-<jdbc.driverClassName>com.mysql.jdbc.Driver</jdbc.driverClassName>
-```
-5.右键单击项目，选择弹出菜单中的"Yobatis"生成Mybatis-Generator配置文件"mybatisGeneratorConfig.xml"；右键单击该文件选择弹出菜单中的"Yobatis"生成代码。
-![alt text](https://linbaiye.github.io/yobatis/img/usage.gif)
+# 生成代码
+如果项目是基于MySQL/Mybatis/SpringMVC/Servlet(tomcat)，可以尝试使用yobatis自动生成配置文件，如下图：
+![usage](https://linbaiye.github.io/yobatis/img/usage.gif)
 # BUG & 改进
 使用中遇到问题，或者有改进建议请提交issue。
