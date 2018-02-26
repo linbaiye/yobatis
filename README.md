@@ -43,5 +43,34 @@ public List nameEqualOrAuthorIs(String name, long authorId) {
 # 生成代码
 如果项目是基于MySQL/Mybatis/SpringMVC/Servlet(tomcat)，可以尝试使用yobatis自动生成配置文件，如下图：
 ![usage](https://linbaiye.github.io/yobatis/img/usage.gif)
-# BUG & 改进
-使用中遇到问题，或者有改进建议请提交issue。
+
+
+生成配置文件后，可以手动更改生成代码的存放目录。若无法自动生配置文件，则需要手写配置文件（mybatisGeneratorConfig.xml），示例如下：
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN" "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+<generatorConfiguration>
+  <!-- ${user} 为用户目录, 该选项用于加载 mysql-connector-java-5.1.25.jar，需要正确配置 -->
+  <classPathEntry location="${user}/.m2/repository/mysql/mysql-connector-java/5.1.25/mysql-connector-java-5.1.25.jar"/>
+  <context id="org.nalby.yobatis.book.model" targetRuntime="MyBatis3">
+    <!-- Yobatis 插件，必须 -->
+    <plugin type="org.mybatis.generator.plugins.YobatisDaoPlugin"/>
+    <jdbcConnection driverClass="com.mysql.jdbc.Driver" connectionURL="jdbc:mysql://localhost:3306/book_store?characterEncoding=utf-8" userId="root" password="root"/>
+    <javaTypeResolver>
+      <property name="forceBigDecimals" value="false"/>
+    </javaTypeResolver>
+    <!-- model, criteria class文件配置 -->
+    <javaModelGenerator targetPackage="org.nalby.yobatis.book.model" targetProject="/yobatis-simple-example/src/main/java"/>
+    <!-- xml mapper文件配置 -->
+    <sqlMapGenerator targetPackage="mybatis-mappers" targetProject="/yobatis-simple-example/src/main/resources"/>
+    <!-- dao层class文件配置 -->
+    <javaClientGenerator type="XMLMAPPER" targetPackage="org.nalby.yobatis.book.dao" targetProject="/yobatis-simple-example/src/main/java"/>
+    <!-- 需要生成对应代码的表 -->
+    <table tableName="book" schema="book_store" modelType="flat">
+      <generatedKey column="id" sqlStatement="mysql" identity="true"/>
+    </table>
+  </context>
+</generatorConfiguration>
+```
+
+
