@@ -55,16 +55,21 @@ public List nameEqualOrAuthorIs(String name, long authorId) {
   <context id="org.nalby.yobatis.book.model" targetRuntime="MyBatis3">
     <!-- Yobatis 插件，必须 -->
     <plugin type="org.mybatis.generator.plugins.YobatisDaoPlugin"/>
-    <jdbcConnection driverClass="com.mysql.jdbc.Driver" connectionURL="jdbc:mysql://localhost:3306/book_store?characterEncoding=utf-8" userId="root" password="root"/>
+    <jdbcConnection driverClass="com.mysql.jdbc.Driver" 
+    connectionURL="jdbc:mysql://localhost:3306/book_store?characterEncoding=utf-8" 
+    userId="root" password="root"/>
     <javaTypeResolver>
       <property name="forceBigDecimals" value="false"/>
     </javaTypeResolver>
     <!-- model, criteria class文件配置 -->
-    <javaModelGenerator targetPackage="org.nalby.yobatis.book.model" targetProject="/yobatis-simple-example/src/main/java"/>
+    <javaModelGenerator targetPackage="org.nalby.yobatis.book.model"
+    targetProject="/yobatis-simple-example/src/main/java"/>
     <!-- xml mapper文件配置 -->
-    <sqlMapGenerator targetPackage="mybatis-mappers" targetProject="/yobatis-simple-example/src/main/resources"/>
+    <sqlMapGenerator targetPackage="mybatis-mappers"
+    targetProject="/yobatis-simple-example/src/main/resources"/>
     <!-- dao层class文件配置 -->
-    <javaClientGenerator type="XMLMAPPER" targetPackage="org.nalby.yobatis.book.dao" targetProject="/yobatis-simple-example/src/main/java"/>
+    <javaClientGenerator type="XMLMAPPER"
+    targetPackage="org.nalby.yobatis.book.dao" targetProject="/yobatis-simple-example/src/main/java"/>
     <!-- 需要生成对应代码的表 -->
     <table tableName="book" schema="book_store" modelType="flat">
       <generatedKey column="id" sqlStatement="mysql" identity="true"/>
