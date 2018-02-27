@@ -92,7 +92,7 @@ public class MybatisGeneratorContext {
 	
 	
 	/**
-	 * Construct a MybatisGeneratorContext from a existent element.
+	 * Construct a MybatisGeneratorContext from an existent element.
 	 * @param context the context element.
 	 */
 	public MybatisGeneratorContext(Element context) {

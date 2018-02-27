@@ -139,7 +139,7 @@ public class MybatisGeneratorContextTests {
 	@Test
 	public void hasPredefinedElements() {
 		Element element = context.getContext();
-		assertTrue(element.elements("plugin").size() == 2);
+		assertTrue(element.elements("plugin").size() == 1);
 		assertPluginElement(element);
 	}
 
@@ -236,12 +236,6 @@ public class MybatisGeneratorContextTests {
 		assertPluginElement(context.getContext());
 		xml = 
 				"  <context id=\"id\" targetRuntime=\"MyBatis3\">\n" + 
-				"  	 <plugin type=\"org.mybatis.generator.plugins.YobatisPlugin\">\n" + 
-				"        <property name=\"enableBaseClass\" value=\"true\"/>\n" + 
-				"    </plugin>" + 
-				"  	 <plugin type=\"test\">\n" + 
-				"        <property name=\"enableBaseClass\" value=\"true\"/>\n" + 
-				"    </plugin>" + 
 				"    <jdbcConnection driverClass=\"com.mysql.jdbc.Driver\" connectionURL=\"jdbc:mysql://127.0.0.1:3306/uplending?characterEncoding=utf-8\" userId=\"uplending\" password=\"uplendingxwg370\"/>\n" + 
 				"    <javaTypeResolver>\n" + 
 				"      <property name=\"forceBigDecimals\" value=\"false\"/>\n" + 
@@ -252,7 +246,6 @@ public class MybatisGeneratorContextTests {
 		context = build(xml);
 		assertPluginElement(context.getContext());
 		assertTrue(hasPlugin(context.getContext().elements("plugin"), MybatisGeneratorContext.YOBATIS_DAO_PLUGIN));
-		assertTrue(hasPlugin(context.getContext().elements("plugin"), "test"));
 		assertTrue(hasTable(context.getContext().elements("table"), "table1"));
 		assertTrue(hasTable(context.getContext().elements("table"), "table2"));
 		assertTrue(context.hasTable());
