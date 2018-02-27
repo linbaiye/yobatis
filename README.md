@@ -29,10 +29,12 @@ public List nameEqualOrAuthorIs(String name, long authorId) {
   return bookDao.selectList(criteria); 
 }
 ```
+完整示例请使用该项目:https://github.com/linbaiye/yobatis-simple-example.git
 # Requirements
 * eclipse luna或者更高版本
 * Java 8
 * 仅支持MySQL
+* 表必须有主键
 # 安装
 单击Help菜单 -> 选择Install New Software -> 单击Add，对话框中添加repository: https://linbaiye.github.io/yobatis_upsite
 
@@ -471,6 +473,8 @@ import org.nalby.yobatis.book.model.base.BaseBook;
  */
 public interface BookDao extends BaseDao<Book, BaseBook, Long> {
 }
+```
+```
 package org.nalby.yobatis.book.mapper.impl;
 
 import org.nalby.yobatis.book.mapper.BookDao;
@@ -809,6 +813,7 @@ public class BookCriteria extends BaseCriteria {
   </update>
 </mapper>
 ```
-
+# API文档
+[文档连接](https://linbaiye.github.io/yobatis/doc.html)
 
 
