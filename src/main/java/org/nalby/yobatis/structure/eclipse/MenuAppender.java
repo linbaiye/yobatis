@@ -68,7 +68,7 @@ public class MenuAppender extends ContributionItem {
 			}
 		}
 		MenuItem menuItem = new MenuItem(menu, SWT.CHECK, index);
-		menuItem.setText("Yobatis");
+		menuItem.setText("Yobatis DAO");
 		menuItem.addSelectionListener(new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent e) {
 				ICommandService commandService = (ICommandService) PlatformUI

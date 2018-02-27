@@ -12,6 +12,8 @@ import org.mybatis.generator.api.GeneratedFile;
 import org.mybatis.generator.api.GeneratedJavaFile;
 import org.mybatis.generator.api.GeneratedXmlFile;
 import org.mybatis.generator.api.LibraryRunner;
+import org.mybatis.generator.api.YobatisJavaFile;
+import org.nalby.yobatis.exception.InvalidMybatisGeneratorConfigException;
 import org.nalby.yobatis.structure.File;
 import org.nalby.yobatis.structure.Project;
 import org.nalby.yobatis.util.FolderUtil;
@@ -24,7 +26,7 @@ public class FilesWriterTests {
 	private List<GeneratedJavaFile> javaFiles;
 	
 	private List<GeneratedXmlFile> xmlFiles;
-
+	
 	private Project project;
 	
 	private final static String DEFAULT_JAVA_PATH = "/src/main/java";
@@ -44,24 +46,9 @@ public class FilesWriterTests {
 		javaFiles.add(javaFile);
 		return javaFile;
 	}
-	
-	private GeneratedJavaFile addModelClass(String className) {
-		GeneratedJavaFile javaFile = mock(GeneratedJavaFile.class);
-		String content = "package model\n";
-		content = content + "public class " + className + " {\n";
-		content = content + "int a = 1;\n";
-		content = content + "}";
-		when(javaFile.getFormattedContent()).thenReturn(content);
-		when(javaFile.getTargetPackage()).thenReturn("model");
-		when(javaFile.getTargetProject()).thenReturn(DEFAULT_JAVA_PATH);
-		when(javaFile.getFileName()).thenReturn(className + ".java");
-		javaFiles.add(javaFile);
-		return javaFile;
-	}
-	
-	
-	private GeneratedJavaFile addCriteriaClass(String className) {
-		GeneratedJavaFile javaFile = mock(GeneratedJavaFile.class);
+
+	private YobatisJavaFile createYobatisJavaFile(String className, boolean overwrite) {
+		YobatisJavaFile javaFile = mock(YobatisJavaFile.class);
 		String content = "package model.criteria\n";
 		content = content + "public class " + className + " {\n";
 		content = content + "int a = 1;\n";
@@ -70,24 +57,11 @@ public class FilesWriterTests {
 		when(javaFile.getTargetPackage()).thenReturn("model.criteria");
 		when(javaFile.getTargetProject()).thenReturn(DEFAULT_JAVA_PATH);
 		when(javaFile.getFileName()).thenReturn(className + ".java");
+		when(javaFile.isOverwrite()).thenReturn(overwrite);
 		javaFiles.add(javaFile);
 		return javaFile;
 	}
 	
-	private GeneratedJavaFile addMapperClass(String className) {
-		GeneratedJavaFile javaFile = mock(GeneratedJavaFile.class);
-		String content = "package mapper\n";
-		content = content + "public interface " + className + " {\n";
-		content = content + "}";
-		when(javaFile.getFormattedContent()).thenReturn(content);
-		when(javaFile.getTargetPackage()).thenReturn("mapper");
-		when(javaFile.getTargetProject()).thenReturn(DEFAULT_JAVA_PATH);
-		when(javaFile.getFileName()).thenReturn(className + ".java");
-		javaFiles.add(javaFile);
-		return javaFile;
-	}
-
-
 	private File wrapGeneratedFile(GeneratedFile javaFile) {
 		String filepath = FolderUtil.concatPath(javaFile.getTargetProject(), 
 				javaFile.getTargetPackage().replaceAll("\\.", "/") + "/" + javaFile.getFileName());
@@ -97,7 +71,6 @@ public class FilesWriterTests {
 		when(project.createFile(file.path())).thenReturn(file);
 		return file;
 	}
-	
 
 	private File addGeneratedFileToProject(GeneratedFile javaFile) {
 		File file = wrapGeneratedFile(javaFile);
@@ -144,30 +117,48 @@ public class FilesWriterTests {
 		project = mock(Project.class);
 	}
 	
-	
 	@Test
 	public void writeNewXmlFile() {
+		GeneratedXmlFile xmlFile = makeXmlMapper("test", DEFAULT_XML_FILE);
+		File file = wrapGeneratedFile(xmlFile);
+		new MybatisFilesWriter(project, libraryRunner).writeAll();
+		verify(project, times(2)).findFile(file.path());
+		verify(file, times(1)).write(anyString());
+	}
+	
+	
+	@Test
+	public void overwriteXmlFile() {
 		GeneratedXmlFile xmlFile = addXmlMapper("test", DEFAULT_XML_FILE);
 		File file = wrapGeneratedFile(xmlFile);
 		new MybatisFilesWriter(project, libraryRunner).writeAll();
 		verify(project, times(2)).findFile(file.path());
-		verify(file, times(1)).write(xmlFile.getFormattedContent());
+		verify(file, times(1)).write(anyString());
 	}
 	
 	
 	@Test
-	public void writeNewBaseClass() {
-		GeneratedJavaFile javaFile = addBaseClass("Test");
+	public void ignoreNonYobatisFile() {
+		GeneratedJavaFile javaFile = addBaseClass("TestCriteria");
+		File file = wrapGeneratedFile(javaFile);
+		new MybatisFilesWriter(project, libraryRunner).writeAll();
+		verify(project, times(0)).findFile(file.path());
+		verify(file, times(0)).write(javaFile.getFormattedContent());
+	}
+
+	
+	@Test
+	public void writeNonExistentJavaFile() {
+		GeneratedJavaFile javaFile = createYobatisJavaFile("TestCriteria", false);
 		File file = wrapGeneratedFile(javaFile);
 		new MybatisFilesWriter(project, libraryRunner).writeAll();
 		verify(project, times(1)).findFile(file.path());
 		verify(file, times(1)).write(javaFile.getFormattedContent());
 	}
-	
-	
+
 	@Test
-	public void overwriteBaseClass() {
-		GeneratedJavaFile javaFile = addBaseClass("Test");
+	public void overwriteJavaFile() {
+		GeneratedJavaFile javaFile = createYobatisJavaFile("TestCriteria", true);
 		File file = addGeneratedFileToProject(javaFile);
 		new MybatisFilesWriter(project, libraryRunner).writeAll();
 		verify(project, times(1)).findFile(file.path());
@@ -175,58 +166,26 @@ public class FilesWriterTests {
 	}
 	
 	@Test
-	public void writeNewModelClass() {
-		GeneratedJavaFile javaFile = addModelClass("Test");
-		File file = wrapGeneratedFile(javaFile);
-		new MybatisFilesWriter(project, libraryRunner).writeAll();
-		verify(project, times(1)).findFile(file.path());
-		verify(file, times(1)).write(javaFile.getFormattedContent());
-	}
-	
-	@Test
-	public void preserveModelClass() {
-		GeneratedJavaFile javaFile = addModelClass("Test");
+	public void noOverwriteJavaFile() {
+		GeneratedJavaFile javaFile = createYobatisJavaFile("TestCriteria", false);
 		File file = addGeneratedFileToProject(javaFile);
 		new MybatisFilesWriter(project, libraryRunner).writeAll();
 		verify(project, times(1)).findFile(file.path());
 		verify(file, times(0)).write(javaFile.getFormattedContent());
 	}
 	
-	@Test
-	public void writeNewMapperClass() {
-		GeneratedJavaFile javaFile = addMapperClass("TestMapper");
-		File file = wrapGeneratedFile(javaFile);
+	@Test(expected = InvalidMybatisGeneratorConfigException.class)
+	public void noFiles() {
+		when(libraryRunner.getGeneratedJavaFiles()).thenReturn(null);
 		new MybatisFilesWriter(project, libraryRunner).writeAll();
-		verify(project, times(1)).findFile(file.path());
-		verify(file, times(1)).write(javaFile.getFormattedContent());
 	}
-	
-	@Test
-	public void preserveMapperClass() {
-		GeneratedJavaFile javaFile = addMapperClass("TestMapper");
-		File file = addGeneratedFileToProject(javaFile);
+
+	@Test(expected = InvalidMybatisGeneratorConfigException.class)
+	public void noXMlFiles() {
+		when(libraryRunner.getGeneratedXmlFiles()).thenReturn(null);
 		new MybatisFilesWriter(project, libraryRunner).writeAll();
-		verify(project, times(1)).findFile(file.path());
-		verify(file, times(0)).write(javaFile.getFormattedContent());
 	}
-	
-	
-	@Test
-	public void writeNewCriteriaClass() {
-		GeneratedJavaFile javaFile = addCriteriaClass("TestCriteria");
-		File file = wrapGeneratedFile(javaFile);
-		new MybatisFilesWriter(project, libraryRunner).writeAll();
-		verify(project, times(1)).findFile(file.path());
-		verify(file, times(1)).write(javaFile.getFormattedContent());
-	}
-	
-	@Test
-	public void overwriteCriteriaClass() {
-		GeneratedJavaFile javaFile = addCriteriaClass("TestCriteria");
-		File file = addGeneratedFileToProject(javaFile);
-		new MybatisFilesWriter(project, libraryRunner).writeAll();
-		verify(project, times(1)).findFile(file.path());
-		verify(file, times(1)).write(javaFile.getFormattedContent());
-	}
+
+
 
 }

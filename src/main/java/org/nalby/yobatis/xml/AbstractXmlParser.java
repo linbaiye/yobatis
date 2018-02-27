@@ -16,11 +16,13 @@
 package org.nalby.yobatis.xml;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Iterator;
@@ -62,15 +64,31 @@ public abstract class AbstractXmlParser {
 	
 	protected void customSAXReader(SAXReader saxReader) {}
 	
+	
+	private static String removeBlankLines(String content) throws IOException {
+		StringReader stringReader = new StringReader(content);
+		BufferedReader reader = new BufferedReader(stringReader);
+		StringBuilder builder = new StringBuilder();
+		String line = null;
+		while ((line = reader.readLine()) != null) {
+			if (line.trim().length() != 0) {
+				builder.append(line);
+				builder.append("\n");
+			}
+		}
+		return builder.toString();
+	}
+	
 	public static String toXmlString(Document document) throws IOException {
 		OutputFormat format = OutputFormat.createPrettyPrint();
+		format.setTrimText(false);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		PrintStream ps = new PrintStream(baos, true, "utf-8");
 	    XMLWriter writer = new XMLWriter(ps, format);
 	    writer.write(document);
 		String content = new String(baos.toByteArray(), StandardCharsets.UTF_8);
 		ps.close();
-		return content;
+		return removeBlankLines(content);
 	}
 	
 	public String toXmlString() throws IOException {
@@ -80,6 +98,7 @@ public abstract class AbstractXmlParser {
 	private static Document buildDoc(String text) {
 		SAXReader saxReader = new SAXReader();
 		saxReader.setValidation(false);
+		saxReader.setStripWhitespaceText(false);
 		try  {
 			return saxReader.read(new ByteArrayInputStream(("<rootDoc>" + text + "</rootDoc>").getBytes()));
 		} catch (Exception e) {
@@ -139,4 +158,5 @@ public abstract class AbstractXmlParser {
 		str = str.replaceFirst(">$", "");
 		return DocumentFactory.getInstance().createComment(str);
 	}
+
 }

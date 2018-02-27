@@ -20,13 +20,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
-import org.dom4j.Node;
 import org.dom4j.io.SAXReader;
 import org.nalby.yobatis.exception.InvalidMapperException;
 import org.nalby.yobatis.util.Expect;
@@ -342,18 +340,18 @@ public class SqlMapperParser extends AbstractXmlParser {
 		}
 	}
 	
+	/**
+	 * Merge one sql mapper into another one, copying elements in only {@code toMerge} into
+	 * this mapper. Should be used to merge the existent mapper into the newly generated one.
+	 * @param toMerge the one to merge.
+	 */
 	public void merge(SqlMapperParser toMerge) {
-		for (String thatId: toMerge.idSet) {
-			if (idSet.contains(thatId)) {
-				throw new InvalidMapperException("id '" + thatId + "' is preserved.");
-			}
-		}
-		Iterator<Node> iterator = toMerge.document.getRootElement().nodeIterator();
 		Element thisRoot = document.getRootElement();
-		while (iterator.hasNext()) {
-			Node node = iterator.next();
-			iterator.remove();
-			thisRoot.add(node.detach());
+		for (Element element : toMerge.document.getRootElement().elements()) {
+			String id = element.attributeValue("id");
+			if (!idSet.contains(id)) {
+				thisRoot.add(element.createCopy());
+			}
 		}
 	}
 	
