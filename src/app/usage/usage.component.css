@@ -1,0 +1,16 @@
+mat-card {
+  margin-top: 10px;
+  margin-bottom: 20px;
+
+}
+
+mat-card-content pre {
+  background: rgba(0,0,0,.01);
+  border: .5px solid rgba(0,0,0,.03);
+  border-radius: 5px;
+  padding: 5px 20px;
+}
+
+.method {
+  font-size: 16px;
+}

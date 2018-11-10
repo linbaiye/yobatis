@@ -1,0 +1,22 @@
+<h2>使用生成文件</h2>
+<mat-divider></mat-divider>
+<p>下面以表create table employee(id bigint primary key auto_increment, name char(20), phone char(12)) 作为示例，介绍各个CURD接口的使用方法。</p>
+<mat-card *ngFor="let usage of methodUsageList">
+  <mat-card-header>
+    <mat-card-title class="method">{{usage.name}}</mat-card-title>
+    <mat-card-subtitle>{{usage.brief}}</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content>
+    <p>
+      {{usage.doc}}
+    </p>
+    <p>
+      {{usage.returnValue}}
+    </p>
+    <pre class="example">
+      <code>
+        {{usage.example}}
+      </code>
+    </pre>
+  </mat-card-content>
+</mat-card>

@@ -1,0 +1,23 @@
+mat-sidenav {
+  width: 300px;
+}
+
+mat-list-item {
+  padding: 0;
+}
+mat-list-item .mat-list-item-content {
+  padding: 0;
+}
+a.active-list-item {
+  background-color: #3f51b5;
+  color: white;
+}
+a.active-list-item:active, a.active-list-item:focus {
+  background-color: #3f51b5;
+  color: white;
+}
+mat-list-item a {
+  width: 100%;
+  height: 100%;
+  line-height: 48px;
+}
