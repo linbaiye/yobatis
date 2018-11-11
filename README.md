@@ -8,9 +8,11 @@ Yobatis是一款基于MybatisGenerator的IDEA插件，在MG的基础上二次开
 按照上图配置好单击Generate就可以生成代码:<br>
 <img src="src/assets/img/before_generation.jpg" width=300px height=350px /> ----->
 <img src="src/assets/img/after_generation.jpg" width=300px height=350px />
-
+<br>
+<br>
+请访问参看详细使用：https://linbaiye.github.io/yobatis-tour/
 ## 使用生成代码:
-生成代码使用简单，假设用Yobatis为表 create table employee(id bigint primary key auto_increment, name char(20), phone char(12)) 生成代码:
+生成代码使用简单，假设Yobatis为表 create table employee(id bigint primary key auto_increment, name char(20), phone char(12)) 生成代码，下面是2个查询示例:
 
 ```
 // 通过条件查询：select id, name, phone from emloyee where name = 'Alice' and phone is not null
@@ -30,6 +32,7 @@ if (employee == null) {
   System.out.println('员工的信息为:' + employee.toString());
 }
 ```
+请访问参看详细使用：https://linbaiye.github.io/yobatis-tour/
 ## 安装
 Yobatis当前只支持本地安装，请下载最新release并通过本地安装方式安装即可。
 * 当前只支持Mysql
