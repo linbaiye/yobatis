@@ -3,31 +3,33 @@
 </h1>
 <mat-divider></mat-divider>
 <div>
-  <p>在Yobatis Tool Window中单击Generate以后，Yobatis会为表yobatis生成如下文件</p>
+  <p>在Yobatis Tool Window中单击Generate以后，Yobatis会为表employee生成如下文件</p>
   <img src="assets/img/code_arch.jpg" />
 </div>
 <div>
-  <h3>YobatisDao.java</h3>
+  <h3>EmployeeDao.java</h3>
   <mat-divider></mat-divider>
-  <p>常用的CURD signature，生成后Yobatis不会覆写，可在该文件中添加自定义方法。具体使用请访问"使用Yobatis":</p>
+  <p>常用的CURD signature，生成后Yobatis不会覆写，可在该文件中添加自定义方法。具体使用请访问"代码使用":</p>
   <img src="assets/img/dao.jpg" />
 </div>
 <div>
-  <h3>BaseYobatis.java</h3>
+  <h3>BaseEmployee.java</h3>
   <mat-divider></mat-divider>
-  <p>根据表生成的实体类，包含表中所有字段，Yobatis每次Generate会覆盖该文件，请勿修改。</p>
+  <p>根据表生成的实体类，包含表中所有字段，表结构发生变更后，重新Generate即可。Yobatis每次Generate会覆盖该文件，请勿修改。</p>
   <img src="assets/img/base_entity.jpg" />
 </div>
 <div>
-  <h3>Yobatis.java</h3>
+  <h3>Employee.java</h3>
   <mat-divider></mat-divider>
   <p>配合BaseYobatis使用，可在该类中添加自定义field, method，生成后Yobatis不会覆写该文件。</p>
   <img src="assets/img/entity.jpg" />
 </div>
 <div>
-  <h3>YobatisMapper.xml</h3>
+  <h3>EmployeeMapper.xml</h3>
   <mat-divider></mat-divider>
   <p>Mybatis mapper文件，可在该文件中添加tag，Yobatis每次都会覆写自动生成的tag，保留自定义tag。</p>
   <img src="assets/img/xml.jpg" />
 </div>
-<h3>请git clone 查看完整示例项目。</h3>
+<p>
+  <strong>请git clone https://github.com/linbaiye/yobatis-sample.git 查看完整示例项目。</strong>
+</p>

@@ -2,6 +2,7 @@
 /node_modules/
 *.classpath
 *.project
+*.idea/
 *.settings
 /dist/
 
